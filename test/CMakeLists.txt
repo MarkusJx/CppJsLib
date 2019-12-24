@@ -8,6 +8,12 @@ target_include_directories(Test PRIVATE "../src")
 target_include_directories(Test PRIVATE "../extern")
 target_link_libraries(Test CppJsLib)
 
+file(REMOVE_RECURSE $<TARGET_FILE_DIR:Test>/web)
+
+add_custom_command(TARGET Test PRE_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${CMAKE_SOURCE_DIR}/test/web $<TARGET_FILE_DIR:Test>/web)
+
 if (CMAKE_SYSTEM_NAME MATCHES "CYGWIN")
     message(STATUS "Building on Cygwin")
     file(REMOVE_RECURSE $<TARGET_FILE_DIR:Test>/cygCppJsLib.dll)

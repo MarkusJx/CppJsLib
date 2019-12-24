@@ -4,7 +4,9 @@ const httpServer = {
         xhttp.open(type, request, true);
         if (callback) {
             xhttp.onreadystatechange = function () {
-                callback(xhttp.responseText);
+                if (this.readyState == 4 && this.status == 200) {
+                    callback(xhttp.responseText);
+                }
             };
         }
         xhttp.send(body);
@@ -39,7 +41,7 @@ const httpServer = {
             let obj = {args: arguments};
 
             if (returnType !== "void") {
-                return new Promise((resolve, reject) => {
+                return new Promise((resolve) => {
                     this.sendRequest("callfunc_" + name, resolve, JSON.stringify(obj));
                 });
             } else {
@@ -73,6 +75,12 @@ const httpServer = {
             default:
                 return false;
         }
+    },
+    'expose': function (toExpose) {
+        this.sendRequest("/listenfunc_" + toExpose.name, (response) => {
+            toExpose(...JSON.parse(response));
+            this.expose(toExpose);
+        }, "", "GET");
     }
 };
 

@@ -5,21 +5,23 @@
 #ifndef CPPJSLIB_FUNCIMPORTER_HPP
 #define CPPJSLIB_FUNCIMPORTER_HPP
 
-#include <cstdarg>
 #include <string>
-#include <json.hpp>
-#include <httplib.h>
+#include <vector>
 
 namespace CppJsLib {
     template<class T>
-    std::string getEl(T dt) {
+    inline std::string getEl(T dt) {
         return std::to_string(dt);
     }
 
     template<class ...Args>
-    void ConvertToString(nlohmann::json *json, Args...args) {
-        auto x = {(json->push_back(args), 0)...};
+    inline void ConvertToString(std::vector<std::string> *argV, Args...args) {
+        auto x = {(argV->push_back(args), 0)...};
     }
+
+    void init_jsFn(const char *pattern, void *httplib_server, std::vector<void *> *responses, bool *resolved);
+
+    void call_jsFn(std::vector<std::string> *argV, std::vector<void *> *responses, bool *resolved);
 
     template<class>
     struct JsFunction;
@@ -27,35 +29,21 @@ namespace CppJsLib {
     template<class... Args>
     struct JsFunction<void(Args ...)> {
     public:
-        explicit JsFunction(const std::string &name, httplib::Server *server) {
+        explicit JsFunction(const std::string &name, void *httplib_server) {
             std::string r = "/listenfunc_";
             r.append(name);
-            server->Get(r.c_str(), [this](const httplib::Request &req, httplib::Response &res) {
-                responses.push_back(&res);
-                do {
-                    std::this_thread::sleep_for(std::chrono::milliseconds(10));
-                } while (!resolved);
-                std::vector<httplib::Response *>().swap(responses);
-                std::this_thread::sleep_for(std::chrono::milliseconds(10));
-
-                resolved = false;
-            });
+            init_jsFn(r.c_str(), httplib_server, &responses, &resolved);
         }
 
         void operator()(Args ... args) {
-            nlohmann::json j;
-            auto x = {(ConvertToString(&j, getEl(args)), 0)...};
-            std::string str = j.dump();
-
-            for (httplib::Response *r:responses) {
-                r->set_content(str, "text/plain");
-            }
-            resolved = true;
+            std::vector<std::string> argV;
+            auto x = {(ConvertToString(&argV, getEl(args)), 0)...};
+            call_jsFn(&argV, &responses, &resolved);
         }
 
     private:
         bool resolved = false;
-        std::vector<httplib::Response *> responses;
+        std::vector<void *> responses;
     };
 }
 

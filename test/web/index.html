@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <script src="httpServer.js"></script>
+</head>
+<body>
+
+<script>
+    httpServer.expose(jsF);
+
+    function jsF(i) {
+        console.log(i);
+    }
+
+    httpServer.f(2);
+</script>
+</body>
+</html>

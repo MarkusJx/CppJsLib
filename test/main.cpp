@@ -3,10 +3,20 @@
 //
 
 #include <WebGui.hpp>
+#include <variant>
+
+CppJsLib::WebGUI *wGui;
+CppJsLib::JsFunction<void(int)> *func;
+
+void f(int a) {
+    printf("Result from function f: %d\n", a);
+    func->operator()(a);
+}
 
 int main() {
-    auto wGui = new CppJsLib::WebGUI("web");
-    auto c = wGui->importJsFunction<int, bool>("ab");
-    c(0, false);
+    wGui = new CppJsLib::WebGUI("web");
+    auto fun = wGui->importJsFunction<int>("jsF");
+    func = &fun;
+    wGui->expose(f);
     wGui->start(1234);
 }

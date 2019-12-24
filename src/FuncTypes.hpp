@@ -8,7 +8,6 @@
 #include <functional>
 #include <iostream>
 #include <sstream>
-#include <json.hpp>
 
 /**
  * Source 1: https://stackoverflow.com/a/9065203
@@ -117,18 +116,17 @@ namespace CppJsLib {
         }
     };
 
+    std::string *createStringArrayFromJSON(int *size, const std::string &data);
+
     template<class T>
     struct cString<T *> {
         static T *convert(const std::string &data) {
             typedef typename remove_pointer<T>::type type;
-            nlohmann::json j = nlohmann::json::parse(data);
             int size = 0;
-            for (auto &it : j) size++;
+            std::string *arr = createStringArrayFromJSON(&size, data);
             type *ret = new type[size];
-            int i = 0;
-            for (auto &it : j) {
-                ret[i] = cString<type>::convert(it.dump());
-                i++;
+            for (int i = 0; i < size; i++) {
+                ret[i] = cString<type>::convert(arr[i]);
             }
 
             return ret;
