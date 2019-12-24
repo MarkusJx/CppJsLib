@@ -21,8 +21,8 @@ add_library(CppJsLib SHARED "${webInterface}" "${extern}")
 
 target_include_directories(CppJsLib PRIVATE "../extern")
 
-file(REMOVE_RECURSE $<TARGET_FILE_DIR:CppJsLib>/httpServerJs)
+file(REMOVE_RECURSE $<TARGET_FILE_DIR:CppJsLib>/CppJsLibJs)
 
 add_custom_command(TARGET CppJsLib PRE_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_directory
-        ${CMAKE_SOURCE_DIR}/httpServerJs $<TARGET_FILE_DIR:CppJsLib>/httpServerJs)
+        ${CMAKE_SOURCE_DIR}/CppJsLibJs $<TARGET_FILE_DIR:CppJsLib>/CppJsLibJs)

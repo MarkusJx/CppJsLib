@@ -1,10 +1,10 @@
-const httpServer = {
+const cppJsLib = {
     'sendRequest': function (request, callback = false, body = "", type = "POST") {
         let xhttp = new XMLHttpRequest();
         xhttp.open(type, request, true);
         if (callback) {
             xhttp.onreadystatechange = function () {
-                if (this.readyState == 4 && this.status == 200) {
+                if (this.readyState === 4 && this.status === 200) {
                     callback(xhttp.responseText);
                 }
             };
@@ -84,4 +84,4 @@ const httpServer = {
     }
 };
 
-httpServer.init();
+cppJsLib.init();
