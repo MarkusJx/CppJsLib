@@ -3,7 +3,6 @@
 //
 
 #include <CppJsLib.hpp>
-#include <variant>
 
 CppJsLib::WebGUI *wGui;
 CppJsLib::JsFunction<void(int)> *func;

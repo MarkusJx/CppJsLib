@@ -11,14 +11,14 @@
 using namespace CppJsLib;
 
 // WebGUI class -------------------------------------------------------------------------
-WebGUI::WebGUI(const std::string &base_dir) {
+CPPJSLIB_EXPORT WebGUI::WebGUI(const std::string &base_dir) {
     auto *svr = new httplib::Server();
     server = static_cast<void *>(svr);
     running = false;
     static_cast<httplib::Server *>(server)->set_base_dir(base_dir.c_str());
 }
 
-void WebGUI::start(int port, const std::string &host) {
+CPPJSLIB_EXPORT void WebGUI::start(int port, const std::string &host) {
     auto *svr = static_cast<httplib::Server *>(server);
 
     svr->Get("/CppJsLib.js", [](const httplib::Request &req, httplib::Response &res) {
@@ -52,7 +52,7 @@ void WebGUI::start(int port, const std::string &host) {
     }
 }
 
-void WebGUI::callFromPost(const char *target, const PostHandler &handler) {
+CPPJSLIB_EXPORT void WebGUI::callFromPost(const char *target, const PostHandler &handler) {
     auto *svr = static_cast<httplib::Server *>(server);
     svr->Post(target, [handler](const httplib::Request &req, httplib::Response &res) {
         std::string result = handler(req.body);
@@ -62,7 +62,7 @@ void WebGUI::callFromPost(const char *target, const PostHandler &handler) {
     });
 }
 
-WebGUI::~WebGUI() {
+CPPJSLIB_EXPORT WebGUI::~WebGUI() {
     if (running) static_cast<httplib::Server *>(server)->stop();
     for (void *p : funcVector) {
         free(p);
@@ -73,7 +73,7 @@ WebGUI::~WebGUI() {
 
 // End of WebGUI class ------------------------------------------------------------------
 
-std::string *CppJsLib::parseJSONInput(int *size, const std::string &args) {
+CPPJSLIB_EXPORT std::string *CppJsLib::parseJSONInput(int *size, const std::string &args) {
     using json = nlohmann::json;
     json j = json::parse(json::parse(args)["args"].dump());
     int s = 0;
@@ -89,17 +89,17 @@ std::string *CppJsLib::parseJSONInput(int *size, const std::string &args) {
     return argArr;
 }
 
-std::string CppJsLib::stringArrayToJSON(std::vector<std::string> *v) {
+CPPJSLIB_EXPORT std::string CppJsLib::stringArrayToJSON(std::vector<std::string> *v) {
     nlohmann::json json(*v);
     return json.dump();
 }
 
-std::string CppJsLib::stringToJSON(std::string s) {
+CPPJSLIB_EXPORT std::string CppJsLib::stringToJSON(std::string s) {
     nlohmann::json json(s);
     return json.dump();
 }
 
-std::string *CppJsLib::createStringArrayFromJSON(int *size, const std::string &data) {
+CPPJSLIB_EXPORT std::string *CppJsLib::createStringArrayFromJSON(int *size, const std::string &data) {
     nlohmann::json j = nlohmann::json::parse(data);
     int s = 0;
     for (auto &it : j) s++;
@@ -114,7 +114,8 @@ std::string *CppJsLib::createStringArrayFromJSON(int *size, const std::string &d
     return ret;
 }
 
-void CppJsLib::init_jsFn(const char *pattern, void *httplib_server, std::vector<void *> *responses, bool *resolved) {
+CPPJSLIB_EXPORT void
+CppJsLib::init_jsFn(const char *pattern, void *httplib_server, std::vector<void *> *responses, bool *resolved) {
     auto *server = static_cast<httplib::Server *>(httplib_server);
     server->Get(pattern, [responses, resolved](const httplib::Request &req, httplib::Response &res) {
         responses->push_back(static_cast<void *>(&res));
@@ -128,7 +129,8 @@ void CppJsLib::init_jsFn(const char *pattern, void *httplib_server, std::vector<
     });
 }
 
-void CppJsLib::call_jsFn(std::vector<std::string> *argV, std::vector<void *> *responses, bool *resolved) {
+CPPJSLIB_EXPORT void
+CppJsLib::call_jsFn(std::vector<std::string> *argV, std::vector<void *> *responses, bool *resolved) {
     nlohmann::json j;
     for (std::string s: *argV) {
         j.push_back(s);

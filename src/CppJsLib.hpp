@@ -1,9 +1,42 @@
-//
-// Created by Markus on 11/12/2019.
-//
-
 #ifndef CPPJSLIB_WEBGUI_HPP
 #define CPPJSLIB_WEBGUI_HPP
+
+#ifdef CPPJSLIB_STATIC_DEFINE
+#  define CPPJSLIB_EXPORT
+#  define CPPJSLIB_NO_EXPORT
+#else
+#  ifndef CPPJSLIB_EXPORT
+#    ifdef CppJsLib_EXPORTS
+/* We are building this library */
+#      define CPPJSLIB_EXPORT __declspec(dllexport)
+#    else
+/* We are using this library */
+#      define CPPJSLIB_EXPORT __declspec(dllimport)
+#    endif
+#  endif
+
+#  ifndef CPPJSLIB_NO_EXPORT
+#    define CPPJSLIB_NO_EXPORT
+#  endif
+#endif
+
+#ifndef CPPJSLIB_DEPRECATED
+#  define CPPJSLIB_DEPRECATED __declspec(deprecated)
+#endif
+
+#ifndef CPPJSLIB_DEPRECATED_EXPORT
+#  define CPPJSLIB_DEPRECATED_EXPORT CPPJSLIB_EXPORT CPPJSLIB_DEPRECATED
+#endif
+
+#ifndef CPPJSLIB_DEPRECATED_NO_EXPORT
+#  define CPPJSLIB_DEPRECATED_NO_EXPORT CPPJSLIB_NO_EXPORT CPPJSLIB_DEPRECATED
+#endif
+
+#if 0 /* DEFINE_NO_DEPRECATED */
+#  ifndef CPPJSLIB_NO_DEPRECATED
+#    define CPPJSLIB_NO_DEPRECATED
+#  endif
+#endif
 
 #include <map>
 #include <vector>
@@ -16,15 +49,18 @@
 #define getHttpServer() _getHttpServer<httplib::Server*>()
 
 namespace CppJsLib {
-    std::string *parseJSONInput(int *size, const std::string &args);
+    CPPJSLIB_EXPORT std::string *parseJSONInput(int *size, const std::string &args);
 
-    std::string stringArrayToJSON(std::vector<std::string> *v);
+    CPPJSLIB_EXPORT std::string stringArrayToJSON(std::vector<std::string> *v);
 
-    std::string stringToJSON(std::string s);
+    CPPJSLIB_EXPORT std::string stringToJSON(std::string s);
 
-    void init_jsFn(const char *pattern, void *httplib_server, std::vector<void *> *responses, bool *resolved);
+    CPPJSLIB_EXPORT void
+    init_jsFn(const char *pattern, void *httplib_server, std::vector<void *> *responses, bool *resolved);
 
-    void call_jsFn(std::vector<std::string> *argV, std::vector<void *> *responses, bool *resolved);
+    CPPJSLIB_EXPORT void call_jsFn(std::vector<std::string> *argV, std::vector<void *> *responses, bool *resolved);
+
+    CPPJSLIB_EXPORT std::string *createStringArrayFromJSON(int *size, const std::string &data);
 
     template<class>
     struct JsFunction;
@@ -194,8 +230,6 @@ namespace CppJsLib {
             return ret;
         }
     };
-
-    std::string *createStringArrayFromJSON(int *size, const std::string &data);
 
     template<class T>
     struct cString<T *> {
@@ -369,7 +403,7 @@ namespace CppJsLib {
 
     class WebGUI {
     public:
-        explicit WebGUI(const std::string &base_dir);
+        CPPJSLIB_EXPORT explicit WebGUI(const std::string &base_dir);
 
         template<class R, class...Args>
         inline void _exportFunction(R(*f)(Args...), std::string name) {
@@ -394,7 +428,7 @@ namespace CppJsLib {
             return JsFunction<void(Args...)>(FunctionName, server);
         }
 
-        void start(int port, const std::string &host = "localhost");
+        CPPJSLIB_EXPORT void start(int port, const std::string &host = "localhost");
 
         /**
          * A function used by the getHttpServer macro
@@ -408,7 +442,7 @@ namespace CppJsLib {
             return static_cast<T>(server);
         }
 
-        ~WebGUI();
+        CPPJSLIB_EXPORT ~WebGUI();
 
     private:
         void *server;
@@ -417,7 +451,7 @@ namespace CppJsLib {
         bool running;
         using PostHandler = std::function<std::string(std::string req_body)>;
 
-        void callFromPost(const char *target, const PostHandler &handler);
+        CPPJSLIB_EXPORT void callFromPost(const char *target, const PostHandler &handler);
     };
 }
 

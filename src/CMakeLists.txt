@@ -9,15 +9,9 @@ file(GLOB webInterface
         "*.hpp"
         )
 
-file(GLOB extern
-        "../extern/*.cpp"
-        "../extern/*.hpp"
-        "../extern/*.h"
-        )
-
 add_compile_definitions(COMPILATION)
 
-add_library(CppJsLib SHARED "${webInterface}" "${extern}")
+add_library(CppJsLib SHARED "${webInterface}")
 
 target_include_directories(CppJsLib PRIVATE "../extern")
 
