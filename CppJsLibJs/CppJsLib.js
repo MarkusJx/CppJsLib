@@ -16,10 +16,12 @@ const cppJsLib = {
             console.log("Initializing with sequence: " + response);
             let obj = JSON.parse(response);
             for (let fnName in obj) {
-                let args = obj[fnName].toString().split("(");
-                let returnType = args[0].split(" ")[0];
-                args = args[1].replace(")", "").split(", ");
-                this.addFn(returnType, fnName, args);
+                if (obj.hasOwnProperty(fnName)) {
+                    let args = obj[fnName].toString().split("(");
+                    let returnType = args[0].split(" ")[0];
+                    args = args[1].replace(")", "").split(", ");
+                    this.addFn(returnType, fnName, args);
+                }
             }
         }, "", "GET");
     },
