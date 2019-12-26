@@ -2,7 +2,7 @@
 // Created by markus on 22/12/2019.
 //
 
-#include <WebGui.hpp>
+#include <CppJsLib.hpp>
 #include <variant>
 
 CppJsLib::WebGUI *wGui;

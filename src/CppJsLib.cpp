@@ -2,7 +2,7 @@
 // Created by Markus on 11/12/2019.
 //
 
-#include "WebGui.hpp"
+#include "CppJsLib.hpp"
 
 #include <json.hpp>
 #include <httplib.h>
