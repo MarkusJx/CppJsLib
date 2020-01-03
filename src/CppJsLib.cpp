@@ -7,6 +7,8 @@
 #include <json.hpp>
 #include <httplib.h>
 #include <sstream>
+#include <thread>
+#include <iostream>
 
 using namespace CppJsLib;
 
@@ -15,10 +17,11 @@ CPPJSLIB_EXPORT WebGUI::WebGUI(const std::string &base_dir) {
     auto *svr = new httplib::Server();
     server = static_cast<void *>(svr);
     running = false;
+    stopped = false;
     static_cast<httplib::Server *>(server)->set_base_dir(base_dir.c_str());
 }
 
-CPPJSLIB_EXPORT void WebGUI::start(int port, const std::string &host) {
+CPPJSLIB_EXPORT bool WebGUI::start(int port, const std::string &host, bool block) {
     auto *svr = static_cast<httplib::Server *>(server);
 
     svr->Get("/CppJsLib.js", [](const httplib::Request &req, httplib::Response &res) {
@@ -47,9 +50,26 @@ CPPJSLIB_EXPORT void WebGUI::start(int port, const std::string &host) {
         res.set_content(serialized_string, "text/plain");
     });
 
-    if (svr->listen(host.c_str(), port)) {
-        running = true;
+    running = true;
+    bool *runningPtr = &running;
+    bool *stoppedPtr = &stopped;
+
+    std::function < void() > func = [svr, host, port, runningPtr, stoppedPtr]() {
+        if (!svr->listen(host.c_str(), port)) {
+            (*runningPtr) = false;
+        }
+
+        (*stoppedPtr) = true;
+    };
+
+    if (!block) {
+        std::thread t(func);
+        t.detach();
+    } else {
+        func();
     }
+
+    return running;
 }
 
 CPPJSLIB_EXPORT void WebGUI::callFromPost(const char *target, const PostHandler &handler) {
@@ -63,7 +83,7 @@ CPPJSLIB_EXPORT void WebGUI::callFromPost(const char *target, const PostHandler 
 }
 
 CPPJSLIB_EXPORT WebGUI::~WebGUI() {
-    if (running) static_cast<httplib::Server *>(server)->stop();
+    stop(this);
     for (void *p : funcVector) {
         free(p);
     }
@@ -72,6 +92,31 @@ CPPJSLIB_EXPORT WebGUI::~WebGUI() {
 }
 
 // End of WebGUI class ------------------------------------------------------------------
+
+CPPJSLIB_EXPORT bool CppJsLib::stop(WebGUI *webGui, bool block, int waitMaxSeconds) {
+    if (webGui->running) {
+        webGui->getHttpServer()->stop();
+        if (waitMaxSeconds != CPPJSLIB_DURATION_INFINITE && block) {
+            waitMaxSeconds = waitMaxSeconds * 100;
+            int waited = 0;
+            while (!webGui->stopped && waited < waitMaxSeconds) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(10));
+                waited++;
+            }
+
+            if (!webGui->stopped) {
+                std::cerr << "Timed out during socket close" << std::endl;
+            }
+        } else if (block) {
+            while (!webGui->stopped) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            }
+        }
+    }
+    webGui->running = !webGui->stopped;
+
+    return webGui->stopped;
+}
 
 CPPJSLIB_EXPORT std::string *CppJsLib::parseJSONInput(int *size, const std::string &args) {
     using json = nlohmann::json;

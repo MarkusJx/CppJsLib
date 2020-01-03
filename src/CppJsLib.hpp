@@ -42,11 +42,12 @@
 #include <vector>
 #include <string>
 #include <functional>
-#include <iostream>
 #include <sstream>
 
 #define expose(func) _exportFunction(func, #func)
 #define getHttpServer() _getHttpServer<httplib::Server*>()
+
+#define CPPJSLIB_DURATION_INFINITE -1
 
 namespace CppJsLib {
     CPPJSLIB_EXPORT std::string *parseJSONInput(int *size, const std::string &args);
@@ -405,6 +406,24 @@ namespace CppJsLib {
     public:
         CPPJSLIB_EXPORT explicit WebGUI(const std::string &base_dir);
 
+        template<class...Args>
+        inline void _exportFunction(void(*f)(Args...), std::string name) {
+            if (running) {
+                std::cerr << "Cannot expose function " << name << " since the web server is already running"
+                          << std::endl;
+                return;
+            }
+            auto exposedF = _exposeFunc(f, name);
+            funcVector.push_back(static_cast<void *>(exposedF));
+
+            initMap.insert(std::pair<std::string, std::string>(name, exposedF->toString()));
+            std::string r = "/callfunc_";
+            r.append(name);
+            callFromPost(r.c_str(), [exposedF](std::string req_body) {
+                return Caller::call(exposedF, req_body);
+            });
+        }
+
         template<class R, class...Args>
         inline void _exportFunction(R(*f)(Args...), std::string name) {
             if (running) {
@@ -428,7 +447,7 @@ namespace CppJsLib {
             return JsFunction<void(Args...)>(FunctionName, server);
         }
 
-        CPPJSLIB_EXPORT void start(int port, const std::string &host = "localhost");
+        CPPJSLIB_EXPORT bool start(int port, const std::string &host = "localhost", bool block = true);
 
         /**
          * A function used by the getHttpServer macro
@@ -444,15 +463,18 @@ namespace CppJsLib {
 
         CPPJSLIB_EXPORT ~WebGUI();
 
+        bool running;
+        bool stopped;
     private:
         void *server;
         std::map<std::string, std::string> initMap;
         std::vector<void *> funcVector;
-        bool running;
         using PostHandler = std::function<std::string(std::string req_body)>;
 
         CPPJSLIB_EXPORT void callFromPost(const char *target, const PostHandler &handler);
     };
+
+    CPPJSLIB_EXPORT bool stop(WebGUI *webGui, bool block = true, int maxWaitSeconds = CPPJSLIB_DURATION_INFINITE);
 }
 
 #endif //CPPJSLIB_WEBGUI_HPP
