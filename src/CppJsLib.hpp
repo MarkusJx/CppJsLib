@@ -1,7 +1,7 @@
 #ifndef CPPJSLIB_WEBGUI_HPP
 #define CPPJSLIB_WEBGUI_HPP
 
-#ifdef CPPJSLIB_STATIC_DEFINE
+#if defined (CPPJSLIB_STATIC_DEFINE) || defined (__LINUX__)
 #  define CPPJSLIB_EXPORT
 #  define CPPJSLIB_NO_EXPORT
 #else
@@ -43,6 +43,7 @@
 #include <string>
 #include <functional>
 #include <sstream>
+#include <iostream>
 
 #define expose(func) _exportFunction(func, #func)
 #define getHttpServer() _getHttpServer<httplib::Server*>()
@@ -84,6 +85,29 @@ namespace CppJsLib {
     inline void ConvertToString(std::vector<std::string> *argV, Args...args) {
         auto x = {(argV->push_back(args), 0)...};
     }
+
+    template<>
+    struct JsFunction<void()> {
+    public:
+        explicit JsFunction(const std::string &name, void *httplib_server) {
+            std::string r = "/listenfunc_";
+            r.append(name);
+            init_jsFn(r.c_str(), httplib_server, &responses, &resolved);
+        }
+
+        void operator()() {
+            std::vector<std::string> argV;
+            call_jsFn(&argV, &responses, &resolved);
+        }
+
+        void call() {
+            operator()();
+        }
+
+    private:
+        bool resolved = false;
+        std::vector<void *> responses;
+    };
 
     template<class... Args>
     struct JsFunction<void(Args ...)> {
@@ -373,12 +397,12 @@ namespace CppJsLib {
 
     template<class... Args>
     ExposedFunction<void(Args...)> *_exposeFunc(void (*f)(Args...), const std::string &name) {
-        return new ExposedFunction<void(Args...)>(std::function<void(Args...)>(f), name);
+        return new ExposedFunction<void(Args...)>(std::function < void(Args...) > (f), name);
     }
 
     template<class R, class... Args>
     ExposedFunction<R(Args...)> *_exposeFunc(R(*f)(Args...), const std::string &name) {
-        return new ExposedFunction<R(Args...)>(std::function<R(Args...)>(f), name);
+        return new ExposedFunction<R(Args...)>(std::function < R(Args...) > (f), name);
     }
 
     struct Caller {
@@ -443,8 +467,11 @@ namespace CppJsLib {
         }
 
         template<class...Args>
-        inline JsFunction<void(Args...)> importJsFunction(std::string FunctionName) {
-            return JsFunction<void(Args...)>(FunctionName, server);
+        inline std::function<void(Args...)> importJsFunction(std::string FunctionName) {
+            auto *f = new JsFunction<void(Args...)>(FunctionName, server);
+            return [f] (Args...args) {
+                f->call(args...);
+            };
         }
 
         CPPJSLIB_EXPORT bool start(int port, const std::string &host = "localhost", bool block = true);

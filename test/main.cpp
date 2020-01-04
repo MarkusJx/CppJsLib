@@ -7,17 +7,16 @@
 #include <thread>
 
 CppJsLib::WebGUI *wGui;
-CppJsLib::JsFunction<void(int)> *func;
+std::function<void(int)> func = {};
 
 void f(int a) {
     printf("Result from function f: %d\n", a);
-    func->operator()(a);
+    func(a);
 }
 
 int main() {
     wGui = new CppJsLib::WebGUI("web");
-    auto fun = wGui->importJsFunction<int>("jsF");
-    func = &fun;
+    func = wGui->importJsFunction<int>("jsF");
     wGui->expose(f);
 
     std::cout << "Starting web server..." << std::endl;
