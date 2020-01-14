@@ -16,17 +16,19 @@ void f(int a) {
 
 int main() {
     wGui = new CppJsLib::WebGUI("web");
-    func = wGui->importJsFunction<int>("jsF");
+    wGui->importFunction(&func);
     wGui->expose(f);
 
     std::cout << "Starting web server..." << std::endl;
-    wGui->start(8026, "localhost", true);
+    wGui->start(8026, "localhost", false);
 
     std::this_thread::sleep_for(std::chrono::seconds(2));
     std::cout << "Stopping web server..." << std::endl;
     if (CppJsLib::stop(wGui)) {
         std::cout << "Web server stopped" << std::endl;
     }
+
+    delete wGui;
 
     return 0;
 }

@@ -6,24 +6,27 @@
 
 #include <json.hpp>
 #include <httplib.h>
-#include <sstream>
 #include <thread>
 #include <iostream>
+#include <utility>
 
 using namespace CppJsLib;
 
 // WebGUI class -------------------------------------------------------------------------
-CPPJSLIB_EXPORT WebGUI::WebGUI(const std::string &base_dir) {
+CPPJSLIB_EXPORT WebGUI::WebGUI(const std::string &base_dir) : initMap(), funcVector(), jsFuncVector() {
     auto *svr = new httplib::Server();
     server = static_cast<void *>(svr);
     running = false;
     stopped = false;
+    loggingF = [](const std::string &) {};
+
     static_cast<httplib::Server *>(server)->set_base_dir(base_dir.c_str());
 }
 
 CPPJSLIB_EXPORT bool WebGUI::start(int port, const std::string &host, bool block) {
     auto *svr = static_cast<httplib::Server *>(server);
 
+    loggingF("[CppJsLib] Starting web server");
     svr->Get("/CppJsLib.js", [](const httplib::Request &req, httplib::Response &res) {
         std::ifstream inFile;
         inFile.open("CppJsLibJs/CppJsLib.js");
@@ -40,10 +43,12 @@ CPPJSLIB_EXPORT bool WebGUI::start(int port, const std::string &host, bool block
     });
 
     nlohmann::json initList;
-    for (std::pair<std::string, std::string> p: initMap) {
+    for (std::pair<char *, char *> p: initMap) {
         initList[p.first] = p.second;
+        free(p.first);
+        free(p.second);
     }
-    std::map<std::string, std::string>().swap(initMap);
+    std::map<char *, char *>().swap(initMap);
 
     std::string serialized_string = initList.dump();
     svr->Get("/init", [serialized_string](const httplib::Request &req, httplib::Response &res) {
@@ -63,9 +68,11 @@ CPPJSLIB_EXPORT bool WebGUI::start(int port, const std::string &host, bool block
     };
 
     if (!block) {
+        loggingF("[CppJsLib] Starting web server in non-blocking mode");
         std::thread t(func);
         t.detach();
     } else {
+        loggingF("[CppJsLib] Starting web server in blocking mode");
         func();
     }
 
@@ -82,13 +89,26 @@ CPPJSLIB_EXPORT void WebGUI::callFromPost(const char *target, const PostHandler 
     });
 }
 
+CPPJSLIB_EXPORT void WebGUI::setLogger(std::function<void(const std::string &)> f) {
+    loggingF = std::move(f);
+}
+
+CPPJSLIB_EXPORT void WebGUI::setError(std::function<void(const std::string &)> f) {
+    errorF = std::move(f);
+}
+
 CPPJSLIB_EXPORT WebGUI::~WebGUI() {
     stop(this);
     for (void *p : funcVector) {
+        delete static_cast<ExposedFunction<void()> *>(p);
+    }
+
+    for (void *p : jsFuncVector) {
         free(p);
     }
     //Clear the vector and release the memory. Source: https://stackoverflow.com/a/10465032
     std::vector<void *>().swap(funcVector);
+    std::vector<void *>().swap(jsFuncVector);
 }
 
 // End of WebGUI class ------------------------------------------------------------------

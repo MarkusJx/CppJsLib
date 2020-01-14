@@ -46,6 +46,7 @@
 #include <iostream>
 
 #define expose(func) _exportFunction(func, #func)
+#define importFunction(func) _importJsFunction(func, #func)
 #define getHttpServer() _getHttpServer<httplib::Server*>()
 
 #define CPPJSLIB_DURATION_INFINITE -1
@@ -89,7 +90,7 @@ namespace CppJsLib {
     template<>
     struct JsFunction<void()> {
     public:
-        explicit JsFunction(const std::string &name, void *httplib_server) {
+        void init(const std::string &name, void *httplib_server) {
             std::string r = "/listenfunc_";
             r.append(name);
             init_jsFn(r.c_str(), httplib_server, &responses, &resolved);
@@ -100,10 +101,6 @@ namespace CppJsLib {
             call_jsFn(&argV, &responses, &resolved);
         }
 
-        void call() {
-            operator()();
-        }
-
     private:
         bool resolved = false;
         std::vector<void *> responses;
@@ -112,7 +109,7 @@ namespace CppJsLib {
     template<class... Args>
     struct JsFunction<void(Args ...)> {
     public:
-        explicit JsFunction(const std::string &name, void *httplib_server) {
+        void init(const std::string &name, void *httplib_server) {
             std::string r = "/listenfunc_";
             r.append(name);
             init_jsFn(r.c_str(), httplib_server, &responses, &resolved);
@@ -122,10 +119,6 @@ namespace CppJsLib {
             std::vector<std::string> argV;
             auto x = {(ConvertToString(&argV, getEl(args)), 0)...};
             call_jsFn(&argV, &responses, &resolved);
-        }
-
-        void call(Args ... args) {
-            operator()(args...);
         }
 
     private:
@@ -296,7 +289,7 @@ namespace CppJsLib {
     struct ExposedFunction<void(Args...)> {
     public:
         ExposedFunction(std::function<void(Args...)>(f), const std::string &name) {
-            _f = f;
+            _f = std::move(f);
             _name = name;
 
             typedef function_traits<std::function<void(Args...)>> fn_traits;
@@ -397,12 +390,16 @@ namespace CppJsLib {
 
     template<class... Args>
     ExposedFunction<void(Args...)> *_exposeFunc(void (*f)(Args...), const std::string &name) {
-        return new ExposedFunction<void(Args...)>(std::function < void(Args...) > (f), name);
+        ExposedFunction<void(Args...)> *exposedFn = new(std::nothrow) ExposedFunction<void(Args...)>(
+                std::function < void(Args...) > (f), name);
+        return exposedFn;
     }
 
     template<class R, class... Args>
     ExposedFunction<R(Args...)> *_exposeFunc(R(*f)(Args...), const std::string &name) {
-        return new ExposedFunction<R(Args...)>(std::function < R(Args...) > (f), name);
+        ExposedFunction<R(Args...)> *exposedFn = new(std::nothrow) ExposedFunction<R(Args...)>(
+                std::function < R(Args...) > (f), name);
+        return exposedFn;
     }
 
     struct Caller {
@@ -432,49 +429,74 @@ namespace CppJsLib {
 
         template<class...Args>
         inline void _exportFunction(void(*f)(Args...), std::string name) {
+            loggingF("[CppJsLib] Exposing void function with name " + name);
             if (running) {
-                std::cerr << "Cannot expose function " << name << " since the web server is already running"
-                          << std::endl;
+                errorF("[CppJsLib] Cannot expose function " + name + " since the web server is already running");
                 return;
             }
             auto exposedF = _exposeFunc(f, name);
-            funcVector.push_back(static_cast<void *>(exposedF));
 
-            initMap.insert(std::pair<std::string, std::string>(name, exposedF->toString()));
-            std::string r = "/callfunc_";
-            r.append(name);
-            callFromPost(r.c_str(), [exposedF](std::string req_body) {
-                return Caller::call(exposedF, req_body);
-            });
+            if (exposedF) {
+                funcVector.push_back(static_cast<void *>(exposedF));
+
+                initMap.insert(std::pair<char *, char *>(_strdup(name.c_str()), _strdup(exposedF->toString().c_str())));
+                std::string r = "/callfunc_";
+                r.append(name);
+                callFromPost(r.c_str(), [exposedF](std::string req_body) {
+                    return Caller::call(exposedF, req_body);
+                });
+            } else {
+                errorF("[CppJsLib] Cannot expose function " + name + ": Unable to allocate memory");
+            }
         }
 
         template<class R, class...Args>
         inline void _exportFunction(R(*f)(Args...), std::string name) {
+            loggingF("[CppJsLib] Exposing function with name " + name);
             if (running) {
-                std::cerr << "Cannot expose function " << name << " since the web server is already running"
-                          << std::endl;
+                errorF("[CppJsLib] Cannot expose function " + name + " since the web server is already running");
                 return;
             }
             auto exposedF = _exposeFunc(f, name);
-            funcVector.push_back(static_cast<void *>(exposedF));
 
-            initMap.insert(std::pair<std::string, std::string>(name, exposedF->toString()));
-            std::string r = "/callfunc_";
-            r.append(name);
-            callFromPost(r.c_str(), [exposedF](std::string req_body) {
-                return Caller::call(exposedF, req_body);
-            });
+            if (exposedF) {
+                funcVector.push_back(static_cast<void *>(exposedF));
+
+                initMap.insert(std::pair<char *, char *>(_strdup(name.c_str()), _strdup(exposedF->toString().c_str())));
+                std::string r = "/callfunc_";
+                r.append(name);
+                callFromPost(r.c_str(), [exposedF](std::string req_body) {
+                    return Caller::call(exposedF, req_body);
+                });
+            } else {
+                errorF("[CppJsLib] Cannot expose function " + name + ": Unable to allocate memory");
+            }
         }
 
         template<class...Args>
-        inline std::function<void(Args...)> importJsFunction(std::string FunctionName) {
-            auto *f = new JsFunction<void(Args...)>(FunctionName, server);
-            return [f] (Args...args) {
-                f->call(args...);
-            };
+        inline void _importJsFunction(std::function<void(Args...)> *function, std::string fName) {
+            if (fName[0] == '&') {
+                fName.erase(0, 1); // Delete first character as it is a &
+            }
+
+            loggingF("[CppJsLib] Importing js function with name " + fName);
+            JsFunction<void(Args...)> *f = (JsFunction<void(Args...)> *) malloc(sizeof(JsFunction<void(Args...)>));
+            if (f != nullptr) {
+                f->init(fName, server);
+                jsFuncVector.push_back(static_cast<void *>(f));
+                *function = [f](Args...args) {
+                    f->operator()(args...);
+                };
+            } else {
+                errorF("[CppJsLib] Could not import function " + fName + ": Unable to allocate memory");
+            }
         }
 
         CPPJSLIB_EXPORT bool start(int port, const std::string &host = "localhost", bool block = true);
+
+        CPPJSLIB_EXPORT void setLogger(std::function<void(const std::string &)> function);
+
+        CPPJSLIB_EXPORT void setError(std::function<void(const std::string &)> function);
 
         /**
          * A function used by the getHttpServer macro
@@ -494,9 +516,12 @@ namespace CppJsLib {
         bool stopped;
     private:
         void *server;
-        std::map<std::string, std::string> initMap;
+        std::map<char *, char *> initMap;
         std::vector<void *> funcVector;
+        std::vector<void *> jsFuncVector;
         using PostHandler = std::function<std::string(std::string req_body)>;
+        std::function<void(const std::string &)> loggingF;
+        std::function<void(const std::string &)> errorF;
 
         CPPJSLIB_EXPORT void callFromPost(const char *target, const PostHandler &handler);
     };
