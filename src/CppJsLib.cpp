@@ -19,6 +19,7 @@ CPPJSLIB_EXPORT WebGUI::WebGUI(const std::string &base_dir) : initMap(), funcVec
     running = false;
     stopped = false;
     loggingF = [](const std::string &) {};
+    errorF = [](const std::string &) {};
 
     static_cast<httplib::Server *>(server)->set_base_dir(base_dir.c_str());
 }

@@ -1,7 +1,7 @@
 #ifndef CPPJSLIB_WEBGUI_HPP
 #define CPPJSLIB_WEBGUI_HPP
 
-#if defined (CPPJSLIB_STATIC_DEFINE) || defined (__LINUX__)
+#if defined (CPPJSLIB_STATIC_DEFINE) || defined (__LINUX__) || defined(__APPLE__)
 #  define CPPJSLIB_EXPORT
 #  define CPPJSLIB_NO_EXPORT
 #else
@@ -36,6 +36,12 @@
 #  ifndef CPPJSLIB_NO_DEPRECATED
 #    define CPPJSLIB_NO_DEPRECATED
 #  endif
+#endif
+
+#if defined(WIN32) || defined(_WIN32) || defined(__WIN32) && !defined(__CYGWIN__)
+#   define CPPJSLIB_WINDOWS
+#else
+#   undef CPPJSLIB_WINDOWS
 #endif
 
 #include <map>
@@ -439,7 +445,11 @@ namespace CppJsLib {
             if (exposedF) {
                 funcVector.push_back(static_cast<void *>(exposedF));
 
+#ifdef CPPJSLIB_WINDOWS
                 initMap.insert(std::pair<char *, char *>(_strdup(name.c_str()), _strdup(exposedF->toString().c_str())));
+#else
+                initMap.insert(std::pair<char *, char *>(strdup(name.c_str()), strdup(exposedF->toString().c_str())));
+#endif
                 std::string r = "/callfunc_";
                 r.append(name);
                 callFromPost(r.c_str(), [exposedF](std::string req_body) {
@@ -462,7 +472,11 @@ namespace CppJsLib {
             if (exposedF) {
                 funcVector.push_back(static_cast<void *>(exposedF));
 
+#ifdef CPPJSLIB_WINDOWS
                 initMap.insert(std::pair<char *, char *>(_strdup(name.c_str()), _strdup(exposedF->toString().c_str())));
+#else
+                initMap.insert(std::pair<char *, char *>(strdup(name.c_str()), strdup(exposedF->toString().c_str())));
+#endif
                 std::string r = "/callfunc_";
                 r.append(name);
                 callFromPost(r.c_str(), [exposedF](std::string req_body) {
