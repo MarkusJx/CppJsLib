@@ -12,7 +12,9 @@ jobs:
     - name: create include
       run: mkdir include
     - name: get json
-      run: wget https://github.com/nlohmann/json/releases/download/v3.7.3/json.hpp -P include
+      uses: wei/wget@v1
+      with:
+        args: -O include\json.hpp https://github.com/nlohmann/json/releases/download/v3.7.3/json.hpp
     - name: cmake
       run: cmake -DCMAKE_BUILD_TYPE=Debug .
     - name: build
