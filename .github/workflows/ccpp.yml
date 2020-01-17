@@ -1,0 +1,19 @@
+name: C/C++ CI
+
+on: [push]
+
+jobs:
+  build:
+
+    runs-on: windows-latest
+    
+    steps:
+    - uses: actions/checkout@v1
+    - name: create include
+      run: mkdir include
+    - name: get json
+      run: wget https://github.com/nlohmann/json/releases/download/v3.7.3/json.hpp -P include
+    - name: cmake
+      run: cmake -DCMAKE_BUILD_TYPE=Debug .
+    - name: build
+      run: cmake --build .
