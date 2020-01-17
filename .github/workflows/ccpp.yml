@@ -20,6 +20,6 @@ jobs:
       with:
         args: -O extern/httplib.h https://raw.githubusercontent.com/yhirose/cpp-httplib/master/httplib.h
     - name: cmake
-      run: cmake -DCMAKE_BUILD_TYPE=Debug .
+      run: cmake -DCMAKE_BUILD_TYPE=Debug -DBuildTests=TRUE -DGHBuild=TRUE .
     - name: build
-      run: cmake --build .
+      run: cmake --build . 
