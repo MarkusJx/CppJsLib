@@ -1,6 +1,10 @@
 #ifndef CPPJSLIB_WEBGUI_HPP
 #define CPPJSLIB_WEBGUI_HPP
 
+#ifdef CPPJSLIB_GHBUILD
+#  define CPPJSLIB_EXPORT
+#endif
+
 #if defined(CPPJSLIB_STATIC_DEFINE) || defined(__LINUX__) || defined(__APPLE__)
 #  define CPPJSLIB_EXPORT
 #  define CPPJSLIB_NO_EXPORT

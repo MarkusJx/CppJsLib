@@ -7,7 +7,8 @@ option(BuildTests "BuildTests" FALSE)
 option(GHBuild FALSE)
 
 if (GHBuild)
-    add_compile_definitions(CPPJSLIB_EXPORT)
+    add_compile_definitions(CPPJSLIB_GHBUILD)
+    message(STATUS "Building on GitHub")
 endif ()
 
 if (BuildTests)
