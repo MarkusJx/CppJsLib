@@ -1,0 +1,30 @@
+name: C/C++ CI
+
+on: []
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v1
+    - name: create extern
+      run: mkdir extern
+    - name: get json
+      uses: wei/wget@v1.1.1
+      with:
+        args: -O extern/json.hpp https://github.com/nlohmann/json/releases/download/v3.7.3/json.hpp
+    - name: get httplib
+      uses: wei/wget@v1.1.1
+      with:
+        args: -O extern/httplib.h https://raw.githubusercontent.com/yhirose/cpp-httplib/master/httplib.h
+    - name: cmake
+      run: cmake -DCMAKE_BUILD_TYPE=Debug -DBuildTests=TRUE -DGHBuild=TRUE .
+    - name: build
+      run: cmake --build .
+    - name: Upload artifact
+      uses: actions/upload-artifact@v1
+      with:
+        name: CppJsLib
+        path: /home/runner/work/CppJsLib/CppJsLib/src/libCppJsLib.so
