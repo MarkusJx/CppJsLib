@@ -49,7 +49,7 @@ jobs:
       shell: powershell
       run: wget https://raw.githubusercontent.com/yhirose/cpp-httplib/master/httplib.h -OutFile extern/httplib.h
     - name: cmake
-      run: cmake -DCMAKE_BUILD_TYPE=Debug -DBuildTests=TRUE .
+      run: cmake -DBuildTests=TRUE .
     - name: build
       run: cmake --build . 
     - name: Upload library
@@ -136,9 +136,9 @@ jobs:
       shell: powershell
       run: wget https://raw.githubusercontent.com/yhirose/cpp-httplib/master/httplib.h -OutFile extern/httplib.h
     - name: cmake
-      run: cmake -DCMAKE_BUILD_TYPE=Release -DBuildTests=TRUE .
+      run: cmake -DBuildTests=TRUE .
     - name: build
-      run: cmake --build . 
+      run: cmake --build . --config Release
     - name: Upload library
       uses: actions/upload-artifact@v1
       with:
