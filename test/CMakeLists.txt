@@ -33,6 +33,10 @@ elseif (CMAKE_SYSTEM_NAME MATCHES "Darwin")
             $<TARGET_FILE_DIR:CppJsLib>/libCppJsLib.dylib $<TARGET_FILE_DIR:Test>/libCppJsLib.dylib)
 elseif (CMAKE_SYSTEM_NAME MATCHES "Linux")
     message(STATUS "Building on Linux")
+    set(THREADS_PREFER_PTHREAD_FLAG ON)
+    find_package(Threads REQUIRED)
+    target_link_libraries(Test Threads::Threads)
+
     file(REMOVE_RECURSE $<TARGET_FILE_DIR:Test>/libCppJsLib.so)
     add_custom_command(TARGET Test PRE_BUILD
             COMMAND ${CMAKE_COMMAND} -E copy
