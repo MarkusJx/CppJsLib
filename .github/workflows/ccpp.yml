@@ -37,16 +37,9 @@ jobs:
     - uses: actions/checkout@v1
     - name: create extern
       run: mkdir extern
-    - name: curl
-      uses: wei/curl@master
-      with:
-        args: https://httpbin.org/get
-    - name: init psh
-      shell: powershell
-      run: $client = new-object System.Net.WebClient
     - name: get json
       shell: powershell
-      run: $client.DownloadFile("https://raw.githubusercontent.com/yhirose/cpp-httplib/master/httplib.h","extern/httplib.h")
+      run: wget https://raw.githubusercontent.com/yhirose/cpp-httplib/master/httplib.h -OutFile extern/httplib.h
     - name: get httplib
       uses: wei/wget@v1.1.1
       with:
