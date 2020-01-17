@@ -31,13 +31,8 @@ jobs:
     - name: Upload test
       uses: actions/upload-artifact@v1
       with:
-        name: CppJsLibLinux
-        path: test/Test
-    - name: Upload web folder
-      uses: actions/upload-artifact@v1
-      with:
-        name: CppJsLibLinux
-        path: test/web
+        name: CppJsLibLinuxTest
+        path: test
         
   build-windows:
 
@@ -77,13 +72,9 @@ jobs:
     - name: create extern
       run: mkdir extern
     - name: get json
-      uses: wei/wget@v1.1.1
-      with:
-        args: -O extern/json.hpp https://github.com/nlohmann/json/releases/download/v3.7.3/json.hpp
+      run: wget -O extern/json.hpp https://github.com/nlohmann/json/releases/download/v3.7.3/json.hpp
     - name: get httplib
-      uses: wei/wget@v1.1.1
-      with:
-        args: -O extern/httplib.h https://raw.githubusercontent.com/yhirose/cpp-httplib/master/httplib.h
+      run: wget -O extern/httplib.h https://raw.githubusercontent.com/yhirose/cpp-httplib/master/httplib.h
     - name: cmake
       run: cmake -DCMAKE_BUILD_TYPE=Debug -DBuildTests=TRUE -DGHBuild=TRUE .
     - name: build
@@ -96,10 +87,5 @@ jobs:
     - name: Upload test
       uses: actions/upload-artifact@v1
       with:
-        name: CppJsLibMacOs
-        path: test/Test
-    - name: Upload web folder
-      uses: actions/upload-artifact@v1
-      with:
-        name: CppJsLibMacOs
-        path: test/web
+        name: CppJsLibMacOsTest
+        path: test
