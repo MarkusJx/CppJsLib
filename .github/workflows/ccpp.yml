@@ -39,11 +39,10 @@ jobs:
       run: mkdir extern
     - name: get json
       shell: powershell
-      run: wget https://raw.githubusercontent.com/yhirose/cpp-httplib/master/httplib.h -OutFile extern/httplib.h
+      run: wget https://github.com/nlohmann/json/releases/download/v3.7.3/json.hpp -OutFile extern/json.hpp
     - name: get httplib
-      uses: wei/wget@v1.1.1
-      with:
-        args: -O extern/httplib.h https://raw.githubusercontent.com/yhirose/cpp-httplib/master/httplib.h
+      shell: powershell
+      run: wget https://raw.githubusercontent.com/yhirose/cpp-httplib/master/httplib.h -OutFile extern/httplib.h
     - name: cmake
       run: cmake -DCMAKE_BUILD_TYPE=Debug -DBuildTests=TRUE -DGHBuild=TRUE .
     - name: build
