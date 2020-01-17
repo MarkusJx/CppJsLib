@@ -44,6 +44,6 @@ jobs:
       shell: powershell
       run: wget https://raw.githubusercontent.com/yhirose/cpp-httplib/master/httplib.h -OutFile extern/httplib.h
     - name: cmake
-      run: cmake -DCMAKE_BUILD_TYPE=Debug -DBuildTests=TRUE -DGHBuild=TRUE .
+      run: cmake -DCMAKE_BUILD_TYPE=Debug -DBuildTests=TRUE .
     - name: build
       run: cmake --build . 
