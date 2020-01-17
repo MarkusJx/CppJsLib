@@ -25,12 +25,18 @@ if (CMAKE_SYSTEM_NAME MATCHES "CYGWIN")
     add_custom_command(TARGET Test PRE_BUILD
             COMMAND ${CMAKE_COMMAND} -E copy
             $<TARGET_FILE_DIR:CppJsLib>/cygCppJsLib.dll $<TARGET_FILE_DIR:Test>/cygCppJsLib.dll)
-elseif(CMAKE_SYSTEM_NAME MATCHES "Darwin")
+elseif (CMAKE_SYSTEM_NAME MATCHES "Darwin")
     message(STATUS "Building on Apple")
     file(REMOVE_RECURSE $<TARGET_FILE_DIR:Test>/libCppJsLib.dylib)
     add_custom_command(TARGET Test PRE_BUILD
             COMMAND ${CMAKE_COMMAND} -E copy
             $<TARGET_FILE_DIR:CppJsLib>/libCppJsLib.dylib $<TARGET_FILE_DIR:Test>/libCppJsLib.dylib)
+elseif (CMAKE_SYSTEM_NAME MATCHES "Linux")
+    message(STATUS "Building on Linux")
+    file(REMOVE_RECURSE $<TARGET_FILE_DIR:Test>/libCppJsLib.so)
+    add_custom_command(TARGET Test PRE_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy
+            $<TARGET_FILE_DIR:CppJsLib>/libCppJsLib.so $<TARGET_FILE_DIR:Test>/libCppJsLib.so)
 else ()
     file(REMOVE_RECURSE $<TARGET_FILE_DIR:Test>/CppJsLib.dll)
     add_custom_command(TARGET Test PRE_BUILD
