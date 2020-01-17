@@ -89,3 +89,90 @@ jobs:
       with:
         name: CppJsLibMacOsTest
         path: test
+  
+  build-ubuntu-release:
+
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v1
+    - name: create extern
+      run: mkdir extern
+    - name: get json
+      uses: wei/wget@v1.1.1
+      with:
+        args: -O extern/json.hpp https://github.com/nlohmann/json/releases/download/v3.7.3/json.hpp
+    - name: get httplib
+      uses: wei/wget@v1.1.1
+      with:
+        args: -O extern/httplib.h https://raw.githubusercontent.com/yhirose/cpp-httplib/master/httplib.h
+    - name: cmake
+      run: cmake -DCMAKE_BUILD_TYPE=Release -DBuildTests=TRUE -DGHBuild=TRUE .
+    - name: build
+      run: cmake --build . 
+    - name: Upload object
+      uses: actions/upload-artifact@v1
+      with:
+        name: CppJsLibReleaseLinux
+        path: src/libCppJsLib.so
+    - name: Upload test
+      uses: actions/upload-artifact@v1
+      with:
+        name: CppJsLibReleaseLinuxTest
+        path: test
+        
+  build-windows-release:
+
+    runs-on: windows-latest
+    
+    steps:
+    - uses: actions/checkout@v1
+    - name: create extern
+      run: mkdir extern
+    - name: get json
+      shell: powershell
+      run: wget https://github.com/nlohmann/json/releases/download/v3.7.3/json.hpp -OutFile extern/json.hpp
+    - name: get httplib
+      shell: powershell
+      run: wget https://raw.githubusercontent.com/yhirose/cpp-httplib/master/httplib.h -OutFile extern/httplib.h
+    - name: cmake
+      run: cmake -DCMAKE_BUILD_TYPE=Release -DBuildTests=TRUE .
+    - name: build
+      run: cmake --build . 
+    - name: Upload library
+      uses: actions/upload-artifact@v1
+      with:
+        name: CppJsLibReleaseWin
+        path: src/Debug
+    - name: Upload test
+      uses: actions/upload-artifact@v1
+      with:
+        name: CppJsLibReleaseWinTest
+        path: test/Debug
+  
+  build-macos-release:
+
+    runs-on: macos-latest
+    
+    steps:
+    - uses: actions/checkout@v1
+    - name: create extern
+      run: mkdir extern
+    - name: get json
+      run: wget -O extern/json.hpp https://github.com/nlohmann/json/releases/download/v3.7.3/json.hpp
+    - name: get httplib
+      run: wget -O extern/httplib.h https://raw.githubusercontent.com/yhirose/cpp-httplib/master/httplib.h
+    - name: cmake
+      run: cmake -DCMAKE_BUILD_TYPE=Release -DBuildTests=TRUE -DGHBuild=TRUE .
+    - name: build
+      run: cmake --build . 
+    - name: Upload object
+      uses: actions/upload-artifact@v1
+      with:
+        name: CppJsLibReleaseMacOs
+        path: src/libCppJsLib.dylib
+    - name: Upload test
+      uses: actions/upload-artifact@v1
+      with:
+        name: CppJsLibReleaseMacOsTest
+        path: test
