@@ -27,7 +27,7 @@ jobs:
       uses: actions/upload-artifact@v1
       with:
         name: CppJsLibLinux
-        path: /home/runner/work/CppJsLib/CppJsLib/src/libCppJsLib.so
+        path: src
         
   build-windows:
 
