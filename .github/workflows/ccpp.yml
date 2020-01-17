@@ -27,7 +27,12 @@ jobs:
       uses: actions/upload-artifact@v1
       with:
         name: CppJsLibLinux
-        path: src
+        path: src/libCppJsLib.so
+    - name: Upload test
+      uses: actions/upload-artifact@v1
+      with:
+        name: CppJsLibLinux
+        path: test
         
   build-windows:
 
