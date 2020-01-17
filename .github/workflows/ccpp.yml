@@ -23,3 +23,8 @@ jobs:
       run: cmake -DCMAKE_BUILD_TYPE=Debug -DBuildTests=TRUE -DGHBuild=TRUE .
     - name: build
       run: cmake --build . 
+    - name: Upload artifact
+      uses: actions/upload-artifact@v1
+      with:
+        name: CppJsLib
+        path: /home/runner/work/CppJsLib/CppJsLib/src/libCppJsLib.so
