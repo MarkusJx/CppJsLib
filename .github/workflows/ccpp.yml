@@ -143,12 +143,12 @@ jobs:
       uses: actions/upload-artifact@v1
       with:
         name: CppJsLibReleaseWin
-        path: src/Debug
+        path: src/Release
     - name: Upload test
       uses: actions/upload-artifact@v1
       with:
         name: CppJsLibReleaseWinTest
-        path: test/Debug
+        path: test/Release
   
   build-macos-release:
 
