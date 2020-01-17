@@ -3,15 +3,15 @@ project(CppJsLibTests)
 
 set(CMAKE_CXX_STANDARD 17)
 
-include_directories("C:\\Program Files\\OpenSSL-Win64\\include")
-set(ssllib "C:\\Program Files\\OpenSSL-Win64\\lib")
+#include_directories("C:\\Program Files\\OpenSSL-Win64\\include")
+#set(ssllib "C:\\Program Files\\OpenSSL-Win64\\lib")
 
 add_executable(Test main.cpp)
 target_include_directories(Test PRIVATE "../src")
 target_include_directories(Test PRIVATE "../extern")
 target_link_libraries(Test CppJsLib)
 
-target_link_libraries(Test "${ssllib}/libssl.lib" "${ssllib}/libcrypto.lib")
+#target_link_libraries(Test "${ssllib}/libssl.lib" "${ssllib}/libcrypto.lib")
 
 file(REMOVE_RECURSE $<TARGET_FILE_DIR:Test>/web)
 
