@@ -23,7 +23,7 @@ jobs:
       run: cmake -DCMAKE_BUILD_TYPE=Debug -DBuildTests=TRUE -DGHBuild=TRUE .
     - name: build
       run: cmake --build . 
-    - name: Upload artifact
+    - name: Upload object
       uses: actions/upload-artifact@v1
       with:
         name: CppJsLibLinux
@@ -32,7 +32,12 @@ jobs:
       uses: actions/upload-artifact@v1
       with:
         name: CppJsLibLinux
-        path: test
+        path: test/Test
+    - name: Upload web folder
+      uses: actions/upload-artifact@v1
+      with:
+        name: CppJsLibLinux
+        path: test/web
         
   build-windows:
 
@@ -52,7 +57,7 @@ jobs:
       run: cmake -DCMAKE_BUILD_TYPE=Debug -DBuildTests=TRUE .
     - name: build
       run: cmake --build . 
-    - name: Upload artifact
+    - name: Upload library
       uses: actions/upload-artifact@v1
       with:
         name: CppJsLibWin
@@ -60,5 +65,41 @@ jobs:
     - name: Upload test
       uses: actions/upload-artifact@v1
       with:
-        name: CppJsLibTest
+        name: CppJsLibWinTest
         path: test/Debug
+  
+  build-macos:
+
+    runs-on: macos-latest
+    
+    steps:
+    - uses: actions/checkout@v1
+    - name: create extern
+      run: mkdir extern
+    - name: get json
+      uses: wei/wget@v1.1.1
+      with:
+        args: -O extern/json.hpp https://github.com/nlohmann/json/releases/download/v3.7.3/json.hpp
+    - name: get httplib
+      uses: wei/wget@v1.1.1
+      with:
+        args: -O extern/httplib.h https://raw.githubusercontent.com/yhirose/cpp-httplib/master/httplib.h
+    - name: cmake
+      run: cmake -DCMAKE_BUILD_TYPE=Debug -DBuildTests=TRUE -DGHBuild=TRUE .
+    - name: build
+      run: cmake --build . 
+    - name: Upload object
+      uses: actions/upload-artifact@v1
+      with:
+        name: CppJsLibMacOs
+        path: src/libCppJsLib.dylib
+    - name: Upload test
+      uses: actions/upload-artifact@v1
+      with:
+        name: CppJsLibMacOs
+        path: test/Test
+    - name: Upload web folder
+      uses: actions/upload-artifact@v1
+      with:
+        name: CppJsLibMacOs
+        path: test/web
