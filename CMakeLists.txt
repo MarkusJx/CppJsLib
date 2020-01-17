@@ -4,6 +4,11 @@ project(CppJsLibAll)
 set(CMAKE_CXX_STANDARD 17)
 
 option(BuildTests "BuildTests" FALSE)
+option(GHBuild FALSE)
+
+if (GHBuild)
+    add_compile_definitions(CPPJSLIB_EXPORT)
+endif ()
 
 if (BuildTests)
     message(STATUS "Building tests")
