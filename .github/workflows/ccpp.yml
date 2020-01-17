@@ -38,9 +38,9 @@ jobs:
     - name: create extern
       run: mkdir extern
     - name: get json
-      uses: wei/wget@v1.1.1
-      with:
-        args: -O extern/json.hpp https://github.com/nlohmann/json/releases/download/v3.7.3/json.hpp
+      shell: powershell
+      run: $client = new-object System.Net.WebClient
+            $client.DownloadFile("http://www.xyz.net/file.txt","C:\tmp\file.txt")
     - name: get httplib
       uses: wei/wget@v1.1.1
       with:
