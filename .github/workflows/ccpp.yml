@@ -51,9 +51,9 @@ jobs:
       uses: actions/upload-artifact@v1
       with:
         name: CppJsLibWin
-        path: D:/a/CppJsLib/CppJsLib/src/Debug
+        path: src/Debug
     - name: Upload test
       uses: actions/upload-artifact@v1
       with:
         name: CppJsLibTest
-        path: CppJsLib/test/Debug
+        path: test/Debug
