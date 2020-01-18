@@ -23,6 +23,10 @@ jobs:
       run: cmake -DCMAKE_BUILD_TYPE=Debug -DBuildTests=TRUE -DGHBuild=TRUE .
     - name: build
       run: cmake --build . 
+    - name: run test
+      shell: bash
+      working-directory: ./test
+      run: bash Test
     - name: Upload object
       uses: actions/upload-artifact@v1
       with:
@@ -52,6 +56,10 @@ jobs:
       run: cmake -DBuildTests=TRUE .
     - name: build
       run: cmake --build . 
+    - name: run test
+      shell: cmd
+      run: Test.exe
+      working-directory: ./test/Debug
     - name: Upload library
       uses: actions/upload-artifact@v1
       with:
@@ -79,6 +87,10 @@ jobs:
       run: cmake -DCMAKE_BUILD_TYPE=Debug -DBuildTests=TRUE -DGHBuild=TRUE .
     - name: build
       run: cmake --build . 
+    - name: run test
+      run: ./Test
+      shell: bash
+      working-directory: ./test
     - name: Upload object
       uses: actions/upload-artifact@v1
       with:
@@ -110,6 +122,10 @@ jobs:
       run: cmake -DCMAKE_BUILD_TYPE=Release -DBuildTests=TRUE -DGHBuild=TRUE .
     - name: build
       run: cmake --build . 
+    - name: run test
+      run: bash Test
+      shell: bash
+      working-directory: ./test
     - name: Upload object
       uses: actions/upload-artifact@v1
       with:
@@ -139,6 +155,10 @@ jobs:
       run: cmake -DBuildTests=TRUE .
     - name: build
       run: cmake --build . --config Release
+    - name: run test
+      run: Test.exe
+      shell: cmd
+      working-directory: ./test/Release
     - name: Upload library
       uses: actions/upload-artifact@v1
       with:
@@ -166,6 +186,10 @@ jobs:
       run: cmake -DCMAKE_BUILD_TYPE=Release -DBuildTests=TRUE -DGHBuild=TRUE .
     - name: build
       run: cmake --build . 
+    - name: run test
+      run: ./Test
+      shell: bash
+      working-directory: ./test
     - name: Upload object
       uses: actions/upload-artifact@v1
       with:
