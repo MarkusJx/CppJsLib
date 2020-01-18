@@ -195,11 +195,8 @@ jobs:
         run: cp -r openssl-1.1.0f-vs2017/include64/openssl include
         shell: cmd
       - name: copy openssl libs
-        run: cp -r openssl-1.1.0f-vs2017/lib64/. lib && ls
+        run: cp -r openssl-1.1.0f-vs2017/lib64/. lib
         shell: cmd
-      - run: ls
-        shell: cmd
-        working-directory: ./lib
       - name: cmake
         run: cmake -DBuildTests=TRUE -DWinGHBuild=TRUE -DHTTPS=TRUE .
       - name: build
