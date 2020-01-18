@@ -2,23 +2,37 @@ cmake_minimum_required(VERSION 3.12)
 project(CppJsLib)
 
 set(CMAKE_CXX_STANDARD 17)
-#set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
 file(GLOB webInterface
         "*.cpp"
         "*.hpp"
         )
 
-#include_directories("C:\\Program Files\\OpenSSL-Win64\\include")
-#set(ssllib "C:\\Program Files\\OpenSSL-Win64\\lib")
+option(HTTPS "Enable https support" FALSE)
+
+if (HTTPS)
+    message(STATUS "Building with HTTPS support")
+    if (NOT GHBuild)
+        include_directories("C:\\Program Files\\OpenSSL-Win64\\include")
+        set(ssllib "C:\\Program Files\\OpenSSL-Win64\\lib")
+    endif ()
+    add_compile_definitions(CPPJSLIB_ENABLE_HTTPS)
+endif ()
+
 
 add_compile_definitions(COMPILATION)
 
 add_library(CppJsLib SHARED "${webInterface}")
 
-target_include_directories(CppJsLib PRIVATE "../extern")
+target_include_directories(CppJsLib PRIVATE "../include")
 
-#target_link_libraries(CppJsLib "${ssllib}/libssl.lib" "${ssllib}/libcrypto.lib")
+if (HTTPS)
+    if (GHBuild)
+        target_link_libraries(CppJsLib "lib/libsslMD.lib" "lib/libcryptoMD.lib")
+    else ()
+        target_link_libraries(CppJsLib "${ssllib}/libssl.lib" "${ssllib}/libcrypto.lib")
+    endif ()
+endif ()
 
 file(REMOVE_RECURSE $<TARGET_FILE_DIR:CppJsLib>/CppJsLibJs)
 

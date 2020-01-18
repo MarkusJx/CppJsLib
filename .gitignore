@@ -138,4 +138,4 @@ dkms.conf
 .idea/modules.xml
 .idea/vcs.xml
 cmake-build-debug/Autobet.cbp
-extern/
+include/

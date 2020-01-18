@@ -15,7 +15,21 @@ void f(int a) {
 }
 
 int main() {
+    CppJsLib::setError([](auto s) {
+        std::cerr << s << std::endl;
+    });
+
+    CppJsLib::setLogger([](auto s) {
+        std::cout << s << std::endl;
+    });
+
+#ifdef TEST_ENABLE_HTTPS
+    std::cout << "Test were built with HTTPS support enabled" << std::endl;
+    wGui = new CppJsLib::WebGUI("web", true, "", "");
+#else
     wGui = new CppJsLib::WebGUI("web");
+#endif
+
     wGui->importFunction(&func);
     wGui->expose(f);
 

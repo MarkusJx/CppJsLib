@@ -5,7 +5,22 @@
 #  define CPPJSLIB_EXPORT
 #endif
 
-#if defined(CPPJSLIB_STATIC_DEFINE) || defined(__LINUX__) || defined(__APPLE__)
+#ifdef CPPJSLIB_ENABLE_HTTPS
+#   define CPPHTTPLIB_OPENSSL_SUPPORT
+#else
+#   undef CPPHTTPLIB_OPENSSL_SUPPORT
+#   undef CPPJSLIB_ENABLE_HTTPS //Redundant, just adding this so CLion recognizes this macro as existing
+#endif
+
+#if defined(WIN32) || defined(_WIN32) || defined(__WIN32) && !defined(__CYGWIN__)
+#   define CPPJSLIB_WINDOWS
+#   undef CPPJSLIB_UNIX
+#elif defined(__LINUX__) || defined(__APPLE__) || defined (__CYGWIN__)
+#   define CPPJSLIB_UNIX
+#   undef CPPJSLIB_WINDOWS
+#endif
+
+#if defined(CPPJSLIB_STATIC_DEFINE) || defined (CPPJSLIB_UNIX)
 #  define CPPJSLIB_EXPORT
 #  define CPPJSLIB_NO_EXPORT
 #else
@@ -42,12 +57,6 @@
 #  endif
 #endif
 
-#if defined(WIN32) || defined(_WIN32) || defined(__WIN32) && !defined(__CYGWIN__)
-#   define CPPJSLIB_WINDOWS
-#else
-#   undef CPPJSLIB_WINDOWS
-#endif
-
 #include <map>
 #include <vector>
 #include <string>
@@ -56,9 +65,14 @@
 #include <iostream>
 #include <cstring>
 
+#ifdef CPPJSLIB_WINDOWS
+#   define strdup _strdup
+#endif
+
 #define expose(func) _exportFunction(func, #func)
 #define importFunction(func) _importJsFunction(func, #func)
-#define getHttpServer() _getHttpServer<httplib::Server*>()
+#define getHttpServer() _getHttpServer<httplib::Server *>()
+#define getHttpsServer() _getHttpServer<httplib::SSLServer *>()
 
 #define CPPJSLIB_DURATION_INFINITE -1
 
@@ -70,7 +84,7 @@ namespace CppJsLib {
     CPPJSLIB_EXPORT std::string stringToJSON(std::string s);
 
     CPPJSLIB_EXPORT void
-    init_jsFn(const char *pattern, void *httplib_server, std::vector<void *> *responses, bool *resolved);
+    init_jsFn(const char *pattern, void *httplib_server, bool ssl, std::vector<void *> *responses, bool *resolved);
 
     CPPJSLIB_EXPORT void call_jsFn(std::vector<std::string> *argV, std::vector<void *> *responses, bool *resolved);
 
@@ -101,10 +115,10 @@ namespace CppJsLib {
     template<>
     struct JsFunction<void()> {
     public:
-        void init(const std::string &name, void *httplib_server) {
+        void init(const std::string &name, void *httplib_server, bool ssl) {
             std::string r = "/listenfunc_";
             r.append(name);
-            init_jsFn(r.c_str(), httplib_server, &responses, &resolved);
+            init_jsFn(r.c_str(), httplib_server, ssl, &responses, &resolved);
         }
 
         void operator()() {
@@ -120,10 +134,10 @@ namespace CppJsLib {
     template<class... Args>
     struct JsFunction<void(Args ...)> {
     public:
-        void init(const std::string &name, void *httplib_server) {
+        void init(const std::string &name, void *httplib_server, bool ssl) {
             std::string r = "/listenfunc_";
             r.append(name);
-            init_jsFn(r.c_str(), httplib_server, &responses, &resolved);
+            init_jsFn(r.c_str(), httplib_server, ssl, &responses, &resolved);
         }
 
         void operator()(Args ... args) {
@@ -401,14 +415,14 @@ namespace CppJsLib {
 
     template<class... Args>
     ExposedFunction<void(Args...)> *_exposeFunc(void (*f)(Args...), const std::string &name) {
-        ExposedFunction<void(Args...)> *exposedFn = new(std::nothrow) ExposedFunction<void(Args...)>(
+        auto *exposedFn = new(std::nothrow) ExposedFunction<void(Args...)>(
                 std::function < void(Args...) > (f), name);
         return exposedFn;
     }
 
     template<class R, class... Args>
     ExposedFunction<R(Args...)> *_exposeFunc(R(*f)(Args...), const std::string &name) {
-        ExposedFunction<R(Args...)> *exposedFn = new(std::nothrow) ExposedFunction<R(Args...)>(
+        auto *exposedFn = new(std::nothrow) ExposedFunction<R(Args...)>(
                 std::function < R(Args...) > (f), name);
         return exposedFn;
     }
@@ -434,15 +448,26 @@ namespace CppJsLib {
         }
     };
 
+    CPPJSLIB_EXPORT void setLogger(std::function<void(const std::string &)> function);
+
+    CPPJSLIB_EXPORT void setError(std::function<void(const std::string &)> function);
+
+
     class WebGUI {
     public:
+        /**
+         * @warning this constructor will be undeclared when built without ssl support
+         */
+        CPPJSLIB_EXPORT WebGUI(const std::string &base_dir, bool enableSsl, const std::string &cert_path,
+                               const std::string &private_key_path);
+
         CPPJSLIB_EXPORT explicit WebGUI(const std::string &base_dir);
 
         template<class...Args>
         inline void _exportFunction(void(*f)(Args...), std::string name) {
-            loggingF("[CppJsLib] Exposing void function with name " + name);
+            _loggingF("[CppJsLib] Exposing void function with name " + name);
             if (running) {
-                errorF("[CppJsLib] Cannot expose function " + name + " since the web server is already running");
+                _errorF("[CppJsLib] Cannot expose function " + name + " since the web server is already running");
                 return;
             }
             auto exposedF = _exposeFunc(f, name);
@@ -450,26 +475,22 @@ namespace CppJsLib {
             if (exposedF) {
                 funcVector.push_back(static_cast<void *>(exposedF));
 
-#ifdef CPPJSLIB_WINDOWS
-                initMap.insert(std::pair<char *, char *>(_strdup(name.c_str()), _strdup(exposedF->toString().c_str())));
-#else
                 initMap.insert(std::pair<char *, char *>(strdup(name.c_str()), strdup(exposedF->toString().c_str())));
-#endif
                 std::string r = "/callfunc_";
                 r.append(name);
                 callFromPost(r.c_str(), [exposedF](std::string req_body) {
                     return Caller::call(exposedF, req_body);
                 });
             } else {
-                errorF("[CppJsLib] Cannot expose function " + name + ": Unable to allocate memory");
+                _errorF("[CppJsLib] Cannot expose function " + name + ": Unable to allocate memory");
             }
         }
 
         template<class R, class...Args>
         inline void _exportFunction(R(*f)(Args...), std::string name) {
-            loggingF("[CppJsLib] Exposing function with name " + name);
+            _loggingF("[CppJsLib] Exposing function with name " + name);
             if (running) {
-                errorF("[CppJsLib] Cannot expose function " + name + " since the web server is already running");
+                _errorF("[CppJsLib] Cannot expose function " + name + " since the web server is already running");
                 return;
             }
             auto exposedF = _exposeFunc(f, name);
@@ -477,18 +498,14 @@ namespace CppJsLib {
             if (exposedF) {
                 funcVector.push_back(static_cast<void *>(exposedF));
 
-#ifdef CPPJSLIB_WINDOWS
-                initMap.insert(std::pair<char *, char *>(_strdup(name.c_str()), _strdup(exposedF->toString().c_str())));
-#else
                 initMap.insert(std::pair<char *, char *>(strdup(name.c_str()), strdup(exposedF->toString().c_str())));
-#endif
                 std::string r = "/callfunc_";
                 r.append(name);
                 callFromPost(r.c_str(), [exposedF](std::string req_body) {
                     return Caller::call(exposedF, req_body);
                 });
             } else {
-                errorF("[CppJsLib] Cannot expose function " + name + ": Unable to allocate memory");
+                _errorF("[CppJsLib] Cannot expose function " + name + ": Unable to allocate memory");
             }
         }
 
@@ -498,24 +515,23 @@ namespace CppJsLib {
                 fName.erase(0, 1); // Delete first character as it is a &
             }
 
-            loggingF("[CppJsLib] Importing js function with name " + fName);
+            _loggingF("[CppJsLib] Importing js function with name " + fName);
             JsFunction<void(Args...)> *f = (JsFunction<void(Args...)> *) malloc(sizeof(JsFunction<void(Args...)>));
             if (f != nullptr) {
-                f->init(fName, server);
+#ifndef CPPJSLIB_ENABLE_HTTPS
+                bool ssl = false;
+#endif
+                f->init(fName, server, ssl);
                 jsFuncVector.push_back(static_cast<void *>(f));
                 *function = [f](Args...args) {
                     f->operator()(args...);
                 };
             } else {
-                errorF("[CppJsLib] Could not import function " + fName + ": Unable to allocate memory");
+                _errorF("[CppJsLib] Could not import function " + fName + ": Unable to allocate memory");
             }
         }
 
         CPPJSLIB_EXPORT bool start(int port, const std::string &host = "localhost", bool block = true);
-
-        CPPJSLIB_EXPORT void setLogger(std::function<void(const std::string &)> function);
-
-        CPPJSLIB_EXPORT void setError(std::function<void(const std::string &)> function);
 
         /**
          * A function used by the getHttpServer macro
@@ -533,14 +549,17 @@ namespace CppJsLib {
 
         bool running;
         bool stopped;
+#ifdef CPPJSLIB_ENABLE_HTTPS
+        const bool ssl;
+#endif
     private:
         void *server;
         std::map<char *, char *> initMap;
         std::vector<void *> funcVector;
         std::vector<void *> jsFuncVector;
         using PostHandler = std::function<std::string(std::string req_body)>;
-        std::function<void(const std::string &)> loggingF;
-        std::function<void(const std::string &)> errorF;
+        std::function<void(const std::string &)> _loggingF;
+        std::function<void(const std::string &)> _errorF;
 
         CPPJSLIB_EXPORT void callFromPost(const char *target, const PostHandler &handler);
     };

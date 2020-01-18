@@ -3,15 +3,17 @@ project(CppJsLibTests)
 
 set(CMAKE_CXX_STANDARD 17)
 
-#include_directories("C:\\Program Files\\OpenSSL-Win64\\include")
-#set(ssllib "C:\\Program Files\\OpenSSL-Win64\\lib")
+option(HTTPS TRUE)
+
+if (HTTPS)
+    add_compile_definitions(TEST_ENABLE_HTTPS)
+    message(STATUS "Building Tests with HTTPS enabled")
+endif ()
 
 add_executable(Test main.cpp)
 target_include_directories(Test PRIVATE "../src")
-target_include_directories(Test PRIVATE "../extern")
+target_include_directories(Test PRIVATE "../include")
 target_link_libraries(Test CppJsLib)
-
-#target_link_libraries(Test "${ssllib}/libssl.lib" "${ssllib}/libcrypto.lib")
 
 file(REMOVE_RECURSE $<TARGET_FILE_DIR:Test>/web)
 

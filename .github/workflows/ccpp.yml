@@ -9,16 +9,16 @@ jobs:
     
     steps:
     - uses: actions/checkout@v1
-    - name: create extern
-      run: mkdir extern
+    - name: create include
+      run: mkdir include
     - name: get json
       uses: wei/wget@v1.1.1
       with:
-        args: -O extern/json.hpp https://github.com/nlohmann/json/releases/download/v3.7.3/json.hpp
+        args: -O include/json.hpp https://github.com/nlohmann/json/releases/download/v3.7.3/json.hpp
     - name: get httplib
       uses: wei/wget@v1.1.1
       with:
-        args: -O extern/httplib.h https://raw.githubusercontent.com/yhirose/cpp-httplib/master/httplib.h
+        args: -O include/httplib.h https://raw.githubusercontent.com/yhirose/cpp-httplib/master/httplib.h
     - name: cmake
       run: cmake -DCMAKE_BUILD_TYPE=Debug -DBuildTests=TRUE -DGHBuild=TRUE .
     - name: build
@@ -43,20 +43,20 @@ jobs:
     runs-on: windows-latest
     
     steps:
-    - uses: actions/checkout@v1
-    - name: create extern
-      run: mkdir extern
-    - name: get json
-      shell: powershell
-      run: wget https://github.com/nlohmann/json/releases/download/v3.7.3/json.hpp -OutFile extern/json.hpp
-    - name: get httplib
-      shell: powershell
-      run: wget https://raw.githubusercontent.com/yhirose/cpp-httplib/master/httplib.h -OutFile extern/httplib.h
-    - name: cmake
-      run: cmake -DBuildTests=TRUE .
-    - name: build
-      run: cmake --build . 
-    - name: run test
+      - uses: actions/checkout@v1
+      - name: create include
+        run: mkdir include
+      - name: get json
+        shell: powershell
+        run: wget https://github.com/nlohmann/json/releases/download/v3.7.3/json.hpp -OutFile include/json.hpp
+      - name: get httplib
+        shell: powershell
+        run: wget https://raw.githubusercontent.com/yhirose/cpp-httplib/master/httplib.h -OutFile include/httplib.h
+      - name: cmake
+        run: cmake -DBuildTests=TRUE .
+      - name: build
+        run: cmake --build .
+      - name: run test
       shell: cmd
       run: Test.exe
       working-directory: ./test/Debug
@@ -76,19 +76,19 @@ jobs:
     runs-on: macos-latest
     
     steps:
-    - uses: actions/checkout@v1
-    - name: create extern
-      run: mkdir extern
-    - name: get json
-      run: wget -O extern/json.hpp https://github.com/nlohmann/json/releases/download/v3.7.3/json.hpp
-    - name: get httplib
-      run: wget -O extern/httplib.h https://raw.githubusercontent.com/yhirose/cpp-httplib/master/httplib.h
-    - name: cmake
-      run: cmake -DCMAKE_BUILD_TYPE=Debug -DBuildTests=TRUE -DGHBuild=TRUE .
-    - name: build
-      run: cmake --build . 
-    - name: run test
-      run: ./Test
+      - uses: actions/checkout@v1
+      - name: create include
+        run: mkdir include
+      - name: get json
+        run: wget -O include/json.hpp https://github.com/nlohmann/json/releases/download/v3.7.3/json.hpp
+      - name: get httplib
+        run: wget -O include/httplib.h https://raw.githubusercontent.com/yhirose/cpp-httplib/master/httplib.h
+      - name: cmake
+        run: cmake -DCMAKE_BUILD_TYPE=Debug -DBuildTests=TRUE -DGHBuild=TRUE .
+      - name: build
+        run: cmake --build .
+      - name: run test
+        run: ./Test
       shell: bash
       working-directory: ./test
     - name: Upload object
@@ -107,19 +107,19 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-    - uses: actions/checkout@v1
-    - name: create extern
-      run: mkdir extern
-    - name: get json
-      uses: wei/wget@v1.1.1
-      with:
-        args: -O extern/json.hpp https://github.com/nlohmann/json/releases/download/v3.7.3/json.hpp
-    - name: get httplib
-      uses: wei/wget@v1.1.1
-      with:
-        args: -O extern/httplib.h https://raw.githubusercontent.com/yhirose/cpp-httplib/master/httplib.h
-    - name: cmake
-      run: cmake -DCMAKE_BUILD_TYPE=Release -DBuildTests=TRUE -DGHBuild=TRUE .
+      - uses: actions/checkout@v1
+      - name: create include
+        run: mkdir include
+      - name: get json
+        uses: wei/wget@v1.1.1
+        with:
+          args: -O include/json.hpp https://github.com/nlohmann/json/releases/download/v3.7.3/json.hpp
+      - name: get httplib
+        uses: wei/wget@v1.1.1
+        with:
+          args: -O include/httplib.h https://raw.githubusercontent.com/yhirose/cpp-httplib/master/httplib.h
+      - name: cmake
+        run: cmake -DCMAKE_BUILD_TYPE=Release -DBuildTests=TRUE -DGHBuild=TRUE .
     - name: build
       run: cmake --build . 
     - name: run test
@@ -142,52 +142,105 @@ jobs:
     runs-on: windows-latest
     
     steps:
-    - uses: actions/checkout@v1
-    - name: create extern
-      run: mkdir extern
-    - name: get json
-      shell: powershell
-      run: wget https://github.com/nlohmann/json/releases/download/v3.7.3/json.hpp -OutFile extern/json.hpp
-    - name: get httplib
-      shell: powershell
-      run: wget https://raw.githubusercontent.com/yhirose/cpp-httplib/master/httplib.h -OutFile extern/httplib.h
-    - name: cmake
-      run: cmake -DBuildTests=TRUE .
-    - name: build
-      run: cmake --build . --config Release
+      - uses: actions/checkout@v1
+      - name: create include
+        run: mkdir include
+      - name: get json
+        shell: powershell
+        run: wget https://github.com/nlohmann/json/releases/download/v3.7.3/json.hpp -OutFile include/json.hpp
+      - name: get httplib
+        shell: powershell
+        run: wget https://raw.githubusercontent.com/yhirose/cpp-httplib/master/httplib.h -OutFile include/httplib.h
+      - name: cmake
+        run: cmake -DBuildTests=TRUE .
+      - name: build
+        run: cmake --build . --config Release
     - name: run test
       run: Test.exe
       shell: cmd
       working-directory: ./test/Release
-    - name: Upload library
-      uses: actions/upload-artifact@v1
-      with:
-        name: CppJsLibReleaseWin
-        path: src/Release
-    - name: Upload test
-      uses: actions/upload-artifact@v1
-      with:
-        name: CppJsLibReleaseWinTest
-        path: test/Release
-  
+      - name: Upload library
+        uses: actions/upload-artifact@v1
+        with:
+          name: CppJsLibReleaseWin
+          path: src/Release
+      - name: Upload test
+        uses: actions/upload-artifact@v1
+        with:
+          name: CppJsLibReleaseWinTest
+          path: test/Release
+
+  build-windows-openssl-release:
+
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v1
+      - name: create include folder
+        run: mkdir include
+      - name: create lib folder
+        run: mkdir lib
+      - name: get json
+        shell: powershell
+        run: wget https://github.com/nlohmann/json/releases/download/v3.7.3/json.hpp -OutFile include/json.hpp
+      - name: get httplib
+        shell: powershell
+        run: wget https://raw.githubusercontent.com/yhirose/cpp-httplib/master/httplib.h -OutFile include/httplib.h
+      - name: download openssl
+        shell: powershell
+        run: wget https://www.npcglib.org/~stathis/downloads/openssl-1.1.0f-vs2017.7z -OutFile openssl.7z
+      - name: unzip openssl
+        run: 7z x openssl.7z -r -y
+      - name: copy openssl headers
+        run: cp -r openssl-1.1.0f-vs2017/include64/openssl include
+        shell: cmd
+      - name: copy openssl libs
+        run: cp -r openssl-1.1.0f-vs2017/lib64/. lib
+      - name: cmake
+        run: cmake -DBuildTests=TRUE .
+      - name: build
+        run: cmake --build . --config Release
+      - name: move libcrypto to src folder
+        run: mv openssl-1.1.0f-vs2017/bin64/libcryptoMD.dll src/Release/libcryptoMD.dll
+      - name: move libssl to src folder
+        run: mv openssl-1.1.0f-vs2017/bin64/libsslMD.dll src/Release/libsslMD.dll
+      - name: move libcrypto to test folder
+        run: mv openssl-1.1.0f-vs2017/bin64/libcryptoMD.dll test/Release/libcryptoMD.dll
+      - name: move libssl to test folder
+        run: mv openssl-1.1.0f-vs2017/bin64/libsslMD.dll test/Release/libsslMD.dll
+      - name: run test
+        run: Test.exe
+        shell: cmd
+        working-directory: ./test/Release
+      - name: Upload library
+        uses: actions/upload-artifact@v1
+        with:
+          name: CppJsLibReleaseWinOpenssl
+          path: src/Release
+      - name: Upload test
+        uses: actions/upload-artifact@v1
+        with:
+          name: CppJsLibReleaseWinTestOpenssl
+          path: test/Release
+
   build-macos-release:
 
     runs-on: macos-latest
-    
+
     steps:
-    - uses: actions/checkout@v1
-    - name: create extern
-      run: mkdir extern
-    - name: get json
-      run: wget -O extern/json.hpp https://github.com/nlohmann/json/releases/download/v3.7.3/json.hpp
-    - name: get httplib
-      run: wget -O extern/httplib.h https://raw.githubusercontent.com/yhirose/cpp-httplib/master/httplib.h
-    - name: cmake
-      run: cmake -DCMAKE_BUILD_TYPE=Release -DBuildTests=TRUE -DGHBuild=TRUE .
-    - name: build
-      run: cmake --build . 
-    - name: run test
-      run: ./Test
+      - uses: actions/checkout@v1
+      - name: create include
+        run: mkdir include
+      - name: get json
+        run: wget -O include/json.hpp https://github.com/nlohmann/json/releases/download/v3.7.3/json.hpp
+      - name: get httplib
+        run: wget -O include/httplib.h https://raw.githubusercontent.com/yhirose/cpp-httplib/master/httplib.h
+      - name: cmake
+        run: cmake -DCMAKE_BUILD_TYPE=Release -DBuildTests=TRUE -DGHBuild=TRUE .
+      - name: build
+        run: cmake --build .
+      - name: run test
+        run: ./Test
       shell: bash
       working-directory: ./test
     - name: Upload object

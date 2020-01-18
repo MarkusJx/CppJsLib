@@ -7,28 +7,76 @@
 #include <json.hpp>
 #include <httplib.h>
 #include <thread>
-#include <iostream>
 #include <utility>
 
 using namespace CppJsLib;
 
+std::function<void(const std::string &)> loggingF = nullptr;
+std::function<void(const std::string &)> errorF = nullptr;
+
+#ifdef CPPJSLIB_ENABLE_HTTPS
+#   define CPPJSLIB_DISABLE_SSL_MACRO ,ssl(false)
+#else
+#   define CPPJSLIB_DISABLE_SSL_MACRO
+#endif
+
 // WebGUI class -------------------------------------------------------------------------
-CPPJSLIB_EXPORT WebGUI::WebGUI(const std::string &base_dir) : initMap(), funcVector(), jsFuncVector() {
+CPPJSLIB_EXPORT WebGUI::WebGUI(const std::string &base_dir)
+        : initMap(), funcVector(), jsFuncVector()CPPJSLIB_DISABLE_SSL_MACRO {
     auto *svr = new httplib::Server();
     server = static_cast<void *>(svr);
+
     running = false;
     stopped = false;
-    loggingF = [](const std::string &) {};
-    errorF = [](const std::string &) {};
+    if (loggingF)
+        _loggingF = std::move(loggingF);
+    else
+        _loggingF = [](const std::string &) {};
+
+    if (errorF)
+        _errorF = std::move(loggingF);
+    else
+        _errorF = [](const std::string &) {};
 
     static_cast<httplib::Server *>(server)->set_base_dir(base_dir.c_str());
 }
 
-CPPJSLIB_EXPORT bool WebGUI::start(int port, const std::string &host, bool block) {
-    auto *svr = static_cast<httplib::Server *>(server);
+#ifdef CPPJSLIB_ENABLE_HTTPS
 
-    loggingF("[CppJsLib] Starting web server");
-    svr->Get("/CppJsLib.js", [](const httplib::Request &req, httplib::Response &res) {
+CPPJSLIB_EXPORT WebGUI::WebGUI(const std::string &base_dir, bool enableSsl, const std::string &cert_path,
+                               const std::string &private_key_path)
+        : initMap(), funcVector(), jsFuncVector(), ssl(enableSsl) {
+    if (ssl && !cert_path.empty() && !private_key_path.empty()) {
+        auto *svr = new httplib::SSLServer(cert_path.c_str(), private_key_path.c_str());
+        server = static_cast<void *>(svr);
+    } else {
+        auto *svr = new httplib::Server();
+        server = static_cast<void *>(svr);
+    }
+
+    running = false;
+    stopped = false;
+    if (loggingF)
+        _loggingF = std::move(loggingF);
+    else
+        _loggingF = [](const std::string &) {};
+
+    if (errorF)
+        _errorF = std::move(loggingF);
+    else
+        _errorF = [](const std::string &) {};
+
+    if (ssl)
+        static_cast<httplib::SSLServer *>(server)->set_base_dir(base_dir.c_str());
+    else
+        static_cast<httplib::Server *>(server)->set_base_dir(base_dir.c_str());
+}
+
+#endif
+
+CPPJSLIB_EXPORT bool WebGUI::start(int port, const std::string &host, bool block) {
+    _loggingF("[CppJsLib] Starting web server");
+    auto CppJsLibJsHandler = [](const httplib::Request &req, httplib::Response &res) {
         std::ifstream inFile;
         inFile.open("CppJsLibJs/CppJsLib.js");
 
@@ -41,7 +89,14 @@ CPPJSLIB_EXPORT bool WebGUI::start(int port, const std::string &host, bool block
 
         res.set_content(str, "text/javascript");
         str.clear();
-    });
+    };
+
+#ifdef CPPJSLIB_ENABLE_HTTPS
+    if (ssl)
+        static_cast<httplib::SSLServer *>(server)->Get("/CppJsLib.js", CppJsLibJsHandler);
+    else
+#endif
+    static_cast<httplib::Server *>(server)->Get("/CppJsLib.js", CppJsLibJsHandler);
 
     nlohmann::json initList;
     for (std::pair<char *, char *> p: initMap) {
@@ -52,28 +107,52 @@ CPPJSLIB_EXPORT bool WebGUI::start(int port, const std::string &host, bool block
     std::map<char *, char *>().swap(initMap);
 
     std::string serialized_string = initList.dump();
-    svr->Get("/init", [serialized_string](const httplib::Request &req, httplib::Response &res) {
+    auto initHandler = [serialized_string](const httplib::Request &req, httplib::Response &res) {
         res.set_content(serialized_string, "text/plain");
-    });
+    };
+
+#ifdef CPPJSLIB_ENABLE_HTTPS
+    if (ssl)
+        static_cast<httplib::SSLServer *>(server)->Get("/init", initHandler);
+    else
+#endif
+    static_cast<httplib::Server *>(server)->Get("/init", initHandler);
 
     running = true;
     bool *runningPtr = &running;
     bool *stoppedPtr = &stopped;
 
-    std::function < void() > func = [svr, host, port, runningPtr, stoppedPtr]() {
+    std::function < void() > func;
+#ifdef CPPJSLIB_ENABLE_HTTPS
+    if (ssl) {
+        auto *svr = static_cast<httplib::SSLServer *>(server);
+        func = [svr, host, port, runningPtr, stoppedPtr]() {
+            if (!svr->listen(host.c_str(), port)) {
+                (*runningPtr) = false;
+            }
+
+            (*stoppedPtr) = true;
+        };
+    } else {
+#endif
+    auto *svr = static_cast<httplib::Server *>(server);
+    func = [svr, host, port, runningPtr, stoppedPtr]() {
         if (!svr->listen(host.c_str(), port)) {
             (*runningPtr) = false;
         }
 
         (*stoppedPtr) = true;
     };
+#ifdef CPPJSLIB_ENABLE_HTTPS
+    }
+#endif
 
     if (!block) {
-        loggingF("[CppJsLib] Starting web server in non-blocking mode");
+        _loggingF("[CppJsLib] Starting web server in non-blocking mode");
         std::thread t(func);
         t.detach();
     } else {
-        loggingF("[CppJsLib] Starting web server in blocking mode");
+        _loggingF("[CppJsLib] Starting web server in blocking mode");
         func();
     }
 
@@ -81,25 +160,30 @@ CPPJSLIB_EXPORT bool WebGUI::start(int port, const std::string &host, bool block
 }
 
 CPPJSLIB_EXPORT void WebGUI::callFromPost(const char *target, const PostHandler &handler) {
-    auto *svr = static_cast<httplib::Server *>(server);
-    svr->Post(target, [handler](const httplib::Request &req, httplib::Response &res) {
+    auto f = [handler](const httplib::Request &req, httplib::Response &res) {
         std::string result = handler(req.body);
         if (!result.empty()) {
             res.set_content(result, "text/plain");
         }
-    });
-}
+    };
 
-CPPJSLIB_EXPORT void WebGUI::setLogger(std::function<void(const std::string &)> f) {
-    loggingF = std::move(f);
-}
-
-CPPJSLIB_EXPORT void WebGUI::setError(std::function<void(const std::string &)> f) {
-    errorF = std::move(f);
+#ifdef CPPJSLIB_ENABLE_HTTPS
+    if (ssl)
+        static_cast<httplib::SSLServer *>(server)->Get(target, f);
+    else
+#endif
+    static_cast<httplib::Server *>(server)->Get(target, f);
 }
 
 CPPJSLIB_EXPORT WebGUI::~WebGUI() {
     stop(this);
+#ifdef CPPJSLIB_ENABLE_HTTPS
+    if (ssl)
+        delete static_cast<httplib::SSLServer *>(server);
+    else
+#endif
+    delete static_cast<httplib::Server *>(server);
+
     for (void *p : funcVector) {
         delete static_cast<ExposedFunction<void()> *>(p);
     }
@@ -116,6 +200,11 @@ CPPJSLIB_EXPORT WebGUI::~WebGUI() {
 
 CPPJSLIB_EXPORT bool CppJsLib::stop(WebGUI *webGui, bool block, int waitMaxSeconds) {
     if (webGui->running) {
+#ifdef CPPJSLIB_ENABLE_HTTPS
+        if (webGui->ssl)
+            webGui->getHttpsServer()->stop();
+        else
+#endif
         webGui->getHttpServer()->stop();
         if (waitMaxSeconds != CPPJSLIB_DURATION_INFINITE && block) {
             waitMaxSeconds = waitMaxSeconds * 100;
@@ -125,8 +214,8 @@ CPPJSLIB_EXPORT bool CppJsLib::stop(WebGUI *webGui, bool block, int waitMaxSecon
                 waited++;
             }
 
-            if (!webGui->stopped) {
-                std::cerr << "Timed out during socket close" << std::endl;
+            if (!webGui->stopped && errorF) {
+                errorF("Timed out during socket close");
             }
         } else if (block) {
             while (!webGui->stopped) {
@@ -181,9 +270,9 @@ CPPJSLIB_EXPORT std::string *CppJsLib::createStringArrayFromJSON(int *size, cons
 }
 
 CPPJSLIB_EXPORT void
-CppJsLib::init_jsFn(const char *pattern, void *httplib_server, std::vector<void *> *responses, bool *resolved) {
-    auto *server = static_cast<httplib::Server *>(httplib_server);
-    server->Get(pattern, [responses, resolved](const httplib::Request &req, httplib::Response &res) {
+CppJsLib::init_jsFn(const char *pattern, void *httplib_server, bool ssl, std::vector<void *> *responses,
+                    bool *resolved) {
+    auto f = [responses, resolved](const httplib::Request &req, httplib::Response &res) {
         responses->push_back(static_cast<void *>(&res));
         do {
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
@@ -192,7 +281,14 @@ CppJsLib::init_jsFn(const char *pattern, void *httplib_server, std::vector<void 
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
 
         *resolved = false;
-    });
+    };
+
+#ifdef CPPJSLIB_ENABLE_HTTPS
+    if (ssl)
+        static_cast<httplib::SSLServer *>(httplib_server)->Get(pattern, f);
+    else
+#endif
+    static_cast<httplib::Server *>(httplib_server)->Get(pattern, f);
 }
 
 CPPJSLIB_EXPORT void
@@ -211,3 +307,12 @@ CppJsLib::call_jsFn(std::vector<std::string> *argV, std::vector<void *> *respons
 
     *resolved = true;
 }
+
+CPPJSLIB_EXPORT void CppJsLib::setLogger(std::function<void(const std::string &)> f) {
+    loggingF = std::move(f);
+}
+
+CPPJSLIB_EXPORT void CppJsLib::setError(std::function<void(const std::string &)> f) {
+    errorF = std::move(f);
+}
+
