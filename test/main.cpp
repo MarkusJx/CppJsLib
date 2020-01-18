@@ -24,7 +24,7 @@ int main() {
     });
 
 #ifdef TEST_ENABLE_HTTPS
-    std::cout << "Test were built with HTTPS support enabled" << std::endl;
+    std::cout << "Tests were built with HTTPS support enabled" << std::endl;
     wGui = new CppJsLib::WebGUI("web", true, "", "");
 #else
     wGui = new CppJsLib::WebGUI("web");
