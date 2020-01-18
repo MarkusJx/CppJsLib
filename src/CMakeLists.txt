@@ -34,7 +34,7 @@ add_library(CppJsLib SHARED "${webInterface}")
 target_include_directories(CppJsLib PRIVATE "../include")
 
 if (HTTPS)
-    if (WinGhBuild)
+    if (WinGHBuild)
         message(STATUS "linking downloaded libssl and libcrypto")
         target_link_libraries(CppJsLib lib/libsslMD lib/libcryptoMD)
     else ()
