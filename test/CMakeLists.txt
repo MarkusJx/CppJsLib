@@ -3,7 +3,7 @@ project(CppJsLibTests)
 
 set(CMAKE_CXX_STANDARD 17)
 
-option(HTTPS TRUE)
+option(HTTPS FALSE)
 
 if (HTTPS)
     add_compile_definitions(TEST_ENABLE_HTTPS)

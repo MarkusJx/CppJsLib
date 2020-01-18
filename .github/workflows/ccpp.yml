@@ -197,7 +197,7 @@ jobs:
       - name: copy openssl libs
         run: cp -r openssl-1.1.0f-vs2017/lib64/. lib
       - name: cmake
-        run: cmake -DBuildTests=TRUE .
+        run: cmake -DBuildTests=TRUE -DWinGHBuild=TRUE -HTTPS=TRUE .
       - name: build
         run: cmake --build . --config Release
       - name: copy libcrypto to src folder

@@ -9,10 +9,15 @@ file(GLOB webInterface
         )
 
 option(HTTPS "Enable https support" FALSE)
+option(WinGHBuild FALSE)
+
+if (WinGHBuild)
+    message(STATUS "Building on GitHub on Windows")
+endif ()
 
 if (HTTPS)
     message(STATUS "Building with HTTPS support")
-    if (NOT GHBuild)
+    if (NOT WinGHBuild)
         include_directories("C:\\Program Files\\OpenSSL-Win64\\include")
         set(ssllib "C:\\Program Files\\OpenSSL-Win64\\lib")
     endif ()
@@ -27,7 +32,7 @@ add_library(CppJsLib SHARED "${webInterface}")
 target_include_directories(CppJsLib PRIVATE "../include")
 
 if (HTTPS)
-    if (GHBuild)
+    if (WinGhBuild)
         target_link_libraries(CppJsLib "lib/libsslMD.lib" "lib/libcryptoMD.lib")
     else ()
         target_link_libraries(CppJsLib "${ssllib}/libssl.lib" "${ssllib}/libcrypto.lib")
