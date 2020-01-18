@@ -1,6 +1,12 @@
 name: C/C++ CI
 
-on: [push]
+on:
+  push:
+    paths-ignore: 
+      - "README.MD"
+      - "LICENSE"
+      - "CppJsLibJs/**"
+      - ".gitignore"
 
 jobs:
   build-ubuntu:
