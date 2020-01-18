@@ -3,7 +3,7 @@ name: C/C++ CI
 on:
   push:
     paths-ignore: 
-      - "README.MD"
+      - "README.md"
       - "LICENSE"
       - "CppJsLibJs/**"
       - ".gitignore"
