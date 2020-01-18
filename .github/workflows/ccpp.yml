@@ -43,20 +43,20 @@ jobs:
     runs-on: windows-latest
     
     steps:
-      - uses: actions/checkout@v1
-      - name: create include
-        run: mkdir include
-      - name: get json
-        shell: powershell
-        run: wget https://github.com/nlohmann/json/releases/download/v3.7.3/json.hpp -OutFile include/json.hpp
-      - name: get httplib
-        shell: powershell
-        run: wget https://raw.githubusercontent.com/yhirose/cpp-httplib/master/httplib.h -OutFile include/httplib.h
-      - name: cmake
-        run: cmake -DBuildTests=TRUE .
-      - name: build
-        run: cmake --build .
-      - name: run test
+    - uses: actions/checkout@v1
+    - name: create include
+      run: mkdir include
+    - name: get json
+      shell: powershell
+      run: wget https://github.com/nlohmann/json/releases/download/v3.7.3/json.hpp -OutFile include/json.hpp
+    - name: get httplib
+      shell: powershell
+      run: wget https://raw.githubusercontent.com/yhirose/cpp-httplib/master/httplib.h -OutFile include/httplib.h
+    - name: cmake
+      run: cmake -DBuildTests=TRUE .
+    - name: build
+      run: cmake --build .
+    - name: run test
       shell: cmd
       run: Test.exe
       working-directory: ./test/Debug
@@ -76,19 +76,19 @@ jobs:
     runs-on: macos-latest
     
     steps:
-      - uses: actions/checkout@v1
-      - name: create include
-        run: mkdir include
-      - name: get json
-        run: wget -O include/json.hpp https://github.com/nlohmann/json/releases/download/v3.7.3/json.hpp
-      - name: get httplib
-        run: wget -O include/httplib.h https://raw.githubusercontent.com/yhirose/cpp-httplib/master/httplib.h
-      - name: cmake
-        run: cmake -DCMAKE_BUILD_TYPE=Debug -DBuildTests=TRUE -DGHBuild=TRUE .
-      - name: build
-        run: cmake --build .
-      - name: run test
-        run: ./Test
+    - uses: actions/checkout@v1
+    - name: create include
+      run: mkdir include
+    - name: get json
+      run: wget -O include/json.hpp https://github.com/nlohmann/json/releases/download/v3.7.3/json.hpp
+    - name: get httplib
+      run: wget -O include/httplib.h https://raw.githubusercontent.com/yhirose/cpp-httplib/master/httplib.h
+    - name: cmake
+      run: cmake -DCMAKE_BUILD_TYPE=Debug -DBuildTests=TRUE -DGHBuild=TRUE .
+    - name: build
+      run: cmake --build .
+    - name: run test
+      run: ./Test
       shell: bash
       working-directory: ./test
     - name: Upload object
@@ -107,19 +107,19 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      - uses: actions/checkout@v1
-      - name: create include
-        run: mkdir include
-      - name: get json
-        uses: wei/wget@v1.1.1
-        with:
-          args: -O include/json.hpp https://github.com/nlohmann/json/releases/download/v3.7.3/json.hpp
-      - name: get httplib
-        uses: wei/wget@v1.1.1
-        with:
-          args: -O include/httplib.h https://raw.githubusercontent.com/yhirose/cpp-httplib/master/httplib.h
-      - name: cmake
-        run: cmake -DCMAKE_BUILD_TYPE=Release -DBuildTests=TRUE -DGHBuild=TRUE .
+    - uses: actions/checkout@v1
+    - name: create include
+      run: mkdir include
+    - name: get json
+      uses: wei/wget@v1.1.1
+      with:
+        args: -O include/json.hpp https://github.com/nlohmann/json/releases/download/v3.7.3/json.hpp
+    - name: get httplib
+      uses: wei/wget@v1.1.1
+      with:
+        args: -O include/httplib.h https://raw.githubusercontent.com/yhirose/cpp-httplib/master/httplib.h
+    - name: cmake
+      run: cmake -DCMAKE_BUILD_TYPE=Release -DBuildTests=TRUE -DGHBuild=TRUE .
     - name: build
       run: cmake --build . 
     - name: run test
@@ -142,33 +142,33 @@ jobs:
     runs-on: windows-latest
     
     steps:
-      - uses: actions/checkout@v1
-      - name: create include
-        run: mkdir include
-      - name: get json
-        shell: powershell
-        run: wget https://github.com/nlohmann/json/releases/download/v3.7.3/json.hpp -OutFile include/json.hpp
-      - name: get httplib
-        shell: powershell
-        run: wget https://raw.githubusercontent.com/yhirose/cpp-httplib/master/httplib.h -OutFile include/httplib.h
-      - name: cmake
-        run: cmake -DBuildTests=TRUE .
-      - name: build
-        run: cmake --build . --config Release
+    - uses: actions/checkout@v1
+    - name: create include
+      run: mkdir include
+    - name: get json
+      shell: powershell
+      run: wget https://github.com/nlohmann/json/releases/download/v3.7.3/json.hpp -OutFile include/json.hpp
+    - name: get httplib
+      shell: powershell
+      run: wget https://raw.githubusercontent.com/yhirose/cpp-httplib/master/httplib.h -OutFile include/httplib.h
+    - name: cmake
+      run: cmake -DBuildTests=TRUE .
+    - name: build
+      run: cmake --build . --config Release
     - name: run test
       run: Test.exe
       shell: cmd
       working-directory: ./test/Release
-      - name: Upload library
-        uses: actions/upload-artifact@v1
-        with:
-          name: CppJsLibReleaseWin
-          path: src/Release
-      - name: Upload test
-        uses: actions/upload-artifact@v1
-        with:
-          name: CppJsLibReleaseWinTest
-          path: test/Release
+    - name: Upload library
+      uses: actions/upload-artifact@v1
+      with:
+        name: CppJsLibReleaseWin
+        path: src/Release
+    - name: Upload test
+      uses: actions/upload-artifact@v1
+      with:
+        name: CppJsLibReleaseWinTest
+        path: test/Release
 
   build-windows-openssl-release:
 
@@ -228,19 +228,19 @@ jobs:
     runs-on: macos-latest
 
     steps:
-      - uses: actions/checkout@v1
-      - name: create include
-        run: mkdir include
-      - name: get json
-        run: wget -O include/json.hpp https://github.com/nlohmann/json/releases/download/v3.7.3/json.hpp
-      - name: get httplib
-        run: wget -O include/httplib.h https://raw.githubusercontent.com/yhirose/cpp-httplib/master/httplib.h
-      - name: cmake
-        run: cmake -DCMAKE_BUILD_TYPE=Release -DBuildTests=TRUE -DGHBuild=TRUE .
-      - name: build
-        run: cmake --build .
-      - name: run test
-        run: ./Test
+    - uses: actions/checkout@v1
+    - name: create include
+      run: mkdir include
+    - name: get json
+      run: wget -O include/json.hpp https://github.com/nlohmann/json/releases/download/v3.7.3/json.hpp
+    - name: get httplib
+      run: wget -O include/httplib.h https://raw.githubusercontent.com/yhirose/cpp-httplib/master/httplib.h
+    - name: cmake
+      run: cmake -DCMAKE_BUILD_TYPE=Release -DBuildTests=TRUE -DGHBuild=TRUE .
+    - name: build
+      run: cmake --build .
+    - name: run test
+      run: ./Test
       shell: bash
       working-directory: ./test
     - name: Upload object
