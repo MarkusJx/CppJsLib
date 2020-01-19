@@ -64,13 +64,14 @@
 #include <sstream>
 #include <iostream>
 #include <cstring>
+#include <thread>
 
 #ifdef CPPJSLIB_WINDOWS
 #   define strdup _strdup
 #endif
 
 #define expose(func) _exportFunction(func, #func)
-#define importFunction(func) _importJsFunction(func, #func)
+#define importFunction(func, ...) _importJsFunction(func, #func, ##__VA_ARGS__)
 #define getHttpServer() _getHttpServer<httplib::Server *>()
 #define getHttpsServer() _getHttpServer<httplib::SSLServer *>()
 
@@ -85,6 +86,10 @@ namespace CppJsLib {
 
     CPPJSLIB_EXPORT void
     init_jsFn(const char *pattern, void *httplib_server, bool ssl, std::vector<void *> *responses, bool *resolved);
+
+    CPPJSLIB_EXPORT void
+    init_jsFn(const char *pattern, void *httplib_server, bool ssl, std::vector<void *> *responses, bool *resolved,
+              std::vector<char *> *results, int wait);
 
     CPPJSLIB_EXPORT void call_jsFn(std::vector<std::string> *argV, std::vector<void *> *responses, bool *resolved);
 
@@ -101,6 +106,12 @@ namespace CppJsLib {
 
     template<typename T>
     struct function_traits;
+
+    template<class R>
+    std::string getTypeName();
+
+    template<typename T>
+    T ConvertString(const std::string &data);
 
     template<class T>
     inline std::string getEl(T dt) {
@@ -149,6 +160,75 @@ namespace CppJsLib {
     private:
         bool resolved = false;
         std::vector<void *> responses;
+    };
+
+    template<class R>
+    struct JsFunction<std::vector<R>()> {
+    public:
+        void init(const std::string &name, void *httplib_server, bool ssl, int waitMs) {
+            std::string r = "/listenfunc_";
+            r.append(getTypeName<R>());
+            r.append("_");
+            r.append(name);
+            wait = waitMs;
+            init_jsFn(r.c_str(), httplib_server, ssl, &responses, &resolved, &responseReturns, waitMs);
+        }
+
+        std::vector<R> operator()() {
+            std::vector<std::string> argV;
+            call_jsFn(&argV, &responses, &resolved);
+
+            std::this_thread::sleep_for(std::chrono::milliseconds(wait));
+            std::vector<R> tmp;
+            for (char *c : responseReturns) {
+                tmp.push_back(ConvertString<R>(c));
+                free(c);
+            }
+            std::vector<char *>().swap(responseReturns);
+
+            return tmp;
+        }
+
+    private:
+        int wait = 100;
+        bool resolved = false;
+        std::vector<void *> responses;
+        std::vector<char *> responseReturns;
+    };
+
+    template<class R, class... Args>
+    struct JsFunction<std::vector<R>(Args ...)> {
+    public:
+        void init(const std::string &name, void *httplib_server, bool ssl, int waitMs) {
+            std::string r = "/listenfunc_";
+            r.append(getTypeName<R>());
+            r.append("_");
+            r.append(name);
+            wait = waitMs;
+            init_jsFn(r.c_str(), httplib_server, ssl, &responses, &resolved, &responseReturns, waitMs);
+        }
+
+        std::vector<R> operator()(Args ... args) {
+            std::vector<std::string> argV;
+            auto x = {(ConvertToString(&argV, getEl(args)), 0)...};
+            call_jsFn(&argV, &responses, &resolved);
+
+            std::this_thread::sleep_for(std::chrono::milliseconds(wait));
+            std::vector<R> tmp;
+            for (char *c : responseReturns) {
+                tmp.push_back(ConvertString<R>(c));
+                free(c);
+            }
+            std::vector<char *>().swap(responseReturns);
+
+            return tmp;
+        }
+
+    private:
+        int wait = 100;
+        bool resolved = false;
+        std::vector<void *> responses;
+        std::vector<char *> responseReturns;
     };
 
     template<size_t SIZE, class T>
@@ -416,14 +496,14 @@ namespace CppJsLib {
     template<class... Args>
     ExposedFunction<void(Args...)> *_exposeFunc(void (*f)(Args...), const std::string &name) {
         auto *exposedFn = new(std::nothrow) ExposedFunction<void(Args...)>(
-                std::function < void(Args...) > (f), name);
+                std::function<void(Args...)>(f), name);
         return exposedFn;
     }
 
     template<class R, class... Args>
     ExposedFunction<R(Args...)> *_exposeFunc(R(*f)(Args...), const std::string &name) {
         auto *exposedFn = new(std::nothrow) ExposedFunction<R(Args...)>(
-                std::function < R(Args...) > (f), name);
+                std::function<R(Args...)>(f), name);
         return exposedFn;
     }
 
@@ -516,7 +596,7 @@ namespace CppJsLib {
             }
 
             _loggingF("[CppJsLib] Importing js function with name " + fName);
-            JsFunction<void(Args...)> *f = (JsFunction<void(Args...)> *) malloc(sizeof(JsFunction<void(Args...)>));
+            auto *f = (JsFunction<void(Args...)> *) malloc(sizeof(JsFunction<void(Args...)>));
             if (f != nullptr) {
 #ifndef CPPJSLIB_ENABLE_HTTPS
                 bool ssl = false;
@@ -531,13 +611,40 @@ namespace CppJsLib {
             }
         }
 
+        template<class R, class...Args>
+        inline void
+        _importJsFunction(std::function<std::vector<R>(Args...)> *function, std::string fName, int waitMs = 0) {
+            if (fName[0] == '&') {
+                fName.erase(0, 1); // Delete first character as it is a &
+            }
+
+            _loggingF("[CppJsLib] Importing js function with name " + fName);
+            auto *f = (JsFunction<std::vector<R>(Args...)> *) malloc(sizeof(JsFunction<std::vector<R>(Args...)>));
+            if (f != nullptr) {
+#ifndef CPPJSLIB_ENABLE_HTTPS
+                bool ssl = false;
+#endif
+                f->init(fName, server, ssl, waitMs);
+                jsFuncVector.push_back(static_cast<void *>(f));
+                *function = [f](Args...args) {
+                    return f->operator()(args...);
+                };
+            } else {
+                _errorF("[CppJsLib] Could not import function " + fName + ": Unable to allocate memory");
+            }
+        }
+
         CPPJSLIB_EXPORT bool start(int port, const std::string &host = "localhost", bool block = true);
+
+        CPPJSLIB_EXPORT void setLogger(std::function<void(const std::string &)> loggingFunction);
+
+        CPPJSLIB_EXPORT void setError(std::function<void(const std::string &)> errorFunction);
 
         /**
          * A function used by the getHttpServer macro
          *
          * @warning Please DO NOT USE this function
-         * @tparam T the param to convert the server pointer to, MUST be httplib::Server*
+         * @tparam T the param to convert the server pointer to, MUST be httplib::Server* or httplib::SSLServer*
          * @return a pointer to the http Server of this instance
          */
         template<class T>

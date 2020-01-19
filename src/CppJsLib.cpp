@@ -175,6 +175,14 @@ CPPJSLIB_EXPORT void WebGUI::callFromPost(const char *target, const PostHandler 
     static_cast<httplib::Server *>(server)->Get(target, f);
 }
 
+CPPJSLIB_EXPORT void WebGUI::setLogger(std::function<void(const std::string &)> loggingFunction) {
+    _loggingF = std::move(loggingFunction);
+}
+
+CPPJSLIB_EXPORT void WebGUI::setError(std::function<void(const std::string &)> errorFunction) {
+    _errorF = std::move(errorFunction);
+}
+
 CPPJSLIB_EXPORT WebGUI::~WebGUI() {
     stop(this);
 #ifdef CPPJSLIB_ENABLE_HTTPS
@@ -277,6 +285,33 @@ CppJsLib::init_jsFn(const char *pattern, void *httplib_server, bool ssl, std::ve
         do {
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
         } while (!(*resolved));
+        std::vector<void *>().swap(*responses);
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+
+        *resolved = false;
+    };
+
+#ifdef CPPJSLIB_ENABLE_HTTPS
+    if (ssl)
+        static_cast<httplib::SSLServer *>(httplib_server)->Get(pattern, f);
+    else
+#endif
+    static_cast<httplib::Server *>(httplib_server)->Get(pattern, f);
+}
+
+CPPJSLIB_EXPORT void
+CppJsLib::init_jsFn(const char *pattern, void *httplib_server, bool ssl, std::vector<void *> *responses,
+                    bool *resolved, std::vector<char*> *results, int wait) {
+    auto f = [responses, resolved, results, wait](const httplib::Request &req, httplib::Response &res) {
+        responses->push_back(static_cast<void *>(&res));
+        if(!req.body.empty()) {
+            results->push_back(strdup(req.body.c_str()));
+        }
+
+        do {
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        } while (!(*resolved));
+        std::this_thread::sleep_for(std::chrono::milliseconds(wait + 40));
         std::vector<void *>().swap(*responses);
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
 

@@ -8,6 +8,7 @@
 
 CppJsLib::WebGUI *wGui;
 std::function<void(int)> func = {};
+std::function<std::vector<int>()> tf = {};
 
 void f(int a) {
     printf("Result from function f: %d\n", a);
@@ -31,6 +32,7 @@ int main() {
 #endif
 
     wGui->importFunction(&func);
+    wGui->importFunction(&tf, 0);
     wGui->expose(f);
 
     std::cout << "Starting web server..." << std::endl;

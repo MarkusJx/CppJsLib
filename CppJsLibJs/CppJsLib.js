@@ -79,10 +79,14 @@ const cppJsLib = {
         }
     },
     'expose': function (toExpose) {
+        let lastResult = "";
         this.sendRequest("/listenfunc_" + toExpose.name, (response) => {
-            toExpose(...JSON.parse(response));
+            lastResult = toExpose(...JSON.parse(response));
+            if (typeof lastResult === "undefined") {
+                lastResult = "";
+            }
             this.expose(toExpose);
-        }, "", "GET");
+        }, lastResult, "GET");
     }
 };
 
