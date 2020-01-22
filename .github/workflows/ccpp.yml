@@ -223,7 +223,7 @@ jobs:
         run: b2.exe
         working-directory: include/boost_1_69_0
       - name: cmake
-        run: cmake -DBuildTests=TRUE -DWinGHBuild=TRUE -DHTTPS=TRUE .
+        run: cmake -DBuildTests=TRUE -DWinGHBuild=TRUE -DHTTPS=TRUE -DENABLE_WEBSOCKET=TRUE .
       - name: build
         run: cmake --build . --config Release
       - name: copy libcrypto to src folder
