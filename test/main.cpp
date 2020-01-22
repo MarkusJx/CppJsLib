@@ -2,6 +2,10 @@
 // Created by markus on 22/12/2019.
 //
 
+#ifdef TEST_ENABLE_WEBSOCKET
+#   define CPPJSLIB_ENABLE_WEBSOCKET
+#endif
+
 #include <CppJsLib.hpp>
 #include <iostream>
 #include <thread>
@@ -26,17 +30,24 @@ int main() {
 
 #ifdef TEST_ENABLE_HTTPS
     std::cout << "Tests were built with HTTPS support enabled" << std::endl;
-    wGui = new CppJsLib::WebGUI("web", true, "", "");
+    wGui = new CppJsLib::WebGUI("web");
 #else
     wGui = new CppJsLib::WebGUI("web");
 #endif
 
+#ifdef TEST_ENABLE_WEBSOCKET
     wGui->importFunction(&func);
     wGui->importFunction(&tf, 0);
+#endif
     wGui->expose(f);
 
     std::cout << "Starting web server..." << std::endl;
-    wGui->start(8026, "localhost", false);
+#ifdef TEST_ENABLE_WEBSOCKET
+#   define TEST_WS_PORT 8027,
+#else
+#   define TEST_WS_PORT
+#endif
+    wGui->start(8026, TEST_WS_PORT "127.0.0.1", true);
 
     std::this_thread::sleep_for(std::chrono::seconds(2));
     std::cout << "Stopping web server..." << std::endl;

@@ -4,15 +4,24 @@ project(CppJsLibTests)
 set(CMAKE_CXX_STANDARD 17)
 
 option(HTTPS FALSE)
+option(ENABLE_WEBSOCKET FALSE)
+
+if(ENABLE_WEBSOCKET)
+    add_compile_definitions(TEST_ENABLE_WEBSOCKET)
+endif()
 
 if (HTTPS)
     add_compile_definitions(TEST_ENABLE_HTTPS)
     message(STATUS "Building Tests with HTTPS enabled")
+
+    add_compile_definitions(CPPJSLIB_ENABLE_HTTPS)
 endif ()
 
 add_executable(Test main.cpp)
+
 target_include_directories(Test PRIVATE "${CMAKE_SOURCE_DIR}/src")
 target_include_directories(Test PRIVATE "${CMAKE_SOURCE_DIR}/include")
+
 target_link_libraries(Test CppJsLib)
 
 file(REMOVE_RECURSE $<TARGET_FILE_DIR:Test>/web)

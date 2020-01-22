@@ -176,7 +176,7 @@ jobs:
         name: CppJsLibReleaseWinTest
         path: test/Release
 
-  build-windows-openssl-release:
+  build-windows-all-release:
 
     runs-on: windows-latest
 
@@ -203,6 +203,25 @@ jobs:
       - name: copy openssl libs
         run: cp -r openssl-1.1.0f-vs2017/lib64/. lib
         shell: cmd
+      - name: download websocketpp
+        run: wget https://github.com/zaphoyd/websocketpp/archive/0.8.1.zip -OutFile websocketpp.zip
+        shell: powershell
+      - name: unzip websocketpp
+        run: unzip websocketpp.zip
+      - name: move websocketpp
+        run: mv websocketpp-0.8.1/websocketpp include/websocketpp
+      - name: download boost
+        run: wget https://dl.bintray.com/boostorg/release/1.69.0/source/boost_1_69_0.zip -OutFile boost.zip
+        shell: powershell
+      - name: unzip boost
+        run: unzip boost.zip
+      - name: move boost
+        run: mv boost_1_69_0 include/boost_1_69_0
+      - run: bootstrap.bat
+        working-directory: include/boost_1_69_0
+      - name: build boost
+        run: b2.exe
+        working-directory: include/boost_1_69_0
       - name: cmake
         run: cmake -DBuildTests=TRUE -DWinGHBuild=TRUE -DHTTPS=TRUE .
       - name: build

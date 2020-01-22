@@ -1,4 +1,22 @@
 const cppJsLib = {
+    /**
+     * @type [function]
+     */
+    'loadFunctions': [],
+    'initialized': false,
+    'exposedFunctions': [],
+    'webSocket': null,
+    'onLoad': function (fn) {
+        if (typeof fn !== 'function') {
+            console.error("Function added to onLoad is not a function");
+            return;
+        }
+        if (!this.initialized) {
+            this.loadFunctions.push(fn);
+        } else {
+            fn();
+        }
+    },
     'sendRequest': function (request, callback = false, body = "", type = "POST") {
         let xhttp = new XMLHttpRequest();
         xhttp.open(type, request, true);
@@ -23,9 +41,36 @@ const cppJsLib = {
                     this.addFn(returnType, fnName, args);
                 }
             }
+
+            this.loadFunctions.forEach((fn) => {
+                fn();
+            });
+
+            this.initialized = true;
+        }, "", "GET");
+
+        this.sendRequest("init_ws", (response) => {
+            let obj = JSON.parse(response);
+            if (obj["ws"] === "true") {
+                let wsProtocol;
+                if(obj["tls"] === "true") {
+                    wsProtocol = "wss://";
+                } else {
+                    wsProtocol = "ws://";
+                }
+
+                console.log("Connecting to websocket on: " + wsProtocol + obj["host"] + ":" + obj["port"]);
+                this.webSocket = new WebSocket(wsProtocol + obj["host"] + ":" + obj["port"]);
+                this.webSocket.onmessage = (event) => {
+                    let data = JSON.parse(event.data);
+                    let key = Object.keys(data)[0];
+                    this.exposedFunctions[key]( ... JSON.parse(data[key]));
+                }
+            }
         }, "", "GET");
     },
     'addFn': function (returnType, name, args) {
+        console.log("Initializing function " + name);
         this[name] = function () {
             if (args.length !== arguments.length) {
                 console.error("Argument count does not match!");
@@ -79,14 +124,7 @@ const cppJsLib = {
         }
     },
     'expose': function (toExpose) {
-        let lastResult = "";
-        this.sendRequest("/listenfunc_" + toExpose.name, (response) => {
-            lastResult = toExpose(...JSON.parse(response));
-            if (typeof lastResult === "undefined") {
-                lastResult = "";
-            }
-            this.expose(toExpose);
-        }, lastResult, "GET");
+        this.exposedFunctions.push(toExpose);
     }
 };
 

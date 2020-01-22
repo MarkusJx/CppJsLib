@@ -3,18 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <title>Title</title>
-    <script src="httpServer.js"></script>
+    <script src="CppJsLib.js"></script>
 </head>
 <body>
 
 <script>
-    cppJsLib.expose(jsF);
+    cppJsLib.expose(func);
 
-    function jsF(i) {
+    function func(i) {
         console.log(i);
     }
 
-    cppJsLib.f(2);
+    cppJsLib.onLoad(function () {
+        cppJsLib.f(5);
+    });
 </script>
 </body>
 </html>

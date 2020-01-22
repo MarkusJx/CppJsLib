@@ -10,6 +10,25 @@ file(GLOB webInterface
 
 option(HTTPS "Enable https support" FALSE)
 option(WinGHBuild FALSE)
+option(ENABLE_WEBSOCKET "Enable websocket protocol support" FALSE)
+
+if (ENABLE_WEBSOCKET)
+    if (WinGHBuild)
+        message(STATUS "Building with gh actions, setting BOOST_1_69 to include folder")
+        set(ENV{BOOST_1_69} ${CMAKE_SOURCE_DIR}/include/boost_1_69_0)
+        add_compile_definitions(CPPJSLIB_ENABLE_WEBSOCKET)
+    endif()
+
+    message(STATUS "Building with websocket protocol support")
+    if (DEFINED ENV{BOOST_1_69})
+        message(STATUS "Boost variable defined: $ENV{BOOST_1_69}")
+        add_compile_definitions(CPPJSLIB_ENABLE_WEBSOCKET)
+    else()
+        message(FATAL_ERROR "BOOST_1_69 variable not defined")
+    endif ()
+else()
+    message(STATUS "Building without websocket protocol support")
+endif ()
 
 if (WinGHBuild)
     message(STATUS "Building on GitHub on Windows")
@@ -29,6 +48,13 @@ add_compile_definitions(COMPILATION)
 add_library(CppJsLib SHARED "${webInterface}")
 
 include_directories(${CMAKE_SOURCE_DIR}/include)
+
+if (ENABLE_WEBSOCKET)
+    target_include_directories(CppJsLib PRIVATE "$ENV{BOOST_1_69}")
+    target_link_directories(CppJsLib PRIVATE "$ENV{BOOST_1_69}\\stage\\lib")
+
+    target_compile_options(CppJsLib PRIVATE "/bigobj")
+endif ()
 
 if (HTTPS)
     if (WinGHBuild)
