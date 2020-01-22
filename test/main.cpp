@@ -47,7 +47,7 @@ int main() {
 #else
 #   define TEST_WS_PORT
 #endif
-    wGui->start(8026, TEST_WS_PORT "127.0.0.1", true);
+    wGui->start(8026, TEST_WS_PORT "127.0.0.1", false);
 
     std::this_thread::sleep_for(std::chrono::seconds(2));
     std::cout << "Stopping web server..." << std::endl;
