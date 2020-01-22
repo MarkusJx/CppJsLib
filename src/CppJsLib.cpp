@@ -45,7 +45,6 @@ using namespace CppJsLib;
 
 std::function<void(const std::string &)> loggingF = nullptr;
 std::function<void(const std::string &)> errorF = nullptr;
-std::string password = "";
 
 #ifdef CPPJSLIB_ENABLE_HTTPS
 #   define CPPJSLIB_DISABLE_SSL_MACRO ,ssl(false)
@@ -54,6 +53,7 @@ std::string password = "";
 #endif
 
 #ifdef CPPJSLIB_ENABLE_WEBSOCKET
+std::string password = "";
 #ifdef CPPJSLIB_ENABLE_HTTPS
 #define CPPJSLIB_CERTS , const std::string &cert_path, const std::string &private_key_path
 
@@ -192,9 +192,9 @@ CPPJSLIB_EXPORT WebGUI::WebGUI(const std::string &base_dir)
     std::shared_ptr<httplib::Server> svr(new httplib::Server());
     server = std::static_pointer_cast<void>(svr);
 
+#ifdef CPPJSLIB_ENABLE_WEBSOCKET
     setPassword();
 
-#ifdef CPPJSLIB_ENABLE_WEBSOCKET
     std::shared_ptr<wspp::server> ws_svr(new wspp::server());
     std::shared_ptr<wspp::con_list> ws_con(new wspp::con_list());
     ws_connections = std::static_pointer_cast<void>(ws_con);
@@ -303,8 +303,10 @@ CPPJSLIB_EXPORT bool WebGUI::start(int port, CPPJSLIB_WS_PORT const std::string 
     init_ws_json["ws"] = "false";
 #endif
 
+#ifdef CPPJSLIB_ENABLE_WEBSOCKET
     init_ws_json["host"] = host;
     init_ws_json["port"] = websocketPort;
+#endif
 
     std::string init_ws_string = init_ws_json.dump();
 
@@ -415,12 +417,14 @@ CPPJSLIB_EXPORT WebGUI::~WebGUI() {
     stop(this);
 
     for (void *p : funcVector) {
-        delete (static_cast<ExposedFunction<void()> *>(p));
+        delete static_cast<ExposedFunction<void()> *>(p);
     }
 
+#ifdef CPPJSLIB_ENABLE_WEBSOCKET
     for (void *p : jsFuncVector) {
-        delete (static_cast<JsFunction<void()> *>(p));
+        delete static_cast<JsFunction<void()> *>(p);
     }
+#endif
     //Clear the vector and release the memory. Source: https://stackoverflow.com/a/10465032
     std::vector<void *>().swap(funcVector);
     std::vector<void *>().swap(jsFuncVector);
@@ -458,10 +462,10 @@ CPPJSLIB_EXPORT bool CppJsLib::stop(WebGUI *webGui, bool block, int waitMaxSecon
 #ifdef CPPJSLIB_ENABLE_WEBSOCKET
 #ifdef CPPJSLIB_ENABLE_HTTPS
     if (webGui->ssl)
-        std::static_pointer_cast<wspp::server_tls>(webGui->ws_server)->stop();
+        webGui->getWebServer()->stop();
     else
 #endif
-        std::static_pointer_cast<wspp::server>(webGui->ws_server)->stop();
+        webGui->getTLSWebServer()->stop();
 #endif
 
     return webGui->stopped;

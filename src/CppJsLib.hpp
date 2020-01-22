@@ -80,9 +80,13 @@
 #define expose(func) _exportFunction(func, #func)
 #ifdef CPPJSLIB_ENABLE_WEBSOCKET
 #   define importFunction(func, ...) _importJsFunction(func, #func, ##__VA_ARGS__)
+#   define getWebServer() _getWebServer<websocketpp::server<websocketpp::config::asio>>()
+#   define getTLSWebServer() _getWebServer<websocketpp::server<websocketpp::config::asio_tls>>()
+#endif
+#ifdef CPPJSLIB_ENABLE_HTTPS
+#   define getHttpsServer() _getHttpServer<httplib::SSLServer>()
 #endif
 #define getHttpServer() _getHttpServer<httplib::Server>()
-#define getHttpsServer() _getHttpServer<httplib::SSLServer>()
 
 #define CPPJSLIB_DURATION_INFINITE -1
 
@@ -94,13 +98,15 @@ namespace CppJsLib {
     CPPJSLIB_EXPORT std::string stringToJSON(std::string s);
 
     CPPJSLIB_EXPORT void
-    call_jsFn(std::vector<std::string> *argV, const char *funcName, const std::shared_ptr<void>& wspp_server,
-              const std::shared_ptr<void>& wspp_list, bool ssl, std::vector<char *> *results = nullptr, int wait = -1);
+    call_jsFn(std::vector<std::string> *argV, const char *funcName, const std::shared_ptr<void> &wspp_server,
+              const std::shared_ptr<void> &wspp_list, bool ssl, std::vector<char *> *results = nullptr, int wait = -1);
 
     CPPJSLIB_EXPORT std::string *createStringArrayFromJSON(int *size, const std::string &data);
 
+#ifdef CPPJSLIB_ENABLE_WEBSOCKET
     template<class>
     struct JsFunction;
+#endif
 
     template<class>
     struct TypeConverter;
@@ -696,10 +702,19 @@ namespace CppJsLib {
          * @tparam T the param to convert the server pointer to, MUST be httplib::Server* or httplib::SSLServer*
          * @return a pointer to the http Server of this instance
          */
-        template<class T>
+        template<typename T>
         inline T *_getHttpServer() {
             return std::static_pointer_cast<T>(server).get();
         }
+
+#ifdef CPPJSLIB_ENABLE_WEBSOCKET
+
+        template<typename T>
+        inline T *_getWebServer() {
+            return std::static_pointer_cast<T>(ws_server).get();
+        }
+
+#endif
 
         CPPJSLIB_EXPORT ~WebGUI();
 
@@ -708,9 +723,11 @@ namespace CppJsLib {
 #ifdef CPPJSLIB_ENABLE_HTTPS
         const bool ssl;
 #endif
-        std::shared_ptr<void> ws_server;
     private:
+#ifdef CPPJSLIB_ENABLE_WEBSOCKET
+        std::shared_ptr<void> ws_server;
         std::shared_ptr<void> ws_connections;
+#endif
         std::shared_ptr<void> server;
         std::map<char *, char *> initMap;
         std::vector<void *> funcVector;
