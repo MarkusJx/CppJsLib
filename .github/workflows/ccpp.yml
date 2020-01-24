@@ -222,6 +222,10 @@ jobs:
       - name: build boost
         run: b2.exe
         working-directory: include/boost_1_69_0
+      - run: ls
+        working-directory: include
+      - run: ls
+        working-directory: include/boost_1_69_0/stage/lib
       - name: cmake
         run: cmake -DBuildTests=TRUE -DWinGHBuild=TRUE -DHTTPS=TRUE -DENABLE_WEBSOCKET=TRUE .
       - name: build

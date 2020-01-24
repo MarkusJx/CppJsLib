@@ -9,8 +9,17 @@
 #include <thread>
 #include <utility>
 
-// Websocketpp includes
+using namespace CppJsLib;
+
+std::function<void(const std::string &)> loggingF = nullptr;
+std::function<void(const std::string &)> errorF = nullptr;
+
 #ifdef CPPJSLIB_ENABLE_WEBSOCKET
+#ifdef CPPJSLIB_ENABLE_HTTPS
+#define CPPJSLIB_CERTS , const std::string &cert_path, const std::string &private_key_path
+#else
+#define CPPJSLIB_CERTS
+#endif
 
 #   include <set>
 #   include <websocketpp/server.hpp>
@@ -23,6 +32,9 @@ namespace wspp {
     typedef websocketpp::server<websocketpp::config::asio> server;
     typedef websocketpp::server<websocketpp::config::asio_tls> server_tls;
 }
+
+void initWebsocketTLS(const std::shared_ptr<wspp::server_tls> &s CPPJSLIB_CERTS);
+
 #   else
 #       include <websocketpp/config/asio_no_tls.hpp>
 namespace wspp {
@@ -39,24 +51,38 @@ namespace wspp {
 using websocketpp::lib::placeholders::_1;
 using websocketpp::lib::placeholders::_2;
 using websocketpp::lib::bind;
-#endif
 
-using namespace CppJsLib;
+template<typename EndpointType>
+void initWebsocketServer(std::shared_ptr<EndpointType> s, const std::shared_ptr<wspp::con_list> &list) {
+    try {
+        s->set_open_handler(bind([list](const websocketpp::connection_hdl &hdl) {
+            list->insert(hdl);
+        }, ::_1));
+        s->set_close_handler(bind([list](const websocketpp::connection_hdl &hdl) {
+            list->erase(hdl);
+        }, ::_1));
 
-std::function<void(const std::string &)> loggingF = nullptr;
-std::function<void(const std::string &)> errorF = nullptr;
+        s->set_access_channels(websocketpp::log::alevel::all);
+        s->clear_access_channels(websocketpp::log::alevel::frame_payload);
 
+        s->init_asio();
+    } catch (websocketpp::exception const &e) {
+        if (errorF) errorF(e.what());
+    } catch (...) {
+        if (errorF) errorF("An unknown exception occurred");
+    }
+}
+
+template<typename EndpointType>
+void startWebsocketServer(std::shared_ptr<EndpointType> s, int port) {
+    s->listen(port);
+    s->start_accept();
+
+    s->run();
+}
+
+std::string password;
 #ifdef CPPJSLIB_ENABLE_HTTPS
-#   define CPPJSLIB_DISABLE_SSL_MACRO ,ssl(false)
-#else
-#   define CPPJSLIB_DISABLE_SSL_MACRO
-#endif
-
-#ifdef CPPJSLIB_ENABLE_WEBSOCKET
-std::string password = "";
-#ifdef CPPJSLIB_ENABLE_HTTPS
-#define CPPJSLIB_CERTS , const std::string &cert_path, const std::string &private_key_path
-
 enum tls_mode {
     MOZILLA_INTERMEDIATE = 1,
     MOZILLA_MODERN = 2
@@ -67,13 +93,14 @@ std::string get_password() {
 }
 
 void setPassword() {
-    if (!password.empty()) {
+    if (password.empty()) {
         std::random_device rd;
-        std::uniform_int_distribution<unsigned short> d(0, 32);
-        const char alphabet[] = "ABCDEFGHIJKLMNOPQRSTUVW";
+        static std::mt19937 eng(rd());
+        std::uniform_int_distribution<> d(1, 36);
+        const char alphabet[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
         for (int i = 0; i < 30; i++) {
-            unsigned short rnd = d(rd);
-            if (rnd > 9) {
+            int rnd = d(eng) - 1;
+            if (rnd < 10) {
                 password.append(std::to_string(rnd));
             } else {
                 rnd -= 10;
@@ -84,7 +111,7 @@ void setPassword() {
 }
 
 void on_http(wspp::server_tls *s, websocketpp::connection_hdl hdl) {
-    wspp::server_tls::connection_ptr con = s->get_con_from_hdl(hdl);
+    wspp::server_tls::connection_ptr con = s->get_con_from_hdl(std::move(hdl));
 
     con->set_body("Hello World!");
     con->set_status(websocketpp::http::status_code::ok);
@@ -114,7 +141,7 @@ wspp::context_ptr on_tls_init(tls_mode mode, const websocketpp::connection_hdl &
         }
         ctx->set_password_callback(bind(&get_password));
         ctx->use_certificate_chain_file(cert_path);
-        ctx->use_private_key_file(private_key_path, asio::ssl::context::pem);
+        ctx->use_private_key_file(private_key_path, boost::asio::ssl::context::pem);
 
         std::string ciphers;
 
@@ -136,7 +163,7 @@ wspp::context_ptr on_tls_init(tls_mode mode, const websocketpp::connection_hdl &
 void initWebsocketTLS(const std::shared_ptr<wspp::server_tls> &s CPPJSLIB_CERTS) {
     try {
         std::function < wspp::context_ptr(tls_mode, websocketpp::connection_hdl) >
-        on_tls = [cert_path, private_key_path](tls_mode mode, websocketpp::connection_hdl hdl) {
+        on_tls = [cert_path, private_key_path](tls_mode mode, const websocketpp::connection_hdl &hdl) {
             return on_tls_init(mode, hdl, cert_path, private_key_path);
         };
 
@@ -149,54 +176,28 @@ void initWebsocketTLS(const std::shared_ptr<wspp::server_tls> &s CPPJSLIB_CERTS)
     }
 }
 
-#else
-#define CPPJSLIB_CERTS
 #endif
-
-template<typename EndpointType>
-void initWebsocketServer(std::shared_ptr<EndpointType> s, const std::shared_ptr<wspp::con_list> &list) {
-    try {
-        s->set_open_handler(bind([list](websocketpp::connection_hdl hdl) {
-            list->insert(hdl);
-        }, ::_1));
-        s->set_close_handler(bind([list](websocketpp::connection_hdl hdl) {
-            list->erase(hdl);
-        }, ::_1));
-
-        s->set_access_channels(websocketpp::log::alevel::all);
-        s->clear_access_channels(websocketpp::log::alevel::frame_payload);
-
-        s->init_asio();
-    } catch (websocketpp::exception const &e) {
-        if (errorF) errorF(e.what());
-    } catch (...) {
-        if (errorF) errorF("An unknown exception occurred");
-    }
-}
-
-template<typename EndpointType>
-void startWebsocketServer(std::shared_ptr<EndpointType> s, int port) {
-    s->listen(port);
-    s->start_accept();
-
-    s->run();
-}
 
 #undef CPPJSLIB_CERTS
 #endif
 
+#ifdef CPPJSLIB_ENABLE_HTTPS
+#   define CPPJSLIB_DISABLE_SSL_MACRO ,ssl(false), fallback_plain(false)
+#else
+#   define CPPJSLIB_DISABLE_SSL_MACRO
+#endif
 
 // WebGUI class -------------------------------------------------------------------------
 CPPJSLIB_EXPORT WebGUI::WebGUI(const std::string &base_dir)
         : initMap(), funcVector(), jsFuncVector()CPPJSLIB_DISABLE_SSL_MACRO {
-    std::shared_ptr<httplib::Server> svr(new httplib::Server());
+    std::shared_ptr<httplib::Server> svr = std::make_shared<httplib::Server>();
     server = std::static_pointer_cast<void>(svr);
 
 #ifdef CPPJSLIB_ENABLE_WEBSOCKET
     setPassword();
 
-    std::shared_ptr<wspp::server> ws_svr(new wspp::server());
-    std::shared_ptr<wspp::con_list> ws_con(new wspp::con_list());
+    std::shared_ptr<wspp::server> ws_svr = std::make_shared<wspp::server>();
+    std::shared_ptr<wspp::con_list> ws_con = std::make_shared<wspp::con_list>();
     ws_connections = std::static_pointer_cast<void>(ws_con);
     initWebsocketServer(ws_svr, ws_con);
 
@@ -221,8 +222,8 @@ CPPJSLIB_EXPORT WebGUI::WebGUI(const std::string &base_dir)
 #ifdef CPPJSLIB_ENABLE_HTTPS
 
 CPPJSLIB_EXPORT WebGUI::WebGUI(const std::string &base_dir, const std::string &cert_path,
-                               const std::string &private_key_path)
-        : initMap(), funcVector(), jsFuncVector(), ssl(true) {
+                               const std::string &private_key_path, unsigned short websocket_fallback_plain)
+        : initMap(), funcVector(), jsFuncVector(), ssl(true), fallback_plain(websocket_fallback_plain) {
     if (cert_path.empty() && private_key_path.empty()) {
         errorF("No certificate paths were given");
         return;
@@ -230,17 +231,27 @@ CPPJSLIB_EXPORT WebGUI::WebGUI(const std::string &base_dir, const std::string &c
 
     setPassword();
 
-    std::shared_ptr<httplib::SSLServer> svr(new httplib::SSLServer(cert_path.c_str(), private_key_path.c_str()));
+    std::shared_ptr<httplib::SSLServer> svr = std::make_shared<httplib::SSLServer>(cert_path.c_str(),
+                                                                                   private_key_path.c_str());
     server = std::static_pointer_cast<void>(svr);
 
 #ifdef CPPJSLIB_ENABLE_WEBSOCKET
-    std::shared_ptr<wspp::server_tls> ws_svr(new wspp::server_tls());
-    initWebsocketTLS(ws_svr, cert_path, private_key_path);
-    std::shared_ptr<wspp::con_list> ws_con(new wspp::con_list());
+    std::shared_ptr<wspp::con_list> ws_con = std::make_shared<wspp::con_list>();
     ws_connections = std::static_pointer_cast<void>(ws_con);
-    initWebsocketServer(ws_svr, ws_con);
 
+    std::shared_ptr<wspp::server_tls> ws_svr = std::make_shared<wspp::server_tls>();
+    initWebsocketTLS(ws_svr, cert_path, private_key_path);
+    initWebsocketServer(ws_svr, ws_con);
     ws_server = std::static_pointer_cast<void>(ws_svr);
+
+    if (fallback_plain) {
+        std::shared_ptr<wspp::server> ws_plain_svr = std::make_shared<wspp::server>();
+        std::shared_ptr<wspp::con_list> ws_plain_con = std::make_shared<wspp::con_list>();
+        initWebsocketServer(ws_plain_svr, ws_plain_con);
+
+        ws_plain_connections = std::static_pointer_cast<void>(ws_plain_con);
+        ws_plain_server = std::static_pointer_cast<void>(ws_plain_svr);
+    }
 #endif
 
     running = false;
@@ -294,9 +305,15 @@ CPPJSLIB_EXPORT bool WebGUI::start(int port, CPPJSLIB_WS_PORT const std::string 
 #ifdef CPPJSLIB_ENABLE_WEBSOCKET
     init_ws_json["ws"] = "true";
 #ifdef CPPJSLIB_ENABLE_HTTPS
-    if (ssl)
+    if (ssl) {
         init_ws_json["tls"] = "true";
-    else
+        if (fallback_plain) {
+            init_ws_json["fallback_plain"] = "true";
+            init_ws_json["fallback_plain_port"] = fallback_plain;
+        } else {
+            init_ws_json["fallback_plain"] = "false";
+        }
+    } else
 #endif
         init_ws_json["tls"] = "false";
 #else
@@ -350,6 +367,15 @@ CPPJSLIB_EXPORT bool WebGUI::start(int port, CPPJSLIB_WS_PORT const std::string 
             startWebsocketServer(std::static_pointer_cast<wspp::server>(_ws_server), websocketPort);
     });
     websocketThread.detach();
+
+    if (fallback_plain) {
+        std::shared_ptr<void> _ws_plain_server = this->ws_plain_server;
+
+        std::thread websocketPlainThread([_ws_plain_server, websocketPort] {
+            startWebsocketServer(std::static_pointer_cast<wspp::server>(_ws_plain_server), websocketPort);
+        });
+        websocketPlainThread.detach();
+    }
 #endif
 
     std::function < void() > func;
@@ -461,11 +487,13 @@ CPPJSLIB_EXPORT bool CppJsLib::stop(WebGUI *webGui, bool block, int waitMaxSecon
 
 #ifdef CPPJSLIB_ENABLE_WEBSOCKET
 #ifdef CPPJSLIB_ENABLE_HTTPS
-    if (webGui->ssl)
-        webGui->getWebServer()->stop();
-    else
-#endif
+    if (webGui->ssl) {
         webGui->getTLSWebServer()->stop();
+        if (webGui->fallback_plain)
+            webGui->getWebServer()->stop();
+    } else
+#endif
+        webGui->getWebServer()->stop();
 #endif
 
     return webGui->stopped;
@@ -514,12 +542,17 @@ CPPJSLIB_EXPORT std::string *CppJsLib::createStringArrayFromJSON(int *size, cons
 
 #ifdef CPPJSLIB_ENABLE_WEBSOCKET
 
+CPPJSLIB_EXPORT void
+CppJsLib::callJsFunc(const std::shared_ptr<WebGUI>& wGui, std::vector<std::string> *argV, const char *funcName,
+                     std::vector<char *> *results, int wait) {
+    wGui->call_jsFn(argV, funcName, results, wait);
+}
+
 template<typename EndpointType>
-void empty_on_message(EndpointType *s, websocketpp::connection_hdl hdl, typename EndpointType::message_ptr msg) {}
+void empty_on_message(EndpointType *, const websocketpp::connection_hdl &, typename EndpointType::message_ptr) {}
 
 CPPJSLIB_EXPORT void
-CppJsLib::call_jsFn(std::vector<std::string> *argV, const char *funcName, const std::shared_ptr<void>& wspp_server,
-                    const std::shared_ptr<void>& wspp_list, bool ssl, std::vector<char *> *results, int wait) {
+WebGUI::call_jsFn(std::vector<std::string> *argV, const char *funcName, std::vector<char *> *results, int wait) {
     // Dump the list of arguments into a json string
     nlohmann::json j;
     for (std::string s: *argV) {
@@ -528,24 +561,32 @@ CppJsLib::call_jsFn(std::vector<std::string> *argV, const char *funcName, const 
 
     std::string str = j.dump();
 
-    std::shared_ptr<wspp::con_list> list = std::static_pointer_cast<wspp::con_list>(wspp_list);
+    std::shared_ptr<wspp::con_list> list = std::static_pointer_cast<wspp::con_list>(ws_connections);
 
     // Set the message handlers if the function is non-void
     if (results) {
 #ifdef CPPJSLIB_ENABLE_HTTPS
         if (ssl) {
-            std::shared_ptr<wspp::server_tls> ws_svr = std::static_pointer_cast<wspp::server_tls>(wspp_server);
-            ws_svr->set_message_handler(bind([results](wspp::server_tls *s, websocketpp::connection_hdl hdl,
-                                                       wspp::server_tls::message_ptr msg) {
+            std::shared_ptr<wspp::server_tls> ws_svr = std::static_pointer_cast<wspp::server_tls>(ws_server);
+            ws_svr->set_message_handler(bind([results](wspp::server_tls *s, const websocketpp::connection_hdl &hdl,
+                                                       const wspp::server_tls::message_ptr &msg) {
                 results->push_back(strdup(msg->get_payload().c_str()));
             }, ws_svr.get(), ::_1, ::_2));
+            if (fallback_plain) {
+                std::shared_ptr<wspp::server> ws_plain_svr = std::static_pointer_cast<wspp::server>(ws_plain_server);
+                ws_plain_svr->set_message_handler(
+                        bind([results](wspp::server *s, const websocketpp::connection_hdl &hdl,
+                                       const wspp::server_tls::message_ptr &msg) {
+                            results->push_back(strdup(msg->get_payload().c_str()));
+                        }, ws_plain_svr.get(), ::_1, ::_2));
+            }
         } else {
 #endif
-            std::shared_ptr<wspp::server> ws_svr = std::static_pointer_cast<wspp::server>(wspp_server);
-            ws_svr->set_message_handler(
-                    bind([results](wspp::server *s, websocketpp::connection_hdl hdl, wspp::server::message_ptr msg) {
-                        results->push_back(strdup(msg->get_payload().c_str()));
-                    }, ws_svr.get(), ::_1, ::_2));
+            std::shared_ptr<wspp::server> ws_svr = std::static_pointer_cast<wspp::server>(ws_server);
+            ws_svr->set_message_handler(bind([results](wspp::server *s, const websocketpp::connection_hdl &hdl,
+                                                       const wspp::server::message_ptr &msg) {
+                results->push_back(strdup(msg->get_payload().c_str()));
+            }, ws_svr.get(), ::_1, ::_2));
 #ifdef CPPJSLIB_ENABLE_HTTPS
         }
 #endif
@@ -554,12 +595,23 @@ CppJsLib::call_jsFn(std::vector<std::string> *argV, const char *funcName, const 
     // Send request to all clients
     for (const auto &it : *list) {
 #ifdef CPPJSLIB_ENABLE_HTTPS
-        if (ssl)
-            std::static_pointer_cast<wspp::server_tls>(wspp_server)->send(it, str, websocketpp::frame::opcode::value::text);
-        else
+        if (ssl) {
+            std::static_pointer_cast<wspp::server_tls>(ws_server)->send(it, str,
+                                                                        websocketpp::frame::opcode::value::text);
+        } else
 #endif
-            std::static_pointer_cast<wspp::server>(wspp_server)->send(it, str, websocketpp::frame::opcode::value::text);
+            std::static_pointer_cast<wspp::server>(ws_server)->send(it, str, websocketpp::frame::opcode::value::text);
     }
+
+#ifdef CPPJSLIB_ENABLE_HTTPS
+    if (fallback_plain) {
+        std::shared_ptr<wspp::con_list> plain_list = std::static_pointer_cast<wspp::con_list>(ws_plain_connections);
+        for (const auto &it : *plain_list) {
+            std::static_pointer_cast<wspp::server>(ws_plain_server)->send(it, str,
+                                                                          websocketpp::frame::opcode::value::text);
+        }
+    }
+#endif
 
     if (results) {
         // Wait for the results to come in
@@ -574,11 +626,15 @@ CppJsLib::call_jsFn(std::vector<std::string> *argV, const char *funcName, const 
     // Remove the message handler
 #ifdef CPPJSLIB_ENABLE_HTTPS
     if (ssl) {
-        std::shared_ptr<wspp::server_tls> ws_svr = std::static_pointer_cast<wspp::server_tls>(wspp_server);
+        std::shared_ptr<wspp::server_tls> ws_svr = std::static_pointer_cast<wspp::server_tls>(ws_server);
         ws_svr->set_message_handler(bind(&empty_on_message<wspp::server_tls>, ws_svr.get(), ::_1, ::_2));
+        if (fallback_plain) {
+            std::shared_ptr<wspp::server> ws_plain_svr = std::static_pointer_cast<wspp::server>(ws_plain_server);
+            ws_plain_svr->set_message_handler(bind(&empty_on_message<wspp::server>, ws_plain_svr.get(), ::_1, ::_2));
+        }
     } else {
 #endif
-        std::shared_ptr<wspp::server> ws_svr = std::static_pointer_cast<wspp::server>(wspp_server);
+        std::shared_ptr<wspp::server> ws_svr = std::static_pointer_cast<wspp::server>(ws_server);
         ws_svr->set_message_handler(bind(&empty_on_message<wspp::server>, ws_svr.get(), ::_1, ::_2));
 #ifdef CPPJSLIB_ENABLE_HTTPS
     }

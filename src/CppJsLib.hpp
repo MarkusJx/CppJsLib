@@ -81,7 +81,9 @@
 #ifdef CPPJSLIB_ENABLE_WEBSOCKET
 #   define importFunction(func, ...) _importJsFunction(func, #func, ##__VA_ARGS__)
 #   define getWebServer() _getWebServer<websocketpp::server<websocketpp::config::asio>>()
-#   define getTLSWebServer() _getWebServer<websocketpp::server<websocketpp::config::asio_tls>>()
+#   ifdef CPPJSLIB_ENABLE_HTTPS
+#       define getTLSWebServer() _getTLSWebServer<websocketpp::server<websocketpp::config::asio_tls>>()
+#   endif
 #endif
 #ifdef CPPJSLIB_ENABLE_HTTPS
 #   define getHttpsServer() _getHttpServer<httplib::SSLServer>()
@@ -97,16 +99,7 @@ namespace CppJsLib {
 
     CPPJSLIB_EXPORT std::string stringToJSON(std::string s);
 
-    CPPJSLIB_EXPORT void
-    call_jsFn(std::vector<std::string> *argV, const char *funcName, const std::shared_ptr<void> &wspp_server,
-              const std::shared_ptr<void> &wspp_list, bool ssl, std::vector<char *> *results = nullptr, int wait = -1);
-
     CPPJSLIB_EXPORT std::string *createStringArrayFromJSON(int *size, const std::string &data);
-
-#ifdef CPPJSLIB_ENABLE_WEBSOCKET
-    template<class>
-    struct JsFunction;
-#endif
 
     template<class>
     struct TypeConverter;
@@ -123,6 +116,17 @@ namespace CppJsLib {
     template<typename T>
     T ConvertString(const std::string &data);
 
+#ifdef CPPJSLIB_ENABLE_WEBSOCKET
+
+    template<class>
+    struct JsFunction;
+
+    class WebGUI;
+
+    CPPJSLIB_EXPORT void
+    callJsFunc(const std::shared_ptr<WebGUI> &wGui, std::vector<std::string> *argV, const char *funcName,
+               std::vector<char *> *results = nullptr, int wait = -1);
+
     template<class T>
     inline std::string getEl(T dt) {
         return std::to_string(dt);
@@ -133,22 +137,15 @@ namespace CppJsLib {
         auto x = {(argV->push_back(args), 0)...};
     }
 
-#ifdef CPPJSLIB_ENABLE_WEBSOCKET
-
     template<>
     struct JsFunction<void()> {
     public:
-        JsFunction<void()>(std::string name, std::shared_ptr<void> wspp_server, std::shared_ptr<void> wspp_list,
-                           bool ssl)
-                : returnType("void"), fnName(std::move(name)) {
-            server = wspp_server;
-            _ssl = ssl;
-            list = wspp_list;
-        }
+        JsFunction<void()>(std::string name, std::shared_ptr<WebGUI> _wGui) :
+                returnType("void"), fnName(std::move(name)), wGui(std::move(_wGui)) {}
 
         void operator()() {
             std::vector<std::string> argV;
-            call_jsFn(&argV, fnName.c_str(), server, list, _ssl);
+            callJsFunc(wGui, &argV, fnName.c_str());
         }
 
         ~JsFunction() = default;
@@ -156,26 +153,19 @@ namespace CppJsLib {
     private:
         const std::string fnName;
         const std::string returnType;
-        bool _ssl;
-        std::shared_ptr<void> server;
-        std::shared_ptr<void> list;
+        const std::shared_ptr<WebGUI> wGui;
     };
 
     template<class... Args>
     struct JsFunction<void(Args ...)> {
     public:
-        JsFunction<void(Args...)>(std::string name, std::shared_ptr<void> wspp_server, std::shared_ptr<void> wspp_list,
-                                  bool ssl)
-                : returnType("void"), fnName(std::move(name)) {
-            server = wspp_server;
-            _ssl = ssl;
-            list = wspp_list;
-        }
+        JsFunction<void(Args...)>(std::string name, std::shared_ptr<WebGUI> _wGui) :
+                returnType("void"), fnName(std::move(name)), wGui(std::move(_wGui)) {}
 
         void operator()(Args ... args) {
             std::vector<std::string> argV;
             auto x = {(ConvertToString(&argV, getEl(args)), 0)...};
-            call_jsFn(&argV, fnName.c_str(), server, list, _ssl);
+            callJsFunc(wGui, &argV, fnName.c_str());
         }
 
         ~JsFunction() = default;
@@ -183,26 +173,20 @@ namespace CppJsLib {
     private:
         const std::string fnName;
         const std::string returnType;
-        bool _ssl;
-        std::shared_ptr<void> server;
-        std::shared_ptr<void> list;
+        const std::shared_ptr<WebGUI> wGui;
     };
 
     template<class R>
     struct JsFunction<std::vector<R>()> {
     public:
-        JsFunction<std::vector<R>()>(std::string name, std::shared_ptr<void> wspp_server,
-                                     std::shared_ptr<void> wspp_list, bool ssl, int waitS)
-                : responseReturns(), returnType(getTypeName<R>()), fnName(std::move(name)) {
+        JsFunction<std::vector<R>()>(std::string name, std::shared_ptr<WebGUI> _wGui, int waitS)
+                : responseReturns(), returnType(getTypeName<R>()), fnName(std::move(name)), wGui(std::move(_wGui)) {
             wait = waitS;
-            server = wspp_server;
-            _ssl = ssl;
-            list = wspp_list;
         }
 
         std::vector<R> operator()() {
             std::vector<std::string> argV;
-            call_jsFn(&argV, fnName.c_str(), server, list, _ssl, &responseReturns, wait);
+            callJsFunc(wGui, &argV, fnName.c_str(), &responseReturns, wait);
 
             std::vector<R> tmp;
             for (char *c : responseReturns) {
@@ -225,9 +209,7 @@ namespace CppJsLib {
     private:
         const std::string fnName;
         const std::string returnType;
-        bool _ssl;
-        std::shared_ptr<void> server;
-        std::shared_ptr<void> list;
+        const std::shared_ptr<WebGUI> wGui;
         int wait;
         std::vector<char *> responseReturns;
     };
@@ -235,19 +217,15 @@ namespace CppJsLib {
     template<class R, class... Args>
     struct JsFunction<std::vector<R>(Args ...)> {
     public:
-        JsFunction<std::vector<R>(Args...)>(std::string name, std::shared_ptr<void> wspp_server,
-                                            std::shared_ptr<void> wspp_list, bool ssl, int waitS)
-                : responseReturns(), returnType(getTypeName<R>()), fnName(std::move(name)) {
+        JsFunction<std::vector<R>(Args...)>(std::string name, std::shared_ptr<WebGUI> _wGui, int waitS)
+                : responseReturns(), returnType(getTypeName<R>()), fnName(std::move(name)), wGui(std::move(_wGui)) {
             wait = waitS;
-            server = wspp_server;
-            _ssl = ssl;
-            list = wspp_list;
         }
 
         std::vector<R> operator()(Args ... args) {
             std::vector<std::string> argV;
             auto x = {(ConvertToString(&argV, getEl(args)), 0)...};
-            call_jsFn(&argV, fnName.c_str(), server, list, _ssl, &responseReturns, wait);
+            callJsFunc(wGui, &argV, fnName.c_str(), &responseReturns, wait);
 
             std::vector<R> tmp;
             for (char *c : responseReturns) {
@@ -270,11 +248,9 @@ namespace CppJsLib {
     private:
         const std::string fnName;
         const std::string returnType;
-        bool _ssl;
-        std::shared_ptr<void> server;
-        std::shared_ptr<void> list;
         int wait;
         std::vector<char *> responseReturns;
+        const std::shared_ptr<WebGUI> wGui;
     };
 
 #endif
@@ -588,7 +564,7 @@ namespace CppJsLib {
          * @warning this constructor will be undeclared when built without ssl support
          */
         CPPJSLIB_EXPORT WebGUI(const std::string &base_dir, const std::string &cert_path,
-                               const std::string &private_key_path);
+                               const std::string &private_key_path, unsigned short websocket_plain_fallback_port = 0);
 
 #endif
 
@@ -642,6 +618,10 @@ namespace CppJsLib {
 
 #ifdef CPPJSLIB_ENABLE_WEBSOCKET
 
+        CPPJSLIB_EXPORT void
+        call_jsFn(std::vector<std::string> *argV, const char *funcName, std::vector<char *> *results = nullptr,
+                  int wait = -1);
+
         template<class...Args>
         inline void _importJsFunction(std::function<void(Args...)> *function, std::string fName) {
             if (fName[0] == '&') {
@@ -652,7 +632,7 @@ namespace CppJsLib {
 #ifndef CPPJSLIB_ENABLE_HTTPS
             bool ssl = false;
 #endif
-            auto *f = new(std::nothrow) struct JsFunction<void(Args...)>(fName, ws_server, ws_connections, ssl);
+            auto *f = new(std::nothrow) struct JsFunction<void(Args...)>(fName, std::shared_ptr<WebGUI>(this));
             if (f != nullptr) {
                 jsFuncVector.push_back(static_cast<void *>(f));
                 *function = [f](Args...args) {
@@ -674,8 +654,7 @@ namespace CppJsLib {
 #ifndef CPPJSLIB_ENABLE_HTTPS
             bool ssl = false;
 #endif
-            auto *f = new(std::nothrow) struct JsFunction<std::vector<R>(Args...)>(fName, ws_server, ws_connections,
-                                                                                   ssl,
+            auto *f = new(std::nothrow) struct JsFunction<std::vector<R>(Args...)>(fName, std::shared_ptr<WebGUI>(this),
                                                                                    waitS);
             if (f != nullptr) {
                 jsFuncVector.push_back(static_cast<void *>(f));
@@ -703,15 +682,28 @@ namespace CppJsLib {
          * @return a pointer to the http Server of this instance
          */
         template<typename T>
-        inline T *_getHttpServer() {
-            return std::static_pointer_cast<T>(server).get();
+        inline std::shared_ptr<T> _getHttpServer() {
+            return std::static_pointer_cast<T>(server);
         }
 
 #ifdef CPPJSLIB_ENABLE_WEBSOCKET
 
+#ifdef CPPJSLIB_ENABLE_HTTPS
+
         template<typename T>
-        inline T *_getWebServer() {
-            return std::static_pointer_cast<T>(ws_server).get();
+        inline std::shared_ptr<T> _getTLSWebServer() {
+            return std::static_pointer_cast<T>(ws_server);
+        }
+
+#endif
+
+        template<typename T>
+        inline std::shared_ptr<T> _getWebServer() {
+            if (fallback_plain) {
+                return std::static_pointer_cast<T>(ws_plain_server);
+            } else {
+                return std::static_pointer_cast<T>(ws_server);
+            }
         }
 
 #endif
@@ -722,11 +714,14 @@ namespace CppJsLib {
         bool stopped;
 #ifdef CPPJSLIB_ENABLE_HTTPS
         const bool ssl;
+        const unsigned short fallback_plain;
 #endif
     private:
 #ifdef CPPJSLIB_ENABLE_WEBSOCKET
         std::shared_ptr<void> ws_server;
+        std::shared_ptr<void> ws_plain_server;
         std::shared_ptr<void> ws_connections;
+        std::shared_ptr<void> ws_plain_connections;
 #endif
         std::shared_ptr<void> server;
         std::map<char *, char *> initMap;

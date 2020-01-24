@@ -64,7 +64,11 @@ const cppJsLib = {
                 this.webSocket.onmessage = (event) => {
                     let data = JSON.parse(event.data);
                     let key = Object.keys(data)[0];
-                    this.exposedFunctions[key]( ... JSON.parse(data[key]));
+                    if (data[key].length === 1) {
+                        this.exposedFunctions[key](JSON.parse(data[key]));
+                    } else {
+                        this.exposedFunctions[key]( ... JSON.parse(data[key]));
+                    }
                 }
             }
         }, "", "GET");

@@ -30,7 +30,7 @@ int main() {
 
 #ifdef TEST_ENABLE_HTTPS
     std::cout << "Tests were built with HTTPS support enabled" << std::endl;
-    wGui = new CppJsLib::WebGUI("web");
+    wGui = new CppJsLib::WebGUI("web", "cert.pem", "server.pem");
 #else
     wGui = new CppJsLib::WebGUI("web");
 #endif
@@ -47,7 +47,7 @@ int main() {
 #else
 #   define TEST_WS_PORT
 #endif
-    wGui->start(8026, TEST_WS_PORT "127.0.0.1", false);
+    wGui->start(8026, TEST_WS_PORT "127.0.0.1", true);
 
     std::this_thread::sleep_for(std::chrono::seconds(2));
     std::cout << "Stopping web server..." << std::endl;

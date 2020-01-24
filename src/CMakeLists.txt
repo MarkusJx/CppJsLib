@@ -12,6 +12,8 @@ option(HTTPS "Enable https support" FALSE)
 option(WinGHBuild FALSE)
 option(ENABLE_WEBSOCKET "Enable websocket protocol support" FALSE)
 
+add_compile_definitions(_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS) # Silence all Boost deprecation warnings
+
 if (ENABLE_WEBSOCKET)
     if (WinGHBuild)
         message(STATUS "Building with gh actions, setting BOOST_1_69 to include folder")
@@ -52,6 +54,7 @@ include_directories(${CMAKE_SOURCE_DIR}/include)
 if (ENABLE_WEBSOCKET)
     target_include_directories(CppJsLib PRIVATE "$ENV{BOOST_1_69}")
     target_link_directories(CppJsLib PRIVATE "$ENV{BOOST_1_69}\\stage\\lib")
+    message(STATUS "Linking to $ENV{BOOST_1_69}\\stage\\lib")
 
     target_compile_options(CppJsLib PRIVATE "/bigobj")
 endif ()
