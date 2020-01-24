@@ -1,4 +1,4 @@
-# CppJsLib
+# CppJsLib ![C/C++ Build](https://github.com/MarkusJx/CppJsLib/workflows/C/C++%20CI/badge.svg)
 
 ## License
 
