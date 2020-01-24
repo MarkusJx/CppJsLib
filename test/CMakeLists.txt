@@ -5,6 +5,13 @@ set(CMAKE_CXX_STANDARD 17)
 
 option(HTTPS FALSE)
 option(ENABLE_WEBSOCKET FALSE)
+option(WinGHBuild FALSE)
+
+if(DEFINED ENV{GITHUB_ACTIONS})
+    message(STATUS "Github Actions is for sure building this")
+
+    add_compile_definitions(TEST_GHBUILD)
+endif()
 
 if(ENABLE_WEBSOCKET)
     add_compile_definitions(TEST_ENABLE_WEBSOCKET)

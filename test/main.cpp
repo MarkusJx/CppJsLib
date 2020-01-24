@@ -47,7 +47,13 @@ int main() {
 #else
 #   define TEST_WS_PORT
 #endif
-    wGui->start(8026, TEST_WS_PORT "127.0.0.1", true);
+
+#ifdef TEST_GHBUILD
+    bool block = false;
+#else
+    bool block = true;
+#endif
+    wGui->start(8026, TEST_WS_PORT "127.0.0.1", block);
 
     std::this_thread::sleep_for(std::chrono::seconds(2));
     std::cout << "Stopping web server..." << std::endl;
