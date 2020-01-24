@@ -9,13 +9,12 @@ file(GLOB webInterface
         )
 
 option(HTTPS "Enable https support" FALSE)
-option(WinGHBuild FALSE)
 option(ENABLE_WEBSOCKET "Enable websocket protocol support" FALSE)
 
 add_compile_definitions(_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS) # Silence all Boost deprecation warnings
 
 if (ENABLE_WEBSOCKET)
-    if (WinGHBuild)
+    if (DEFINED ENV{GITHUB_ACTIONS})
         message(STATUS "Building with gh actions, setting BOOST_1_69 to include folder")
         set(ENV{BOOST_1_69} ${CMAKE_SOURCE_DIR}/include/boost_1_69_0)
         add_compile_definitions(CPPJSLIB_ENABLE_WEBSOCKET)
@@ -32,13 +31,9 @@ else()
     message(STATUS "Building without websocket protocol support")
 endif ()
 
-if (WinGHBuild)
-    message(STATUS "Building on GitHub on Windows")
-endif ()
-
 if (HTTPS)
     message(STATUS "Building with HTTPS support")
-    if (NOT WinGHBuild)
+    if (NOT DEFINED ENV{GITHUB_ACTIONS})
         include_directories("C:\\Program Files\\OpenSSL-Win64\\include")
         set(ssllib "C:\\Program Files\\OpenSSL-Win64\\lib")
     endif ()
@@ -60,11 +55,11 @@ if (ENABLE_WEBSOCKET)
 endif ()
 
 if (HTTPS)
-    if (WinGHBuild)
+    if (DEFINED ENV{GITHUB_ACTIONS})
         message(STATUS "linking downloaded libssl and libcrypto")
-        target_link_libraries(CppJsLib "${CMAKE_SOURCE_DIR}/lib/libsslMD.lib" "${CMAKE_SOURCE_DIR}/lib/libcryptoMD.lib")
+        target_link_libraries(CppJsLib "${CMAKE_SOURCE_DIR}/lib/libsslMD" "${CMAKE_SOURCE_DIR}/lib/libcryptoMD")
     else ()
-        target_link_libraries(CppJsLib "${ssllib}/libssl.lib" "${ssllib}/libcrypto.lib")
+        target_link_libraries(CppJsLib "${ssllib}/libssl" "${ssllib}/libcrypto")
     endif ()
 endif ()
 

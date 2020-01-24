@@ -26,7 +26,7 @@ jobs:
       with:
         args: -O include/httplib.h https://raw.githubusercontent.com/yhirose/cpp-httplib/master/httplib.h
     - name: cmake
-      run: cmake -DCMAKE_BUILD_TYPE=Debug -DBuildTests=TRUE -DGHBuild=TRUE .
+      run: cmake -DCMAKE_BUILD_TYPE=Debug -DBuildTests=TRUE .
     - name: build
       run: cmake --build . 
     - name: run test
@@ -90,7 +90,7 @@ jobs:
     - name: get httplib
       run: wget -O include/httplib.h https://raw.githubusercontent.com/yhirose/cpp-httplib/master/httplib.h
     - name: cmake
-      run: cmake -DCMAKE_BUILD_TYPE=Debug -DBuildTests=TRUE -DGHBuild=TRUE .
+      run: cmake -DCMAKE_BUILD_TYPE=Debug -DBuildTests=TRUE .
     - name: build
       run: cmake --build .
     - name: run test
@@ -125,7 +125,7 @@ jobs:
       with:
         args: -O include/httplib.h https://raw.githubusercontent.com/yhirose/cpp-httplib/master/httplib.h
     - name: cmake
-      run: cmake -DCMAKE_BUILD_TYPE=Release -DBuildTests=TRUE -DGHBuild=TRUE .
+      run: cmake -DCMAKE_BUILD_TYPE=Release -DBuildTests=TRUE .
     - name: build
       run: cmake --build . 
     - name: run test
@@ -222,12 +222,14 @@ jobs:
       - name: build boost
         run: b2.exe
         working-directory: include/boost_1_69_0
+      - run: bjam.exe
+        working-directory: include/boost_1_69_0
       - run: ls
         working-directory: include
       - run: ls
         working-directory: include/boost_1_69_0/stage/lib
       - name: cmake
-        run: cmake -DBuildTests=TRUE -DWinGHBuild=TRUE -DHTTPS=TRUE -DENABLE_WEBSOCKET=TRUE .
+        run: cmake -DBuildTests=TRUE -DHTTPS=TRUE -DENABLE_WEBSOCKET=TRUE .
       - name: build
         run: cmake --build . --config Release
       - name: copy libcrypto to src folder
@@ -266,7 +268,7 @@ jobs:
     - name: get httplib
       run: wget -O include/httplib.h https://raw.githubusercontent.com/yhirose/cpp-httplib/master/httplib.h
     - name: cmake
-      run: cmake -DCMAKE_BUILD_TYPE=Release -DBuildTests=TRUE -DGHBuild=TRUE .
+      run: cmake -DCMAKE_BUILD_TYPE=Release -DBuildTests=TRUE .
     - name: build
       run: cmake --build .
     - name: run test
