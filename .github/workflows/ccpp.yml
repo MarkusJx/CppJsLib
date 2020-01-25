@@ -186,9 +186,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v1
-      - uses: ilammy/msvc-dev-cmd@v1
-        with:
-          toolset: 14.1
       - name: create include folder
         run: mkdir include
       - name: create lib folder
@@ -226,6 +223,9 @@ jobs:
         run: mv boost_1_69_0 include/boost_1_69_0
       - run: bootstrap.bat
         working-directory: include/boost_1_69_0
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          toolset: 14.1
       - name: build boost
         run: |
             b2.exe toolset=msvc-14.1
