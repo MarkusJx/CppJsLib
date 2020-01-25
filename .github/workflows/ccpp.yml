@@ -224,14 +224,10 @@ jobs:
       - run: bootstrap.bat
         working-directory: include/boost_1_69_0
       - name: build boost
-        run: b2.exe
+        run: |
+            b2.exe
+            bjam.exe
         working-directory: include/boost_1_69_0
-      - run: bjam.exe
-        working-directory: include/boost_1_69_0
-      - run: ls
-        working-directory: include
-      - run: ls
-        working-directory: include/boost_1_69_0/stage/lib
       - name: cmake
         run: cmake -DBuildTests=TRUE -DHTTPS=TRUE -DENABLE_WEBSOCKET=TRUE .
       - name: build
