@@ -221,11 +221,13 @@ jobs:
         run: unzip boost.zip
       - name: move boost
         run: mv boost_1_69_0 include/boost_1_69_0
-      - run: bootstrap.bat
-        working-directory: include/boost_1_69_0
+      - name: cmake
+        run: cmake -DBuildTests=TRUE -DHTTPS=TRUE -DENABLE_WEBSOCKET=TRUE .
       - uses: ilammy/msvc-dev-cmd@v1
         with:
           toolset: 14.1
+      - run: bootstrap.bat
+        working-directory: include/boost_1_69_0
       - name: build boost
         run: |
             b2.exe toolset=msvc-14.1
@@ -235,8 +237,6 @@ jobs:
         working-directory: include
       - run: ls
         working-directory: include/boost_1_69_0/stage/lib
-      - name: cmake
-        run: cmake -DBuildTests=TRUE -DHTTPS=TRUE -DENABLE_WEBSOCKET=TRUE .
       - name: build
         run: cmake --build . --config Release
       - name: copy libcrypto to src folder
