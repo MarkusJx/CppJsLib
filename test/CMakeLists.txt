@@ -5,7 +5,6 @@ set(CMAKE_CXX_STANDARD 17)
 
 option(HTTPS FALSE)
 option(ENABLE_WEBSOCKET FALSE)
-option(WinGHBuild FALSE)
 
 if(DEFINED ENV{GITHUB_ACTIONS})
     message(STATUS "Github Actions is for sure building this")
@@ -28,8 +27,12 @@ add_executable(Test main.cpp)
 
 target_include_directories(Test PRIVATE "${CMAKE_SOURCE_DIR}/src")
 target_include_directories(Test PRIVATE "${CMAKE_SOURCE_DIR}/include")
-
-target_link_libraries(Test CppJsLib)
+if(WIN32)
+    target_link_libraries(Test "$<TARGET_FILE_DIR:CppJsLib>/CppJsLib.lib")
+    message(STATUS "Building tests on windows")
+else()
+    target_link_libraries(Test CppJsLib)
+endif()
 
 file(REMOVE_RECURSE $<TARGET_FILE_DIR:Test>/web)
 
