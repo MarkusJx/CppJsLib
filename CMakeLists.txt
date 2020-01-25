@@ -3,6 +3,8 @@ project(CppJsLibAll)
 
 set(CMAKE_CXX_STANDARD 17)
 
+option(BuildTests "BuildTests" FALSE)
+
 if (DEFINED ENV{GITHUB_ACTIONS})
     add_compile_definitions(CPPJSLIB_GHBUILD)
     message(STATUS "Building on GitHub")

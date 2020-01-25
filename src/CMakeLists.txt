@@ -47,8 +47,8 @@ add_library(CppJsLib SHARED "${webInterface}")
 include_directories(${CMAKE_SOURCE_DIR}/include)
 
 if (ENABLE_WEBSOCKET)
-    target_include_directories(CppJsLib PRIVATE "$ENV{BOOST_1_69}")
-    target_link_directories(CppJsLib PRIVATE "$ENV{BOOST_1_69}\\stage\\lib")
+    target_include_directories(CppJsLib PUBLIC "$ENV{BOOST_1_69}")
+    target_link_directories(CppJsLib PUBLIC "$ENV{BOOST_1_69}\\stage\\lib")
     message(STATUS "Linking to $ENV{BOOST_1_69}\\stage\\lib")
 
     target_compile_options(CppJsLib PRIVATE "/bigobj")
