@@ -65,7 +65,7 @@ jobs:
     - name: list src
       run: ls
       working-directory: src/Debug
-      if: succeeded() || failed()
+      if: always()
     - name: run test
       shell: cmd
       run: Test.exe
