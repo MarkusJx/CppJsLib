@@ -12,12 +12,12 @@ option(HTTPS "Enable https support" FALSE)
 option(ENABLE_WEBSOCKET "Enable websocket protocol support" FALSE)
 
 add_compile_definitions(_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS) # Silence all Boost deprecation warnings
+add_compile_definitions(COMPILATION)
 
 if (ENABLE_WEBSOCKET)
     if (DEFINED ENV{GITHUB_ACTIONS})
         message(STATUS "Building with gh actions, setting BOOST_1_69 to include folder")
         set(ENV{BOOST_1_69} ${CMAKE_SOURCE_DIR}/include/boost_1_69_0)
-        add_compile_definitions(CPPJSLIB_ENABLE_WEBSOCKET)
     endif()
 
     message(STATUS "Building with websocket protocol support")
@@ -39,8 +39,6 @@ if (HTTPS)
     endif ()
     add_compile_definitions(CPPJSLIB_ENABLE_HTTPS)
 endif ()
-
-add_compile_definitions(COMPILATION)
 
 add_library(CppJsLib SHARED "${webInterface}")
 
