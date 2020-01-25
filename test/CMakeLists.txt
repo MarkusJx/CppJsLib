@@ -29,7 +29,7 @@ add_executable(Test main.cpp)
 target_include_directories(Test PRIVATE "${CMAKE_SOURCE_DIR}/src")
 target_include_directories(Test PRIVATE "${CMAKE_SOURCE_DIR}/include")
 
-target_link_libraries(Test CppJsLib)
+target_link_libraries(Test PRIVATE CppJsLib)
 
 file(REMOVE_RECURSE $<TARGET_FILE_DIR:Test>/web)
 
