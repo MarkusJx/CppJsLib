@@ -225,8 +225,8 @@ jobs:
         working-directory: include/boost_1_69_0
       - name: build boost
         run: |
-            b2.exe
-            bjam.exe
+            b2.exe toolset=msvc-14.1 address-model=64
+            bjam.exe toolset=msvc-14.1 address-model=64
         working-directory: include/boost_1_69_0
       - run: ls
         working-directory: include
