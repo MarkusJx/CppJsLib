@@ -227,9 +227,10 @@ jobs:
       - run: bootstrap.bat
         working-directory: include/boost_1_69_0
       - name: build boost
+        working-directory: include/boost_1_69_0
         run: |
-            include/boost_1_69_0/b2.exe toolset=msvc-14.1
-            include/boost_1_69_0/bjam.exe toolset=msvc-14.1
+            b2.exe toolset=msvc-14.1
+            bjam.exe toolset=msvc-14.1
       - run: ls
         working-directory: include
       - run: ls
