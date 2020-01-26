@@ -6,6 +6,10 @@
 #   define CPPJSLIB_ENABLE_WEBSOCKET
 #endif
 
+#ifdef TEST_ENABLE_HTTPS
+#   define CPPJSLIB_ENABLE_HTTPS
+#endif
+
 #include <CppJsLib.hpp>
 #include <iostream>
 #include <thread>

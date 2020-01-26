@@ -31,6 +31,7 @@ std::function<void(const std::string &)> errorF = nullptr;
 namespace wspp {
     typedef websocketpp::server<websocketpp::config::asio> server;
     typedef websocketpp::server<websocketpp::config::asio_tls> server_tls;
+    typedef websocketpp::lib::shared_ptr<websocketpp::lib::asio::ssl::context> context_ptr;
 }
 
 void initWebsocketTLS(const std::shared_ptr<wspp::server_tls> &s CPPJSLIB_CERTS);
@@ -43,8 +44,6 @@ namespace wspp {
 #   endif
 
 namespace wspp {
-    typedef websocketpp::lib::shared_ptr<websocketpp::lib::asio::ssl::context> context_ptr;
-
     typedef std::set<websocketpp::connection_hdl, std::owner_less<websocketpp::connection_hdl>> con_list;
 }
 
@@ -194,7 +193,9 @@ CPPJSLIB_EXPORT WebGUI::WebGUI(const std::string &base_dir)
     server = std::static_pointer_cast<void>(svr);
 
 #ifdef CPPJSLIB_ENABLE_WEBSOCKET
+#ifdef CPPJSLIB_ENABLE_HTTPS
     setPassword();
+#endif
 
     std::shared_ptr<wspp::server> ws_svr = std::make_shared<wspp::server>();
     std::shared_ptr<wspp::con_list> ws_con = std::make_shared<wspp::con_list>();
@@ -368,6 +369,7 @@ CPPJSLIB_EXPORT bool WebGUI::start(int port, CPPJSLIB_WS_PORT const std::string 
     });
     websocketThread.detach();
 
+#ifdef CPPJSLIB_ENABLE_HTTPS
     if (fallback_plain) {
         std::shared_ptr<void> _ws_plain_server = this->ws_plain_server;
 
@@ -376,6 +378,7 @@ CPPJSLIB_EXPORT bool WebGUI::start(int port, CPPJSLIB_WS_PORT const std::string 
         });
         websocketPlainThread.detach();
     }
+#endif
 #endif
 
     std::function < void() > func;

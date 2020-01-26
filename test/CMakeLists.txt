@@ -18,8 +18,6 @@ endif()
 if (HTTPS)
     add_compile_definitions(TEST_ENABLE_HTTPS)
     message(STATUS "Building Tests with HTTPS enabled")
-
-    add_compile_definitions(CPPJSLIB_ENABLE_HTTPS)
 endif ()
 
 add_executable(Test main.cpp)

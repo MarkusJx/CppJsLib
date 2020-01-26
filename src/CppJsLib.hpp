@@ -699,11 +699,15 @@ namespace CppJsLib {
 
         template<typename T>
         inline std::shared_ptr<T> _getWebServer() {
+#ifdef CPPJSLIB_ENABLE_HTTPS
             if (fallback_plain) {
                 return std::static_pointer_cast<T>(ws_plain_server);
             } else {
+#endif
                 return std::static_pointer_cast<T>(ws_server);
+#ifdef CPPJSLIB_ENABLE_HTTPS
             }
+#endif
         }
 
 #endif
@@ -719,9 +723,11 @@ namespace CppJsLib {
     private:
 #ifdef CPPJSLIB_ENABLE_WEBSOCKET
         std::shared_ptr<void> ws_server;
-        std::shared_ptr<void> ws_plain_server;
         std::shared_ptr<void> ws_connections;
+#   ifdef CPPJSLIB_ENABLE_HTTPS
+        std::shared_ptr<void> ws_plain_server;
         std::shared_ptr<void> ws_plain_connections;
+#   endif
 #endif
         std::shared_ptr<void> server;
         std::map<char *, char *> initMap;
