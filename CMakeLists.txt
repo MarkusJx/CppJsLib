@@ -7,10 +7,6 @@ option(BuildTests "BuildTests" FALSE)
 
 if (DEFINED ENV{GITHUB_ACTIONS})
     message(STATUS "Building on GitHub")
-    if(NOT WIN32)
-        add_compile_definitions(CPPJSLIB_GHBUILD)
-        message(STATUS "Building on Linux/MacOs on GH Actions, defining CPPJSLIB_GHBUILD")
-    endif()
 endif ()
 
 if (BuildTests)

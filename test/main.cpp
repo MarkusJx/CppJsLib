@@ -13,6 +13,7 @@
 #include <CppJsLib.hpp>
 #include <iostream>
 #include <thread>
+#include <atomic>
 
 CppJsLib::WebGUI *wGui;
 std::function<void(int)> func = {};
@@ -21,6 +22,10 @@ std::function<std::vector<int>()> tf = {};
 void f(int a) {
     printf("Result from function f: %d\n", a);
     func(a);
+}
+
+int d() {
+    return 0;
 }
 
 int main() {
@@ -44,10 +49,11 @@ int main() {
     wGui->importFunction(&tf, 0);
 #endif
     wGui->expose(f);
+    wGui->expose(d);
 
     std::cout << "Starting web server..." << std::endl;
 #ifdef TEST_ENABLE_WEBSOCKET
-#   define TEST_WS_PORT 8027,
+#   define TEST_WS_PORT 8026,
 #else
 #   define TEST_WS_PORT
 #endif
@@ -55,7 +61,7 @@ int main() {
 #ifdef TEST_GHBUILD
     bool block = false;
 #else
-    bool block = true;
+    bool block = false;
 #endif
     wGui->start(8026, TEST_WS_PORT "127.0.0.1", block);
 

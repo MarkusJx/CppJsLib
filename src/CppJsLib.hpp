@@ -1,10 +1,6 @@
 #ifndef CPPJSLIB_WEBGUI_HPP
 #define CPPJSLIB_WEBGUI_HPP
 
-#ifdef CPPJSLIB_GHBUILD
-#  define CPPJSLIB_EXPORT
-#endif
-
 #ifdef CPPJSLIB_ENABLE_HTTPS
 #   define CPPHTTPLIB_OPENSSL_SUPPORT
 #else
@@ -15,7 +11,7 @@
 #if defined(WIN32) || defined(_WIN32) || defined(__WIN32) && !defined(__CYGWIN__)
 #   define CPPJSLIB_WINDOWS
 #   undef CPPJSLIB_UNIX
-#elif defined(__LINUX__) || defined(__APPLE__) || defined (__CYGWIN__)
+#elif defined(__LINUX__) || defined(__APPLE__) || defined (__CYGWIN__) || defined(__linux__)
 #   define CPPJSLIB_UNIX
 #   undef CPPJSLIB_WINDOWS
 #endif
@@ -57,18 +53,17 @@
 #  endif
 #endif
 
+#include <functional>
+#include <sstream>
+#include <cstring>
 #include <map>
 #include <utility>
 #include <vector>
-#include <string>
-#include <functional>
-#include <sstream>
-#include <iostream>
-#include <cstring>
-#include <thread>
+#include <atomic>
 
 #ifdef CPPJSLIB_WINDOWS
 #   define strdup _strdup
+#   define strcpy strcpy_s
 #endif
 
 #ifdef CPPJSLIB_ENABLE_WEBSOCKET
@@ -91,6 +86,7 @@
 #define getHttpServer() _getHttpServer<httplib::Server>()
 
 #define CPPJSLIB_DURATION_INFINITE -1
+#define CPPJSLIB_MAX_FUNCNAME_LEN 250
 
 namespace CppJsLib {
     CPPJSLIB_EXPORT std::string *parseJSONInput(int *size, const std::string &args);
@@ -116,15 +112,15 @@ namespace CppJsLib {
     template<typename T>
     T ConvertString(const std::string &data);
 
+    class WebGUI;
+
 #ifdef CPPJSLIB_ENABLE_WEBSOCKET
 
     template<class>
     struct JsFunction;
 
-    class WebGUI;
-
     CPPJSLIB_EXPORT void
-    callJsFunc(const std::shared_ptr<WebGUI> &wGui, std::vector<std::string> *argV, const char *funcName,
+    callJsFunc(WebGUI *wGui, std::vector<std::string> *argV, char *funcName,
                std::vector<char *> *results = nullptr, int wait = -1);
 
     template<class T>
@@ -139,119 +135,99 @@ namespace CppJsLib {
 
     template<>
     struct JsFunction<void()> {
-    public:
-        JsFunction<void()>(std::string name, std::shared_ptr<WebGUI> _wGui) :
-                returnType("void"), fnName(std::move(name)), wGui(std::move(_wGui)) {}
-
         void operator()() {
             std::vector<std::string> argV;
-            callJsFunc(wGui, &argV, fnName.c_str());
+            callJsFunc(wGui, &argV, fnName);
         }
 
-        ~JsFunction() = default;
-
-    private:
-        const std::string fnName;
-        const std::string returnType;
-        const std::shared_ptr<WebGUI> wGui;
+        char fnName[CPPJSLIB_MAX_FUNCNAME_LEN];
+        WebGUI *wGui;
     };
 
     template<class... Args>
     struct JsFunction<void(Args ...)> {
-    public:
-        JsFunction<void(Args...)>(std::string name, std::shared_ptr<WebGUI> _wGui) :
-                returnType("void"), fnName(std::move(name)), wGui(std::move(_wGui)) {}
-
         void operator()(Args ... args) {
             std::vector<std::string> argV;
             auto x = {(ConvertToString(&argV, getEl(args)), 0)...};
-            callJsFunc(wGui, &argV, fnName.c_str());
+            callJsFunc(wGui, &argV, fnName);
         }
 
-        ~JsFunction() = default;
-
-    private:
-        const std::string fnName;
-        const std::string returnType;
-        const std::shared_ptr<WebGUI> wGui;
+        char fnName[CPPJSLIB_MAX_FUNCNAME_LEN];
+        WebGUI *wGui;
     };
 
     template<class R>
     struct JsFunction<std::vector<R>()> {
-    public:
-        JsFunction<std::vector<R>()>(std::string name, std::shared_ptr<WebGUI> _wGui, int waitS)
-                : responseReturns(), returnType(getTypeName<R>()), fnName(std::move(name)), wGui(std::move(_wGui)) {
-            wait = waitS;
-        }
-
         std::vector<R> operator()() {
             std::vector<std::string> argV;
-            callJsFunc(wGui, &argV, fnName.c_str(), &responseReturns, wait);
+            callJsFunc(wGui, &argV, fnName, responseReturns, wait);
 
             std::vector<R> tmp;
-            for (char *c : responseReturns) {
+            for (char *c : *responseReturns) {
                 tmp.push_back(ConvertString<R>(c));
                 free(c);
             }
-            std::vector<char *>().swap(responseReturns);
+            std::vector<char *>().swap(*responseReturns);
 
             return tmp;
         }
 
-        ~JsFunction() {
-            for (char *c : responseReturns) {
-                free(c);
-            }
-
-            std::vector<char *>().swap(responseReturns);
-        }
-
-    private:
-        const std::string fnName;
-        const std::string returnType;
-        const std::shared_ptr<WebGUI> wGui;
-        int wait;
-        std::vector<char *> responseReturns;
+        char fnName[CPPJSLIB_MAX_FUNCNAME_LEN] = "";
+        int wait = -1;
+        WebGUI *wGui = nullptr;
+        std::vector<char *> *responseReturns = nullptr;
     };
 
     template<class R, class... Args>
     struct JsFunction<std::vector<R>(Args ...)> {
-    public:
-        JsFunction<std::vector<R>(Args...)>(std::string name, std::shared_ptr<WebGUI> _wGui, int waitS)
-                : responseReturns(), returnType(getTypeName<R>()), fnName(std::move(name)), wGui(std::move(_wGui)) {
-            wait = waitS;
-        }
-
         std::vector<R> operator()(Args ... args) {
             std::vector<std::string> argV;
             auto x = {(ConvertToString(&argV, getEl(args)), 0)...};
-            callJsFunc(wGui, &argV, fnName.c_str(), &responseReturns, wait);
+            callJsFunc(wGui, &argV, fnName, responseReturns, wait);
 
             std::vector<R> tmp;
-            for (char *c : responseReturns) {
+            for (char *c : *responseReturns) {
                 tmp.push_back(ConvertString<R>(c));
                 free(c);
             }
-            std::vector<char *>().swap(responseReturns);
+            std::vector<char *>().swap(*responseReturns);
 
             return tmp;
         }
 
-        ~JsFunction() {
-            for (char *c : responseReturns) {
-                free(c);
-            }
+        char fnName[CPPJSLIB_MAX_FUNCNAME_LEN] = "";
+        int wait = -1;
+        WebGUI *wGui = nullptr;
+        std::vector<char *> *responseReturns = nullptr;
+    };
 
-            std::vector<char *>().swap(responseReturns);
+    template<class ...Args>
+    inline void initJsFunction(JsFunction<void(Args...)> **toInit, std::string name, WebGUI *_wGui) {
+        auto *tmp = (JsFunction<void(Args...)> *) malloc(sizeof(JsFunction<void(Args...)>));
+        if (tmp) {
+            strcpy(tmp->fnName, name.c_str());
+            tmp->wGui = _wGui;
         }
 
-    private:
-        const std::string fnName;
-        const std::string returnType;
-        int wait;
-        std::vector<char *> responseReturns;
-        const std::shared_ptr<WebGUI> wGui;
-    };
+        *toInit = tmp;
+    }
+
+    template<class R, class... Args>
+    inline void
+    initJsFunction(JsFunction<std::vector<R>(Args ...)> **toInit, std::string name, WebGUI *_wGui,
+                   int waitS) {
+        auto *tmp = (JsFunction<std::vector<R>(Args ...)> *) malloc(sizeof(JsFunction<std::vector<R>(Args ...)>));
+        if (tmp) {
+            strcpy(tmp->fnName, name.c_str());
+            tmp->wGui = _wGui;
+            tmp->wait = waitS;
+
+            tmp->responseReturns = new std::vector<char *>();
+            _wGui->pushToStrVecVector(tmp->responseReturns);
+        }
+
+        *toInit = tmp;
+    }
 
 #endif
 
@@ -416,18 +392,6 @@ namespace CppJsLib {
 
     template<class... Args>
     struct ExposedFunction<void(Args...)> {
-    public:
-        ExposedFunction(std::function<void(Args...)>(f), const std::string &name) {
-            _f = std::move(f);
-            _name = name;
-
-            typedef function_traits<std::function<void(Args...)>> fn_traits;
-            nArgs = fn_traits::nargs;
-            argTypes = new std::string[fn_traits::nargs];
-            expose_helper<std::function<void(Args...)>, fn_traits::nargs>::__expose(argTypes);
-            returnType = "void";
-        }
-
         void operator()(int argc, std::string *args) {
             // This should be a precondition
             if (argc != sizeof...(Args)) {
@@ -441,45 +405,20 @@ namespace CppJsLib {
 
         template<std::size_t... S>
         void handleImpl(std::index_sequence<S...>, std::string *args) {
-            _f(ConvertString<Args>(args[S])...);
+            f(ConvertString<Args>(args[S])...);
         }
 
         std::string toString() {
-            std::string tmp = returnType;
-            tmp.append(" ").append(_name).append("(");
-
-            for (int i = 0; i < nArgs; i++) {
-                if (i > 0) tmp.append(", ");
-                tmp.append(argTypes[i]);
-            }
-            tmp.append(")");
-
-            return tmp;
+            return fnString;
         }
 
-        std::string _name;
-    private:
-        std::function<void(Args...)> _f;
+        char *fnString = nullptr;
 
-        int nArgs;
-        std::string *argTypes;
-        std::string returnType;
+        void (*f)(Args...) = nullptr;
     };
 
     template<class R, class... Args>
     struct ExposedFunction<R(Args...)> {
-    public:
-        ExposedFunction(std::function<R(Args...)>(f), const std::string &name) {
-            _f = f;
-            _name = name;
-
-            typedef function_traits<std::function<R(Args...)>> fn_traits;
-            nArgs = fn_traits::nargs;
-            argTypes = new std::string[fn_traits::nargs];
-            expose_helper<std::function<R(Args...)>, fn_traits::nargs>::__expose(argTypes);
-            returnType = getTypeName<R>();
-        }
-
         R operator()(int argc, std::string *args) {
             // This should be a precondition
             if (argc != sizeof...(Args)) {
@@ -492,43 +431,48 @@ namespace CppJsLib {
 
         template<std::size_t... S>
         R handleImpl(std::index_sequence<S...>, std::string *args) {
-            return _f(ConvertString<Args>(args[S])...);
+            return f(ConvertString<Args>(args[S])...);
         }
 
         std::string toString() {
-            std::string tmp = returnType;
-            tmp.append(" ").append(_name).append("(");
-
-            for (int i = 0; i < nArgs; i++) {
-                if (i > 0) tmp.append(", ");
-                tmp.append(argTypes[i]);
-            }
-            tmp.append(")");
-
-            return tmp;
+            return fnString;
         }
 
-        std::string _name;
-    private:
-        std::function<R(Args...)> _f;
+        char *fnString = nullptr;
 
-        int nArgs;
-        std::string *argTypes;
-        std::string returnType;
+        R (*f)(Args...) = nullptr;
     };
 
-    template<class... Args>
-    ExposedFunction<void(Args...)> *_exposeFunc(void (*f)(Args...), const std::string &name) {
-        auto *exposedFn = new(std::nothrow) ExposedFunction<void(Args...)>(
-                std::function < void(Args...) > (f), name);
-        return exposedFn;
-    }
+    template<class R, class ...Args>
+    void initExposedFunction(ExposedFunction<R(Args...)> **toInit, R (*f)(Args...), const std::string &name,
+                             WebGUI *wGui) {
+        auto *tmp = (ExposedFunction<R(Args...)> *) malloc(sizeof(ExposedFunction<R(Args...)>));
+        if (tmp) {
+            typedef function_traits<std::function<R(Args...)>> fn_traits;
+            auto *types = new(std::nothrow) std::string[fn_traits::nargs];
+            if (!types) {
+                free(tmp);
+                *toInit = nullptr;
+                return;
+            }
+            expose_helper<std::function<R(Args...)>, fn_traits::nargs>::__expose(types);
 
-    template<class R, class... Args>
-    ExposedFunction<R(Args...)> *_exposeFunc(R(*f)(Args...), const std::string &name) {
-        auto *exposedFn = new(std::nothrow) ExposedFunction<R(Args...)>(
-                std::function < R(Args...) > (f), name);
-        return exposedFn;
+            std::string fnString = getTypeName<R>();
+            fnString.append(" ").append(name).append("(");
+            for (int i = 0; i < fn_traits::nargs; i++) {
+                if (i > 0) fnString.append(", ");
+                fnString.append(types[i]);
+            }
+            fnString.append(")");
+
+            delete[] types;
+
+            tmp->fnString = strdup(fnString.c_str());
+            wGui->pushToVoidPtrVector(static_cast<void *>(tmp->fnString));
+            tmp->f = f;
+        }
+
+        *toInit = tmp;
     }
 
     struct Caller {
@@ -552,9 +496,9 @@ namespace CppJsLib {
         }
     };
 
-    CPPJSLIB_EXPORT void setLogger(std::function<void(const std::string &)> function);
+    CPPJSLIB_EXPORT void setLogger(const std::function<void(const std::string &)> &loggingFunction);
 
-    CPPJSLIB_EXPORT void setError(std::function<void(const std::string &)> function);
+    CPPJSLIB_EXPORT void setError(const std::function<void(const std::string &)> &errorFunction);
 
 
     class WebGUI {
@@ -572,55 +516,57 @@ namespace CppJsLib {
 
         template<class...Args>
         inline void _exportFunction(void(*f)(Args...), std::string name) {
-            _loggingF("[CppJsLib] Exposing void function with name " + name);
+            this->log("[CppJsLib] Exposing void function with name " + name);
             if (running) {
-                _errorF("[CppJsLib] Cannot expose function " + name + " since the web server is already running");
+                this->err("[CppJsLib] Cannot expose function " + name + " since the web server is already running");
                 return;
             }
-            auto exposedF = _exposeFunc(f, name);
+            ExposedFunction<void(Args...)> *exposedF = nullptr;
+            initExposedFunction(&exposedF, f, name, this);
 
             if (exposedF) {
-                funcVector.push_back(static_cast<void *>(exposedF));
+                this->pushToVoidPtrVector(static_cast<void *>(exposedF));
 
-                initMap.insert(std::pair<char *, char *>(strdup(name.c_str()), strdup(exposedF->toString().c_str())));
+                this->insertToInitMap(strdup(name.c_str()), strdup(exposedF->toString().c_str()));
                 std::string r = "/callfunc_";
                 r.append(name);
                 callFromPost(r.c_str(), [exposedF](std::string req_body) {
                     return Caller::call(exposedF, req_body);
                 });
             } else {
-                _errorF("[CppJsLib] Cannot expose function " + name + ": Unable to allocate memory");
+                this->err("[CppJsLib] Cannot expose function " + name + ": Unable to allocate memory");
             }
         }
 
         template<class R, class...Args>
         inline void _exportFunction(R(*f)(Args...), std::string name) {
-            _loggingF("[CppJsLib] Exposing function with name " + name);
+            this->log("[CppJsLib] Exposing function with name " + name);
             if (running) {
-                _errorF("[CppJsLib] Cannot expose function " + name + " since the web server is already running");
+                this->err("[CppJsLib] Cannot expose function " + name + " since the web server is already running");
                 return;
             }
-            auto exposedF = _exposeFunc(f, name);
+            ExposedFunction<R(Args...)> *exposedF;
+            initExposedFunction(&exposedF, f, name, this);
 
             if (exposedF) {
-                funcVector.push_back(static_cast<void *>(exposedF));
+                this->pushToVoidPtrVector(static_cast<void *>(exposedF));
 
-                initMap.insert(std::pair<char *, char *>(strdup(name.c_str()), strdup(exposedF->toString().c_str())));
+                this->insertToInitMap(strdup(name.c_str()), strdup(exposedF->toString().c_str()));
                 std::string r = "/callfunc_";
                 r.append(name);
                 callFromPost(r.c_str(), [exposedF](std::string req_body) {
                     return Caller::call(exposedF, req_body);
                 });
             } else {
-                _errorF("[CppJsLib] Cannot expose function " + name + ": Unable to allocate memory");
+                this->err("[CppJsLib] Cannot expose function " + name + ": Unable to allocate memory");
             }
         }
 
 #ifdef CPPJSLIB_ENABLE_WEBSOCKET
 
         CPPJSLIB_EXPORT void
-        call_jsFn(std::vector<std::string> *argV, const char *funcName, std::vector<char *> *results = nullptr,
-                  int wait = -1);
+        call_jsFn(std::vector<std::string> *argV, const char *funcName,
+                  std::vector<char *> *results = nullptr, int wait = -1);
 
         template<class...Args>
         inline void _importJsFunction(std::function<void(Args...)> *function, std::string fName) {
@@ -628,18 +574,21 @@ namespace CppJsLib {
                 fName.erase(0, 1); // Delete first character as it is a &
             }
 
-            _loggingF("[CppJsLib] Importing js function with name " + fName);
+            this->log("[CppJsLib] Importing js function with name " + fName);
 #ifndef CPPJSLIB_ENABLE_HTTPS
             bool ssl = false;
 #endif
-            auto *f = new(std::nothrow) struct JsFunction<void(Args...)>(fName, std::shared_ptr<WebGUI>(this));
+            JsFunction<void(Args...)> *f = nullptr;
+            initJsFunction(&f, fName, this);
+
             if (f != nullptr) {
-                jsFuncVector.push_back(static_cast<void *>(f));
+                auto *a = static_cast<void *>(&(*f));
+                this->pushToVoidPtrVector(a); // TODO use shared_ptrs (?)
                 *function = [f](Args...args) {
                     f->operator()(args...);
                 };
             } else {
-                _errorF("[CppJsLib] Could not import function " + fName + ": Unable to allocate memory");
+                this->err("[CppJsLib] Could not import function " + fName + ": Unable to allocate memory");
             }
         }
 
@@ -650,14 +599,15 @@ namespace CppJsLib {
                 fName.erase(0, 1); // Delete first character as it is a &
             }
 
-            _loggingF("[CppJsLib] Importing js function with name " + fName);
+            this->log("[CppJsLib] Importing js function with name " + fName);
 #ifndef CPPJSLIB_ENABLE_HTTPS
             bool ssl = false;
 #endif
-            auto *f = new(std::nothrow) struct JsFunction<std::vector<R>(Args...)>(fName, std::shared_ptr<WebGUI>(this),
-                                                                                   waitS);
+            JsFunction<std::vector<R>(Args...)> *f = nullptr;
+            initJsFunction(&f, fName, this, waitS);
+
             if (f != nullptr) {
-                jsFuncVector.push_back(static_cast<void *>(f));
+                this->pushToVoidPtrVector(static_cast<void *>(f));
                 *function = [f](Args...args) {
                     return f->operator()(args...);
                 };
@@ -670,9 +620,13 @@ namespace CppJsLib {
 
         CPPJSLIB_EXPORT bool start(int port, CPPJSLIB_WS_PORT const std::string &host = "localhost", bool block = true);
 
-        CPPJSLIB_EXPORT void setLogger(std::function<void(const std::string &)> loggingFunction);
+        CPPJSLIB_EXPORT void setLogger(const std::function<void(const std::string &)> &loggingFunction);
 
-        CPPJSLIB_EXPORT void setError(std::function<void(const std::string &)> errorFunction);
+        CPPJSLIB_EXPORT void setError(const std::function<void(const std::string &)> &errorFunction);
+
+        CPPJSLIB_EXPORT void pushToVoidPtrVector(void *f);
+
+        CPPJSLIB_EXPORT void pushToStrVecVector(std::vector<char *>* v);
 
         /**
          * A function used by the getHttpServer macro
@@ -730,14 +684,22 @@ namespace CppJsLib {
 #   endif
 #endif
         std::shared_ptr<void> server;
+
         std::map<char *, char *> initMap;
-        std::vector<void *> funcVector;
-        std::vector<void *> jsFuncVector;
+        std::vector<void *> voidPtrVector;
+        std::vector<std::vector<char *>*> strVecVector;
+
         using PostHandler = std::function<std::string(std::string req_body)>;
         std::function<void(const std::string &)> _loggingF;
         std::function<void(const std::string &)> _errorF;
 
         CPPJSLIB_EXPORT void callFromPost(const char *target, const PostHandler &handler);
+
+        CPPJSLIB_EXPORT void log(const std::string &msg);
+
+        CPPJSLIB_EXPORT void err(const std::string &msg);
+
+        CPPJSLIB_EXPORT void insertToInitMap(char *name, char *exposedFStr);
     };
 
     CPPJSLIB_EXPORT bool stop(WebGUI *webGui, bool block = true, int maxWaitSeconds = CPPJSLIB_DURATION_INFINITE);

@@ -188,7 +188,7 @@ void initWebsocketTLS(const std::shared_ptr<wspp::server_tls> &s CPPJSLIB_CERTS)
 
 // WebGUI class -------------------------------------------------------------------------
 CPPJSLIB_EXPORT WebGUI::WebGUI(const std::string &base_dir)
-        : initMap(), funcVector(), jsFuncVector()CPPJSLIB_DISABLE_SSL_MACRO {
+        : initMap(), voidPtrVector(), strVecVector()CPPJSLIB_DISABLE_SSL_MACRO {
     std::shared_ptr<httplib::Server> svr = std::make_shared<httplib::Server>();
     server = std::static_pointer_cast<void>(svr);
 
@@ -208,14 +208,14 @@ CPPJSLIB_EXPORT WebGUI::WebGUI(const std::string &base_dir)
     running = false;
     stopped = false;
     if (loggingF)
-        _loggingF = std::move(loggingF);
+        this->setLogger(loggingF);
     else
-        _loggingF = [](const std::string &) {};
+        this->setLogger({});
 
     if (errorF)
-        _errorF = std::move(loggingF);
+        this->setError(errorF);
     else
-        _errorF = [](const std::string &) {};
+        this->setError({});
 
     std::static_pointer_cast<httplib::Server>(server)->set_base_dir(base_dir.c_str());
 }
@@ -224,7 +224,7 @@ CPPJSLIB_EXPORT WebGUI::WebGUI(const std::string &base_dir)
 
 CPPJSLIB_EXPORT WebGUI::WebGUI(const std::string &base_dir, const std::string &cert_path,
                                const std::string &private_key_path, unsigned short websocket_fallback_plain)
-        : initMap(), funcVector(), jsFuncVector(), ssl(true), fallback_plain(websocket_fallback_plain) {
+        : initMap(), voidPtrVector(), strVecVector(), ssl(true), fallback_plain(websocket_fallback_plain) {
     if (cert_path.empty() && private_key_path.empty()) {
         errorF("No certificate paths were given");
         return;
@@ -434,29 +434,52 @@ CPPJSLIB_EXPORT void WebGUI::callFromPost(const char *target, const PostHandler 
         std::static_pointer_cast<httplib::Server>(server)->Post(target, f);
 }
 
-CPPJSLIB_EXPORT void WebGUI::setLogger(std::function<void(const std::string &)> loggingFunction) {
-    _loggingF = std::move(loggingFunction);
+CPPJSLIB_EXPORT void WebGUI::setLogger(const std::function<void(const std::string &)> &f) {
+    _loggingF = f;
 }
 
-CPPJSLIB_EXPORT void WebGUI::setError(std::function<void(const std::string &)> errorFunction) {
-    _errorF = std::move(errorFunction);
+CPPJSLIB_EXPORT void WebGUI::setError(const std::function<void(const std::string &)> &f) {
+    _errorF = f;
+}
+
+CPPJSLIB_EXPORT void WebGUI::log(const std::string &msg) {
+    _loggingF(msg);
+}
+
+CPPJSLIB_EXPORT void WebGUI::err(const std::string &msg) {
+    _errorF(msg);
+}
+
+CPPJSLIB_EXPORT void WebGUI::pushToVoidPtrVector(void *f) {
+    voidPtrVector.push_back(f);
+}
+
+CPPJSLIB_EXPORT void WebGUI::pushToStrVecVector(std::vector<char *> *v) {
+    strVecVector.push_back(v);
+}
+
+CPPJSLIB_EXPORT void WebGUI::insertToInitMap(char *name, char *exposedFStr) {
+    initMap.insert(std::pair<char *, char *>(name, exposedFStr));
 }
 
 CPPJSLIB_EXPORT WebGUI::~WebGUI() {
     stop(this);
 
-    for (void *p : funcVector) {
-        delete static_cast<ExposedFunction<void()> *>(p);
+    for (void *p : voidPtrVector) {
+        free(p);
     }
 
-#ifdef CPPJSLIB_ENABLE_WEBSOCKET
-    for (void *p : jsFuncVector) {
-        delete static_cast<JsFunction<void()> *>(p);
+    for (std::vector<char *> *v : strVecVector) {
+        for (char *c: *v) {
+            free(c);
+        }
+        delete v;
     }
-#endif
     //Clear the vector and release the memory. Source: https://stackoverflow.com/a/10465032
-    std::vector<void *>().swap(funcVector);
-    std::vector<void *>().swap(jsFuncVector);
+    std::vector<void *>().swap(voidPtrVector);
+    std::vector<std::vector<char *> *>().swap(strVecVector);
+    /*std::vector<void *>().swap(jsFuncVector);
+    std::vector<std::string *>().swap(funcStringVector);*/
 }
 
 // End of WebGUI class ------------------------------------------------------------------
@@ -546,7 +569,7 @@ CPPJSLIB_EXPORT std::string *CppJsLib::createStringArrayFromJSON(int *size, cons
 #ifdef CPPJSLIB_ENABLE_WEBSOCKET
 
 CPPJSLIB_EXPORT void
-CppJsLib::callJsFunc(const std::shared_ptr<WebGUI>& wGui, std::vector<std::string> *argV, const char *funcName,
+CppJsLib::callJsFunc(WebGUI *wGui, std::vector<std::string> *argV, char *funcName,
                      std::vector<char *> *results, int wait) {
     wGui->call_jsFn(argV, funcName, results, wait);
 }
@@ -555,7 +578,8 @@ template<typename EndpointType>
 void empty_on_message(EndpointType *, const websocketpp::connection_hdl &, typename EndpointType::message_ptr) {}
 
 CPPJSLIB_EXPORT void
-WebGUI::call_jsFn(std::vector<std::string> *argV, const char *funcName, std::vector<char *> *results, int wait) {
+WebGUI::call_jsFn(std::vector<std::string> *argV, const char *funcName,
+                  std::vector<char *> *results, int wait) {
     // Dump the list of arguments into a json string
     nlohmann::json j;
     for (std::string s: *argV) {
@@ -646,11 +670,11 @@ WebGUI::call_jsFn(std::vector<std::string> *argV, const char *funcName, std::vec
 
 #endif
 
-CPPJSLIB_EXPORT void CppJsLib::setLogger(std::function<void(const std::string &)> f) {
-    loggingF = std::move(f);
+CPPJSLIB_EXPORT void CppJsLib::setLogger(const std::function<void(const std::string &)> &f) {
+    loggingF = f;
 }
 
-CPPJSLIB_EXPORT void CppJsLib::setError(std::function<void(const std::string &)> f) {
-    errorF = std::move(f);
+CPPJSLIB_EXPORT void CppJsLib::setError(const std::function<void(const std::string &)> &f) {
+    errorF = f;
 }
 
