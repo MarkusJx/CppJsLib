@@ -19,6 +19,8 @@ CppJsLib::WebGUI *wGui;
 std::function<void(int)> func = {};
 std::function<std::vector<int>()> tf = {};
 
+std::function<void()> fn;
+
 void f(int a) {
     printf("Result from function f: %d\n", a);
     func(a);
@@ -44,7 +46,13 @@ int main() {
     wGui = new CppJsLib::WebGUI("web");
 #endif
 
+    void (*a) (int);
+    a = {
+
+    };
+
 #ifdef TEST_ENABLE_WEBSOCKET
+    wGui->importFunction(&fn);
     wGui->importFunction(&func);
     wGui->importFunction(&tf, 0);
 #endif

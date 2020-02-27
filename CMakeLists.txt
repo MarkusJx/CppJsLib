@@ -3,17 +3,9 @@ project(CppJsLibAll)
 
 set(CMAKE_CXX_STANDARD 17)
 
-option(BuildTests "BuildTests" FALSE)
-
 if (DEFINED ENV{GITHUB_ACTIONS})
     message(STATUS "Building on GitHub")
 endif ()
 
-if (BuildTests)
-    message(STATUS "Building tests")
-    add_subdirectory("src")
-    add_subdirectory("test")
-else ()
-    message(STATUS "Just building the library")
-    add_subdirectory("src")
-endif ()
+message(STATUS "Building tests")
+add_subdirectory("test")

@@ -6,6 +6,8 @@ set(CMAKE_CXX_STANDARD 17)
 option(HTTPS FALSE)
 option(ENABLE_WEBSOCKET FALSE)
 
+include("${CMAKE_SOURCE_DIR}/src/InitCppJsLib.cmake")
+
 if(DEFINED ENV{GITHUB_ACTIONS})
     message(STATUS "Github Actions is for sure building this")
     add_compile_definitions(TEST_GHBUILD)
@@ -21,10 +23,10 @@ if (HTTPS)
 endif ()
 
 add_executable(Test main.cpp)
+initCppJsLib(Test "${CMAKE_SOURCE_DIR}/src" "${CMAKE_SOURCE_DIR}/include" ENABLE_WEBSOCKET HTTPS)
 
 target_include_directories(Test PRIVATE "${CMAKE_SOURCE_DIR}/src")
 target_include_directories(Test PRIVATE "${CMAKE_SOURCE_DIR}/include")
-target_link_libraries(Test CppJsLib)
 
 file(REMOVE_RECURSE $<TARGET_FILE_DIR:Test>/web)
 
@@ -32,6 +34,7 @@ add_custom_command(TARGET Test PRE_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_directory
         ${CMAKE_SOURCE_DIR}/test/web $<TARGET_FILE_DIR:Test>/web)
 
+if (FALSE)
 if (CMAKE_SYSTEM_NAME MATCHES "CYGWIN")
     message(STATUS "Building on Cygwin")
     file(REMOVE_RECURSE $<TARGET_FILE_DIR:Test>/cygCppJsLib.dll)
@@ -60,3 +63,4 @@ else ()
             COMMAND ${CMAKE_COMMAND} -E copy
             $<TARGET_FILE_DIR:CppJsLib>/CppJsLib.dll $<TARGET_FILE_DIR:Test>/CppJsLib.dll)
 endif ()
+endif()

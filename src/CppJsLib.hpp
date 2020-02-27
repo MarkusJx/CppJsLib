@@ -16,6 +16,7 @@
 #   undef CPPJSLIB_WINDOWS
 #endif
 
+// This is deprecated now
 #if defined(CPPJSLIB_STATIC_DEFINE) || defined (CPPJSLIB_UNIX)
 #  define CPPJSLIB_EXPORT
 #  define CPPJSLIB_NO_EXPORT
@@ -248,6 +249,13 @@ namespace CppJsLib {
             std::string res = stringArrayToJSON(&stringVector);
             std::vector<std::string>().swap(stringVector);
             return res;
+        }
+    };
+
+    template<>
+    struct TypeConverter<std::string> {
+        static std::string toString(std::string toConvert) {
+            return toConvert;
         }
     };
 
@@ -530,7 +538,9 @@ namespace CppJsLib {
                 this->insertToInitMap(strdup(name.c_str()), strdup(exposedF->toString().c_str()));
                 std::string r = "/callfunc_";
                 r.append(name);
-                callFromPost(r.c_str(), [exposedF](std::string req_body) {
+                char *target = strdup(r.c_str());
+                this->pushToVoidPtrVector((void *) target);
+                callFromPost(target, [exposedF](std::string req_body) {
                     return Caller::call(exposedF, req_body);
                 });
             } else {
@@ -554,7 +564,9 @@ namespace CppJsLib {
                 this->insertToInitMap(strdup(name.c_str()), strdup(exposedF->toString().c_str()));
                 std::string r = "/callfunc_";
                 r.append(name);
-                callFromPost(r.c_str(), [exposedF](std::string req_body) {
+                char *target = strdup(r.c_str());
+                this->pushToVoidPtrVector((void *) target);
+                callFromPost(target, [exposedF](std::string req_body) {
                     return Caller::call(exposedF, req_body);
                 });
             } else {
@@ -583,7 +595,7 @@ namespace CppJsLib {
 
             if (f != nullptr) {
                 auto *a = static_cast<void *>(&(*f));
-                this->pushToVoidPtrVector(a); // TODO use shared_ptrs (?)
+                this->pushToVoidPtrVector(a);
                 *function = [f](Args...args) {
                     f->operator()(args...);
                 };
@@ -626,7 +638,7 @@ namespace CppJsLib {
 
         CPPJSLIB_EXPORT void pushToVoidPtrVector(void *f);
 
-        CPPJSLIB_EXPORT void pushToStrVecVector(std::vector<char *>* v);
+        CPPJSLIB_EXPORT void pushToStrVecVector(std::vector<char *> *v);
 
         /**
          * A function used by the getHttpServer macro
@@ -641,6 +653,10 @@ namespace CppJsLib {
         }
 
 #ifdef CPPJSLIB_ENABLE_WEBSOCKET
+
+        CPPJSLIB_EXPORT void setWebSocketOpenHandler(const std::function<void()> &handler);
+
+        CPPJSLIB_EXPORT void setWebSocketCloseHandler(const std::function<void()> &handler);
 
 #ifdef CPPJSLIB_ENABLE_HTTPS
 
@@ -687,11 +703,13 @@ namespace CppJsLib {
 
         std::map<char *, char *> initMap;
         std::vector<void *> voidPtrVector;
-        std::vector<std::vector<char *>*> strVecVector;
+        std::vector<std::vector<char *> *> strVecVector;
 
         using PostHandler = std::function<std::string(std::string req_body)>;
         std::function<void(const std::string &)> _loggingF;
         std::function<void(const std::string &)> _errorF;
+        //void (*_loggingF) (const std::string &);
+        //void (*_errorF) (const std::string &);
 
         CPPJSLIB_EXPORT void callFromPost(const char *target, const PostHandler &handler);
 

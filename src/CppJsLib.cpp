@@ -210,14 +210,16 @@ CPPJSLIB_EXPORT WebGUI::WebGUI(const std::string &base_dir)
     if (loggingF)
         this->setLogger(loggingF);
     else
-        this->setLogger({});
+        _loggingF = [](const std::string &) {};
 
     if (errorF)
         this->setError(errorF);
     else
-        this->setError({});
+        _errorF = [](const std::string &) {};
 
-    std::static_pointer_cast<httplib::Server>(server)->set_base_dir(base_dir.c_str());
+    char *base = strdup(base_dir.c_str());
+    pushToVoidPtrVector((void *) base);
+    std::static_pointer_cast<httplib::Server>(server)->set_base_dir(base);
 }
 
 #ifdef CPPJSLIB_ENABLE_HTTPS
@@ -232,8 +234,11 @@ CPPJSLIB_EXPORT WebGUI::WebGUI(const std::string &base_dir, const std::string &c
 
     setPassword();
 
-    std::shared_ptr<httplib::SSLServer> svr = std::make_shared<httplib::SSLServer>(cert_path.c_str(),
-                                                                                   private_key_path.c_str());
+    char *cert = strdup(cert_path.c_str());
+    char *private_key = strdup(private_key_path.c_str());
+    pushToVoidPtrVector((void *) cert);
+    pushToVoidPtrVector((void *) private_key);
+    std::shared_ptr<httplib::SSLServer> svr = std::make_shared<httplib::SSLServer>(cert, private_key);
     server = std::static_pointer_cast<void>(svr);
 
 #ifdef CPPJSLIB_ENABLE_WEBSOCKET
@@ -258,16 +263,18 @@ CPPJSLIB_EXPORT WebGUI::WebGUI(const std::string &base_dir, const std::string &c
     running = false;
     stopped = false;
     if (loggingF)
-        _loggingF = std::move(loggingF);
+        this->setLogger(loggingF);
     else
         _loggingF = [](const std::string &) {};
 
     if (errorF)
-        _errorF = std::move(loggingF);
+        this->setError(errorF);
     else
         _errorF = [](const std::string &) {};
 
-    std::static_pointer_cast<httplib::SSLServer>(server)->set_base_dir(base_dir.c_str());
+    char *base = strdup(base_dir.c_str());
+    pushToVoidPtrVector((void *) base);
+    std::static_pointer_cast<httplib::SSLServer>(server)->set_base_dir(base);
 }
 
 #endif
@@ -435,12 +442,46 @@ CPPJSLIB_EXPORT void WebGUI::callFromPost(const char *target, const PostHandler 
 }
 
 CPPJSLIB_EXPORT void WebGUI::setLogger(const std::function<void(const std::string &)> &f) {
-    _loggingF = f;
+    _loggingF = [f](const std::string &s) {
+        f(s);
+    };
 }
 
 CPPJSLIB_EXPORT void WebGUI::setError(const std::function<void(const std::string &)> &f) {
-    _errorF = f;
+    _errorF = [f](const std::string &s) {
+        f(s);
+    };
 }
+
+#ifdef CPPJSLIB_ENABLE_WEBSOCKET
+
+CPPJSLIB_EXPORT void WebGUI::setWebSocketOpenHandler(const std::function<void()> &handler) {
+#   ifdef CPPJSLIB_ENABLE_HTTPS
+    if (ssl)
+        std::static_pointer_cast<wspp::server_tls>(ws_server)->set_open_handler([handler](auto hdl) {
+            handler();
+        });
+    else
+#   endif
+        std::static_pointer_cast<wspp::server>(ws_server)->set_open_handler([handler](auto hdl) {
+            handler();
+        });
+}
+
+CPPJSLIB_EXPORT void WebGUI::setWebSocketCloseHandler(const std::function<void()> &handler) {
+#   ifdef CPPJSLIB_ENABLE_HTTPS
+    if (ssl)
+        std::static_pointer_cast<wspp::server_tls>(ws_server)->set_close_handler([handler](auto hdl) {
+            handler();
+        });
+    else
+#   endif
+        std::static_pointer_cast<wspp::server>(ws_server)->set_close_handler([handler](auto hdl) {
+            handler();
+        });
+}
+
+#endif
 
 CPPJSLIB_EXPORT void WebGUI::log(const std::string &msg) {
     _loggingF(msg);
@@ -475,11 +516,6 @@ CPPJSLIB_EXPORT WebGUI::~WebGUI() {
         }
         delete v;
     }
-    //Clear the vector and release the memory. Source: https://stackoverflow.com/a/10465032
-    std::vector<void *>().swap(voidPtrVector);
-    std::vector<std::vector<char *> *>().swap(strVecVector);
-    /*std::vector<void *>().swap(jsFuncVector);
-    std::vector<std::string *>().swap(funcStringVector);*/
 }
 
 // End of WebGUI class ------------------------------------------------------------------
@@ -582,8 +618,12 @@ WebGUI::call_jsFn(std::vector<std::string> *argV, const char *funcName,
                   std::vector<char *> *results, int wait) {
     // Dump the list of arguments into a json string
     nlohmann::json j;
-    for (std::string s: *argV) {
-        j[funcName].push_back(s);
+    if (!argV->empty()) {
+        for (std::string s: *argV) {
+            j[funcName].push_back(s);
+        }
+    } else {
+        j[funcName].push_back("");
     }
 
     std::string str = j.dump();

@@ -1,30 +1,30 @@
-# !!!!! THIS FILE IS DEPRECATED !!!!!
-if (FALSE)
-    cmake_minimum_required(VERSION 3.12)
-    project(CppJsLib)
-
-    set(CMAKE_CXX_STANDARD 17)
-
-    file(GLOB source
-            "*.cpp"
-            "*.hpp"
-            )
-
-    option(HTTPS "Enable https support" FALSE)
-    option(ENABLE_WEBSOCKET "Enable websocket protocol support" FALSE)
-
+# Initialize CppJsLib
+# Usage: initCppJsLib(target_name source_dir include_dir <ENABLE_WEBSOCKET> <ENABLE_HTTPS>)
+function(initCppJsLib target source_dir include_dir)
     add_compile_definitions(_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS) # Silence all Boost deprecation warnings
     add_compile_definitions(COMPILATION)
     add_compile_definitions(CPPJSLIB_STATIC_DEFINE)
 
-    find_file(HTTPLIB httplib.h HINTS ${CMAKE_SOURCE_DIR}/include)
-    find_file(JSON json.hpp HINTS ${CMAKE_SOURCE_DIR}/include)
+    find_file(HTTPLIB httplib.h HINTS ${include_dir})
+    find_file(JSON json.hpp HINTS ${include_dir})
 
-    if (${JSON} MATCHES ${CMAKE_SOURCE_DIR}/include)
+    message(STATUS "CppJsLib include folder was set to ${include_dir}")
+
+    if (ARGV3)
+        message(STATUS "Setting ENABLE_WEBSOCKET to ${ARGV3}")
+        set(ENABLE_WEBSOCKET ${ARGV3})
+    endif ()
+
+    if (ARGV4)
+        message(STATUS "Setting HTTPS to ${ARGV4}")
+        set(HTTPS ${ARGV4})
+    endif ()
+
+    if (${JSON} MATCHES ${include_dir})
         message(STATUS "json.hpp found in include folder")
     else ()
         message(STATUS "json.hpp not found in include folder, downloading it")
-        file(DOWNLOAD https://raw.githubusercontent.com/nlohmann/json/develop/single_include/nlohmann/json.hpp include/json.hpp SHOW_PROGRESS STATUS JSON_DOWNLOAD)
+        file(DOWNLOAD https://raw.githubusercontent.com/nlohmann/json/develop/single_include/nlohmann/json.hpp ${include_dir}/json.hpp SHOW_PROGRESS STATUS JSON_DOWNLOAD)
         if (JSON_DOWNLOAD)
             message(STATUS "json.hpp download finished successfully")
         else ()
@@ -32,11 +32,11 @@ if (FALSE)
         endif ()
     endif ()
 
-    if (${HTTPLIB} MATCHES ${CMAKE_SOURCE_DIR}/include)
+    if (${HTTPLIB} MATCHES ${include_dir})
         message(STATUS "httplib.h found in include folder")
     else ()
         message(STATUS "httplib.h not found in include folder, downloading it")
-        file(DOWNLOAD https://raw.githubusercontent.com/yhirose/cpp-httplib/master/httplib.h include/httplib.h SHOW_PROGRESS STATUS HTTPLIB_DOWNLOAD)
+        file(DOWNLOAD https://raw.githubusercontent.com/yhirose/cpp-httplib/master/httplib.h ${include_dir}/httplib.h SHOW_PROGRESS STATUS HTTPLIB_DOWNLOAD)
         if (HTTPLIB_DOWNLOAD)
             message(STATUS "httplib.h download finished successfully")
         else ()
@@ -45,7 +45,7 @@ if (FALSE)
     endif ()
 
     if (ENABLE_WEBSOCKET)
-        find_path(WEBSOCKETPP websocketpp HINTS ${CMAKE_SOURCE_DIR}/include)
+        find_path(WEBSOCKETPP websocketpp HINTS ${include_dir})
         if (NOT EXISTS ${WEBSOCKETPP})
             message(WARNING "Could not find websocketpp, disabling SSL Support")
             set(ENABLE_WEBSOCKET FALSE)
@@ -73,9 +73,6 @@ if (FALSE)
             set(USE_BOOST TRUE)
         endif ()
 
-        set(Boost_DEBUG TRUE)
-        set(Boost_USE_STATIC_LIBS ON)
-
         if (USE_BOOST)
             set(BOOT_VERSION_LIST "1.69;1.68;1.67;1.66;1.65.1;1.65;1.64;1.63;1.62;1.61;1.60")
             message(STATUS "Searching suitable Boost version")
@@ -97,7 +94,7 @@ if (FALSE)
                 message(WARNING "Boost not found, building without websocket protocol support")
                 set(ENABLE_WEBSOCKET FALSE)
             endif ()
-        else ()
+        else()
             message(WARNING "Boost not found, building without websocket protocol support")
             set(ENABLE_WEBSOCKET FALSE)
         endif ()
@@ -158,12 +155,9 @@ if (FALSE)
         endif ()
     endif ()
 
-    #add_library(CppJsLib SHARED "${source}")
-    add_library(CppJsLib STATIC "${source}")
-
-    target_include_directories(CppJsLib PUBLIC ${CMAKE_SOURCE_DIR}/include ${OPENSSL_INCLUDE_DIR} ${BOOST_INCLUDE_DIRS})
+    target_include_directories(${target} PUBLIC ${include_dir} ${OPENSSL_INCLUDE_DIR} ${BOOST_INCLUDE_DIRS})
     if (DEFINED BOOST_LIBRARY_DIRS OR DEFINED OPENSSL_SSL_LIBRARY)
-        target_link_directories(CppJsLib PUBLIC ${BOOST_LIBRARY_DIRS} ${OPENSSL_SSL_LIBRARY})
+        target_link_directories(${target} PUBLIC ${BOOST_LIBRARY_DIRS} ${OPENSSL_SSL_LIBRARY})
     else ()
         message(STATUS "No library includes were defined, not linking anything")
     endif ()
@@ -171,9 +165,9 @@ if (FALSE)
 
     if (ENABLE_WEBSOCKET)
         if (WIN32)
-            target_compile_options(CppJsLib PRIVATE "/bigobj")
+            target_compile_options(${target} PRIVATE "/bigobj")
         else ()
-            target_link_libraries(CppJsLib boost_system)
+            target_link_libraries(${target} boost_system)
         endif ()
     endif ()
 
@@ -188,15 +182,14 @@ if (FALSE)
 
         if (EXISTS ${LIBSSL} AND EXISTS ${LIBCRYPTO})
             message(STATUS "Found libssl: ${LIBSSL} and libcrypto: ${LIBCRYPTO}")
-            target_link_libraries(CppJsLib ${LIBCRYPTO} ${LIBSSL})
+            target_link_libraries(${target} ${LIBCRYPTO} ${LIBSSL})
         else ()
             message(FATAL_ERROR "Libssl (${LIBSSL}) or libcrypto (${LIBCRYPTO}) do not exist")
         endif ()
     endif ()
 
-    file(REMOVE_RECURSE $<TARGET_FILE_DIR:CppJsLib>/CppJsLibJs)
+    message(STATUS "CppJsLib subdirectory: ${source_dir}/")
 
-    add_custom_command(TARGET CppJsLib PRE_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_directory
-            ${CMAKE_SOURCE_DIR}/CppJsLibJs $<TARGET_FILE_DIR:CppJsLib>/CppJsLibJs)
-endif ()
+    target_sources(${target} PRIVATE ${source_dir}/CppJsLib.cpp ${source_dir}/CppJsLib.hpp)
+    target_include_directories(${target} PRIVATE ${source_dir})
+endfunction()
