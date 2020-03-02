@@ -6,7 +6,7 @@
 #else
 #   undef CPPHTTPLIB_OPENSSL_SUPPORT
 #   undef CPPJSLIB_ENABLE_HTTPS //Redundant, just adding this so CLion recognizes this macro as existing
-#endif
+#endif //CPPJSLIB_ENABLE_HTTPS
 
 #if defined(WIN32) || defined(_WIN32) || defined(__WIN32) && !defined(__CYGWIN__)
 #   define CPPJSLIB_WINDOWS
@@ -16,8 +16,7 @@
 #   undef CPPJSLIB_WINDOWS
 #endif
 
-// This is deprecated now
-#if defined(CPPJSLIB_STATIC_DEFINE) || defined (CPPJSLIB_UNIX)
+#if (defined(CPPJSLIB_STATIC_DEFINE) && !defined (CPPJSLIB_BUILD_LIB)) || defined (CPPJSLIB_UNIX)
 #  define CPPJSLIB_EXPORT
 #  define CPPJSLIB_NO_EXPORT
 #else
@@ -60,18 +59,13 @@
 #include <map>
 #include <utility>
 #include <vector>
-#include <atomic>
+#include <iostream>
+#include <memory>
 
 #ifdef CPPJSLIB_WINDOWS
 #   define strdup _strdup
 #   define strcpy strcpy_s
-#endif
-
-#ifdef CPPJSLIB_ENABLE_WEBSOCKET
-#   define CPPJSLIB_WS_PORT int websocketPort,
-#else
-#   define CPPJSLIB_WS_PORT
-#endif
+#endif //CPPJSLIB_WINDOWS
 
 #define expose(func) _exportFunction(func, #func)
 #ifdef CPPJSLIB_ENABLE_WEBSOCKET
@@ -79,17 +73,21 @@
 #   define getWebServer() _getWebServer<websocketpp::server<websocketpp::config::asio>>()
 #   ifdef CPPJSLIB_ENABLE_HTTPS
 #       define getTLSWebServer() _getTLSWebServer<websocketpp::server<websocketpp::config::asio_tls>>()
-#   endif
-#endif
+#   endif //CPPJSLIB_ENABLE_HTTPS
+#endif //CPPJSLIB_ENABLE_WEBSOCKET
+
 #ifdef CPPJSLIB_ENABLE_HTTPS
 #   define getHttpsServer() _getHttpServer<httplib::SSLServer>()
-#endif
+#endif //CPPJSLIB_ENABLE_HTTPS
+
 #define getHttpServer() _getHttpServer<httplib::Server>()
 
 #define CPPJSLIB_DURATION_INFINITE -1
 #define CPPJSLIB_MAX_FUNCNAME_LEN 250
 
 namespace CppJsLib {
+    const char localhost[] = "127.0.0.1";
+
     CPPJSLIB_EXPORT std::string *parseJSONInput(int *size, const std::string &args);
 
     CPPJSLIB_EXPORT std::string stringArrayToJSON(std::vector<std::string> *v);
@@ -508,19 +506,46 @@ namespace CppJsLib {
 
     CPPJSLIB_EXPORT void setError(const std::function<void(const std::string &)> &errorFunction);
 
+#if defined(CPPJSLIB_BUILD_LIB) || !defined (CPPJSLIB_STATIC_DEFINE)
+
+#   ifdef CPPJSLIB_ENABLE_HTTPS
+
+    CPPJSLIB_EXPORT void createWebGUI(WebGUI *&webGui, const std::string &base_dir, const std::string &cert_path,
+                                      const std::string &private_key_path,
+                                      unsigned short websocket_plain_fallback_port = 0);
+
+#   endif //CPPJSLIB_ENABLE_HTTPS
+
+    CPPJSLIB_EXPORT void createWebGUI(WebGUI *&webGui, const std::string &base_dir);
+
+    CPPJSLIB_EXPORT void deleteWebGUI(WebGUI *&webGui);
+
+#endif //defined(CPPJSLIB_BUILD_LIB) || !defined (CPPJSLIB_STATIC_DEFINE)
 
     class WebGUI {
     public:
-#ifdef CPPJSLIB_ENABLE_HTTPS
+        // Delete any constructor not allowed to initialize everything correctly
+        // and to prevent heap corruptions to occur
+        WebGUI() = delete;
+
+        WebGUI(const WebGUI &) = delete;
+
+        WebGUI &operator=(const WebGUI &) = delete;
+
+#ifdef CPPJSLIB_STATIC_DEFINE
+#   ifdef CPPJSLIB_ENABLE_HTTPS
+
         /**
          * @warning this constructor will be undeclared when built without ssl support
          */
-        CPPJSLIB_EXPORT WebGUI(const std::string &base_dir, const std::string &cert_path,
-                               const std::string &private_key_path, unsigned short websocket_plain_fallback_port = 0);
+        WebGUI(const std::string &base_dir, const std::string &cert_path,
+               const std::string &private_key_path, unsigned short websocket_plain_fallback_port = 0);
 
-#endif
+#   endif //CPPJSLIB_ENABLE_HTTPS
 
-        CPPJSLIB_EXPORT explicit WebGUI(const std::string &base_dir);
+        explicit WebGUI(const std::string &base_dir);
+
+#endif //CPPJSLIB_STATIC_DEFINE
 
         template<class...Args>
         inline void _exportFunction(void(*f)(Args...), std::string name) {
@@ -538,9 +563,8 @@ namespace CppJsLib {
                 this->insertToInitMap(strdup(name.c_str()), strdup(exposedF->toString().c_str()));
                 std::string r = "/callfunc_";
                 r.append(name);
-                char *target = strdup(r.c_str());
-                this->pushToVoidPtrVector((void *) target);
-                callFromPost(target, [exposedF](std::string req_body) {
+
+                callFromPost(r.c_str(), [exposedF](std::string req_body) {
                     return Caller::call(exposedF, req_body);
                 });
             } else {
@@ -564,9 +588,8 @@ namespace CppJsLib {
                 this->insertToInitMap(strdup(name.c_str()), strdup(exposedF->toString().c_str()));
                 std::string r = "/callfunc_";
                 r.append(name);
-                char *target = strdup(r.c_str());
-                this->pushToVoidPtrVector((void *) target);
-                callFromPost(target, [exposedF](std::string req_body) {
+
+                callFromPost(r.c_str(), [exposedF](std::string req_body) {
                     return Caller::call(exposedF, req_body);
                 });
             } else {
@@ -587,9 +610,9 @@ namespace CppJsLib {
             }
 
             this->log("[CppJsLib] Importing js function with name " + fName);
-#ifndef CPPJSLIB_ENABLE_HTTPS
+#   ifndef CPPJSLIB_ENABLE_HTTPS
             bool ssl = false;
-#endif
+#   endif //CPPJSLIB_ENABLE_HTTPS
             JsFunction<void(Args...)> *f = nullptr;
             initJsFunction(&f, fName, this);
 
@@ -612,9 +635,9 @@ namespace CppJsLib {
             }
 
             this->log("[CppJsLib] Importing js function with name " + fName);
-#ifndef CPPJSLIB_ENABLE_HTTPS
+#   ifndef CPPJSLIB_ENABLE_HTTPS
             bool ssl = false;
-#endif
+#   endif //CPPJSLIB_ENABLE_HTTPS
             JsFunction<std::vector<R>(Args...)> *f = nullptr;
             initJsFunction(&f, fName, this, waitS);
 
@@ -628,9 +651,12 @@ namespace CppJsLib {
             }
         }
 
-#endif
+        CPPJSLIB_EXPORT bool
+        start(int port, int websocketPort, const std::string &host = "localhost", bool block = true);
 
-        CPPJSLIB_EXPORT bool start(int port, CPPJSLIB_WS_PORT const std::string &host = "localhost", bool block = true);
+#else
+        CPPJSLIB_EXPORT bool start(int port, const std::string &host = "localhost", bool block = true);
+#endif //CPPJSLIB_ENABLE_WEBSOCKET
 
         CPPJSLIB_EXPORT void setLogger(const std::function<void(const std::string &)> &loggingFunction);
 
@@ -658,38 +684,45 @@ namespace CppJsLib {
 
         CPPJSLIB_EXPORT void setWebSocketCloseHandler(const std::function<void()> &handler);
 
-#ifdef CPPJSLIB_ENABLE_HTTPS
+#   ifdef CPPJSLIB_ENABLE_HTTPS
 
         template<typename T>
         inline std::shared_ptr<T> _getTLSWebServer() {
             return std::static_pointer_cast<T>(ws_server);
         }
 
-#endif
+#   endif //CPPJSLIB_ENABLE_HTTPS
 
         template<typename T>
         inline std::shared_ptr<T> _getWebServer() {
-#ifdef CPPJSLIB_ENABLE_HTTPS
+#   ifdef CPPJSLIB_ENABLE_HTTPS
             if (fallback_plain) {
                 return std::static_pointer_cast<T>(ws_plain_server);
             } else {
-#endif
+#   endif //CPPJSLIB_ENABLE_HTTPS
                 return std::static_pointer_cast<T>(ws_server);
-#ifdef CPPJSLIB_ENABLE_HTTPS
+#   ifdef CPPJSLIB_ENABLE_HTTPS
             }
-#endif
+#   endif //CPPJSLIB_ENABLE_HTTPS
         }
 
-#endif
+#endif //CPPJSLIB_ENABLE_WEBSOCKET
 
-        CPPJSLIB_EXPORT ~WebGUI();
+// Delete default destructor if the dll is used to prevent heap corruption
+#ifndef CPPJSLIB_STATIC_DEFINE
+        ~WebGUI() = delete;
+#else
+
+        ~WebGUI();
+
+#endif //CPPJSLIB_STATIC_DEFINE
 
         bool running;
         bool stopped;
 #ifdef CPPJSLIB_ENABLE_HTTPS
         const bool ssl;
         const unsigned short fallback_plain;
-#endif
+#endif //CPPJSLIB_ENABLE_HTTPS
     private:
 #ifdef CPPJSLIB_ENABLE_WEBSOCKET
         std::shared_ptr<void> ws_server;
@@ -697,8 +730,8 @@ namespace CppJsLib {
 #   ifdef CPPJSLIB_ENABLE_HTTPS
         std::shared_ptr<void> ws_plain_server;
         std::shared_ptr<void> ws_plain_connections;
-#   endif
-#endif
+#   endif //CPPJSLIB_ENABLE_HTTPS
+#endif //CPPJSLIB_ENABLE_WEBSOCKET
         std::shared_ptr<void> server;
 
         std::map<char *, char *> initMap;
@@ -708,8 +741,6 @@ namespace CppJsLib {
         using PostHandler = std::function<std::string(std::string req_body)>;
         std::function<void(const std::string &)> _loggingF;
         std::function<void(const std::string &)> _errorF;
-        //void (*_loggingF) (const std::string &);
-        //void (*_errorF) (const std::string &);
 
         CPPJSLIB_EXPORT void callFromPost(const char *target, const PostHandler &handler);
 

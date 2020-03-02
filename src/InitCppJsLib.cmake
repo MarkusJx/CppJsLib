@@ -168,6 +168,7 @@ function(initCppJsLib target source_dir include_dir)
             target_compile_options(${target} PRIVATE "/bigobj")
         else ()
             target_link_libraries(${target} boost_system)
+            target_compile_options(${target} PRIVATE "-Wa,-mbig-obj")
         endif ()
     endif ()
 
@@ -190,6 +191,13 @@ function(initCppJsLib target source_dir include_dir)
 
     message(STATUS "CppJsLib subdirectory: ${source_dir}/")
 
-    target_sources(${target} PRIVATE ${source_dir}/CppJsLib.cpp ${source_dir}/CppJsLib.hpp)
+    set(base_sources ${source_dir}/CppJsLib.cpp ${source_dir}/CppJsLib.hpp)
+
+    FILE(GLOB utils
+            "${source_dir}/utils/*.hpp"
+            "${source_dir}/utils/*.cpp"
+            )
+
+    target_sources(${target} PRIVATE ${base_sources} ${utils})
     target_include_directories(${target} PRIVATE ${source_dir})
 endfunction()

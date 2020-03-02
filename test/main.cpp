@@ -15,6 +15,11 @@
 #include <thread>
 #include <atomic>
 
+#include <cassert>
+#include <crtdbg.h>
+
+#define ASSERT_MEM_OK() assert(_CrtCheckMemory())
+
 CppJsLib::WebGUI *wGui;
 std::function<void(int)> func = {};
 std::function<std::vector<int>()> tf = {};
@@ -39,17 +44,18 @@ int main() {
         std::cout << s << std::endl;
     });
 
+    ASSERT_MEM_OK();
 #ifdef TEST_ENABLE_HTTPS
     std::cout << "Tests were built with HTTPS support enabled" << std::endl;
+#ifdef TEST_USE_DLL
+    CppJsLib::createWebGUI(wGui, "web", "cert.pem", "server.pem");
+#else
     wGui = new CppJsLib::WebGUI("web", "cert.pem", "server.pem");
+#endif
 #else
     wGui = new CppJsLib::WebGUI("web");
 #endif
-
-    void (*a) (int);
-    a = {
-
-    };
+    ASSERT_MEM_OK();
 
 #ifdef TEST_ENABLE_WEBSOCKET
     wGui->importFunction(&fn);
@@ -60,7 +66,7 @@ int main() {
     wGui->expose(d);
 
     std::cout << "Starting web server..." << std::endl;
-#ifdef TEST_ENABLE_WEBSOCKET
+#ifdef CPPJSLIB_ENABLE_WEBSOCKET
 #   define TEST_WS_PORT 8026,
 #else
 #   define TEST_WS_PORT
@@ -71,7 +77,7 @@ int main() {
 #else
     bool block = false;
 #endif
-    wGui->start(8026, TEST_WS_PORT "127.0.0.1", block);
+    wGui->start(8026, TEST_WS_PORT CppJsLib::localhost, block);
 
     std::this_thread::sleep_for(std::chrono::seconds(2));
     std::cout << "Stopping web server..." << std::endl;

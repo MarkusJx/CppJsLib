@@ -5,6 +5,9 @@ const cppJsLib = {
     'loadFunctions': [],
     'initialized': false,
     'exposedFunctions': [],
+    /**
+     * @type WebSocket
+     */
     'webSocket': null,
     'onLoad': function (fn) {
         if (typeof fn !== 'function') {
@@ -37,7 +40,10 @@ const cppJsLib = {
                 if (obj.hasOwnProperty(fnName)) {
                     let args = obj[fnName].toString().split("(");
                     let returnType = args[0].split(" ")[0];
-                    args = args[1].replace(")", "").split(", ");
+                    args = args[1].replace(")", "").trim().split(", ");
+                    if (args[0] === "" && args.length === 1) {
+                        args = [];
+                    }
                     this.addFn(returnType, fnName, args);
                 }
             }
@@ -65,7 +71,11 @@ const cppJsLib = {
                     let data = JSON.parse(event.data);
                     let key = Object.keys(data)[0];
                     if (data[key].length === 1) {
-                        this.exposedFunctions[key](JSON.parse(data[key]));
+                        if (data[key][0] === "") {
+                            this.exposedFunctions[key]();
+                        } else {
+                            this.exposedFunctions[key](JSON.parse(data[key]));
+                        }
                     } else {
                         this.exposedFunctions[key]( ... JSON.parse(data[key]));
                     }
@@ -74,7 +84,7 @@ const cppJsLib = {
         }, "", "GET");
     },
     'addFn': function (returnType, name, args) {
-        console.log("Initializing function " + name);
+        console.log("Initializing function " + name + " with " + args.length + " argument(s) " + args);
         this[name] = function () {
             if (args.length !== arguments.length) {
                 console.error("Argument count does not match!");
@@ -93,7 +103,12 @@ const cppJsLib = {
 
             if (returnType !== "void") {
                 return new Promise((resolve) => {
-                    this.sendRequest("callfunc_" + name, resolve, JSON.stringify(obj));
+                    this.sendRequest("callfunc_" + name, (res) => {
+                        if (returnType === "bool") {
+                            res = (res === "1");
+                        }
+                        resolve(res);
+                    }, JSON.stringify(obj));
                 });
             } else {
                 this.sendRequest("callfunc_" + name, false, JSON.stringify(obj));
@@ -128,7 +143,7 @@ const cppJsLib = {
         }
     },
     'expose': function (toExpose) {
-        this.exposedFunctions.push(toExpose);
+        this.exposedFunctions[toExpose.name] = toExpose;
     }
 };
 
