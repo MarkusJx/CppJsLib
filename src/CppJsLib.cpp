@@ -55,7 +55,7 @@ CPPJSLIB_EXPORT bool CppJsLib::stop(WebGUI *webGui, bool block, int waitMaxSecon
     return webGui->stopped;
 }
 
-CPPJSLIB_EXPORT std::string *CppJsLib::parseJSONInput(int *size, const std::string &args) {
+CPPJSLIB_EXPORT std::string *CppJsLib::util::parseJSONInput(int *size, const std::string &args) {
     using json = nlohmann::json;
     json j = json::parse(json::parse(args)["args"].dump());
     int s = 0;
@@ -71,17 +71,17 @@ CPPJSLIB_EXPORT std::string *CppJsLib::parseJSONInput(int *size, const std::stri
     return argArr;
 }
 
-CPPJSLIB_EXPORT std::string CppJsLib::stringArrayToJSON(std::vector<std::string> *v) {
+CPPJSLIB_EXPORT std::string CppJsLib::util::stringArrayToJSON(std::vector<std::string> *v) {
     nlohmann::json json(*v);
     return json.dump();
 }
 
-CPPJSLIB_EXPORT std::string CppJsLib::stringToJSON(std::string s) {
+CPPJSLIB_EXPORT std::string CppJsLib::util::stringToJSON(std::string s) {
     nlohmann::json json(s);
     return json.dump();
 }
 
-CPPJSLIB_EXPORT std::string *CppJsLib::createStringArrayFromJSON(int *size, const std::string &data) {
+CPPJSLIB_EXPORT std::string *CppJsLib::util::createStringArrayFromJSON(int *size, const std::string &data) {
     nlohmann::json j = nlohmann::json::parse(data);
     int s = 0;
     for (auto &it : j) s++;
@@ -99,7 +99,7 @@ CPPJSLIB_EXPORT std::string *CppJsLib::createStringArrayFromJSON(int *size, cons
 #ifdef CPPJSLIB_ENABLE_WEBSOCKET
 
 CPPJSLIB_EXPORT void
-CppJsLib::callJsFunc(WebGUI *wGui, std::vector<std::string> *argV, char *funcName,
+CppJsLib::util::callJsFunc(WebGUI *wGui, std::vector<std::string> *argV, char *funcName,
                      std::vector<char *> *results, int wait) {
     wGui->call_jsFn(argV, funcName, results, wait);
 }

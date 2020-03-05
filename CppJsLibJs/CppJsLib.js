@@ -5,6 +5,7 @@ const cppJsLib = {
     'loadFunctions': [],
     'initialized': false,
     'exposedFunctions': [],
+    'connected': false,
     /**
      * @type WebSocket
      */
@@ -30,7 +31,11 @@ const cppJsLib = {
                 }
             };
         }
-        xhttp.send(body);
+        try {
+            xhttp.send(body);
+        } catch (error) {
+            this.connected = false;
+        }
     },
     'init': function () {
         this.sendRequest("init", (response) => {
@@ -67,6 +72,11 @@ const cppJsLib = {
 
                 console.log("Connecting to websocket on: " + wsProtocol + obj["host"] + ":" + obj["port"]);
                 this.webSocket = new WebSocket(wsProtocol + obj["host"] + ":" + obj["port"]);
+                this.connected = true;
+                this.webSocket.onclose = () => {
+                    this.connected = false;
+                    console.log("WebSocket connection closed");
+                };
                 this.webSocket.onmessage = (event) => {
                     let data = JSON.parse(event.data);
                     let key = Object.keys(data)[0];
@@ -107,7 +117,7 @@ const cppJsLib = {
                         if (returnType === "bool") {
                             res = (res === "1");
                         }
-                        resolve(res);
+                        resolve(JSON.parse(res));
                     }, JSON.stringify(obj));
                 });
             } else {

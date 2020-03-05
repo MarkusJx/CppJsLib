@@ -58,12 +58,14 @@ int main() {
     ASSERT_MEM_OK();
 
 #ifdef TEST_ENABLE_WEBSOCKET
-    wGui->importFunction(&fn);
-    wGui->importFunction(&func);
-    wGui->importFunction(&tf, 0);
+    wGui->importFunction(fn);
+    wGui->importFunction(func);
+    wGui->importFunction(tf, 0);
 #endif
     wGui->expose(f);
     wGui->expose(d);
+
+    ASSERT_MEM_OK();
 
     std::cout << "Starting web server..." << std::endl;
 #ifdef CPPJSLIB_ENABLE_WEBSOCKET
@@ -79,13 +81,21 @@ int main() {
 #endif
     wGui->start(8026, TEST_WS_PORT CppJsLib::localhost, block);
 
+    func(5);
+
     std::this_thread::sleep_for(std::chrono::seconds(2));
     std::cout << "Stopping web server..." << std::endl;
     if (CppJsLib::stop(wGui)) {
         std::cout << "Web server stopped" << std::endl;
     }
 
+#ifdef TEST_USE_DLL
+    CppJsLib::deleteWebGUI(wGui);
+#else
     delete wGui;
+#endif
+
+    ASSERT_MEM_OK();
 
     return 0;
 }
