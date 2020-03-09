@@ -719,6 +719,7 @@ namespace CppJsLib {
 
 #endif //CPPJSLIB_STATIC_DEFINE
 
+        bool check_ports;
         bool running;
         bool stopped;
 #ifdef CPPJSLIB_ENABLE_HTTPS
@@ -754,6 +755,12 @@ namespace CppJsLib {
     };
 
     CPPJSLIB_EXPORT bool stop(WebGUI *webGui, bool block = true, int maxWaitSeconds = CPPJSLIB_DURATION_INFINITE);
+
+    CPPJSLIB_EXPORT bool ok();
+
+    CPPJSLIB_EXPORT std::string getLastError();
+
+    CPPJSLIB_EXPORT void resetLastError();
 }
 
 #endif //CPPJSLIB_WEBGUI_HPP

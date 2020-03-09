@@ -6,6 +6,7 @@
 #define CPPJSLIBALL_WEBSOCKET_HPP
 
 #include "../CppJsLib.hpp"
+#include "loggingfunc.hpp"
 
 #ifdef CPPJSLIB_ENABLE_WEBSOCKET
 #   ifdef CPPJSLIB_ENABLE_HTTPS

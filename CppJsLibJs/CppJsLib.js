@@ -117,7 +117,11 @@ const cppJsLib = {
                         if (returnType === "bool") {
                             res = (res === "1");
                         }
-                        resolve(JSON.parse(res));
+                        if (res.startsWith("\"")) {
+                            resolve(JSON.parse(res));
+                        } else {
+                            resolve(res);
+                        }
                     }, JSON.stringify(obj));
                 });
             } else {
