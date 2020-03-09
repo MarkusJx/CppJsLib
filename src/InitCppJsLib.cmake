@@ -167,7 +167,7 @@ function(initCppJsLib target source_dir include_dir)
         if (WIN32)
             target_compile_options(${target} PRIVATE "/bigobj")
         else ()
-            target_link_libraries(${target} boost_system pthread)
+            target_link_libraries(${target} boost_system)
 
             if ((CMAKE_CXX_COMPILER_ID STREQUAL "GNU") AND CYGWIN)
                 message(STATUS "Compiler supports -Wa,-mbig-obj")
@@ -201,6 +201,10 @@ function(initCppJsLib target source_dir include_dir)
             "${source_dir}/utils/*.hpp"
             "${source_dir}/utils/*.cpp"
             )
+
+    if (NOT WIN32)
+        target_link_libraries(${target} pthread)
+    endif ()
 
     target_sources(${target} PRIVATE ${base_sources} ${utils})
     target_include_directories(${target} PRIVATE ${source_dir})
