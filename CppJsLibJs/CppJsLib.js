@@ -115,9 +115,13 @@ const cppJsLib = {
                 return new Promise((resolve) => {
                     this.sendRequest("callfunc_" + name, (res) => {
                         if (returnType === "bool") {
+                            if (typeof res === "string" && res.startsWith("\"")) {
+                                res = JSON.parse(res);
+                            }
                             res = (res === "1");
                         }
-                        if (res.startsWith("\"")) {
+
+                        if (typeof res === "string" && res.startsWith("\"")) {
                             resolve(JSON.parse(res));
                         } else {
                             resolve(res);

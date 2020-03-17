@@ -5,25 +5,49 @@
 #include "loggingfunc.hpp"
 #include "../CppJsLib.hpp"
 
-#ifdef CPPJSLIB_WINDOWS
-#   ifdef _MSC_VER
-#       pragma comment (lib, "Ws2_32.lib")
-#   endif // _MSC_VER
+#ifndef CPPJSLIB_USE_JUTILS
+#   ifdef CPPJSLIB_WINDOWS
+#       ifdef _MSC_VER
+#           pragma comment (lib, "Ws2_32.lib")
+#       endif // _MSC_VER
 
-#   include <winsock2.h>
-#   include <ws2tcpip.h>
-#   include <string>
-#elif defined(CPPJSLIB_UNIX)
+#       include <winsock2.h>
+#       include <ws2tcpip.h>
+#       include <string>
+#   elif defined(CPPJSLIB_UNIX)
+#       include <unistd.h>
+#       include <sys/socket.h>
+#       include <netinet/in.h>
+#       include <arpa/inet.h>
+#   endif //CPPJSLIB_WINDOWS
+#else
 
-#   include <unistd.h>
-#   include <sys/socket.h>
-#   include <netinet/in.h>
-#   include <arpa/inet.h>
+#   include "include/cppJsLibJUtils.h"
+#   include "include/graal_isolate.h"
 
-#endif //CPPJSLIB_WINDOWS
+#endif //CPPJSLIB_USE_JUTILS
 
 bool port_is_in_use(const char *addr, unsigned short port, int &err) {
-#ifdef CPPJSLIB_WINDOWS
+#ifdef CPPJSLIB_USE_JUTILS
+    // If available use Java for checking if the port is in use
+    // That stuff is faster and cross-platform
+    graal_isolate_t *isolate = nullptr;
+    graal_isolatethread_t *thread = nullptr;
+
+    if (graal_create_isolate(nullptr, &isolate, &thread) != 0) {
+        errorF("[CppJsLib] graal_create_isolate error");
+        return false;
+    }
+
+    bool res = portInUse(thread, (size_t) addr, port);
+
+    if (graal_detach_thread(thread) != 0) {
+        errorF("[CppJsLib] graal_detach_thread error");
+    }
+
+    return res;
+#else
+#   ifdef CPPJSLIB_WINDOWS
     WSADATA wsaData;
     auto ConnectSocket = INVALID_SOCKET;
     struct addrinfo *result = nullptr,
@@ -33,7 +57,7 @@ bool port_is_in_use(const char *addr, unsigned short port, int &err) {
     // Initialize Winsock
     err = WSAStartup(MAKEWORD(2, 2), &wsaData);
     if (err != 0) {
-        errorF("WSAStartup failed with error: " + std::to_string(err));
+        errorF("[CppJsLib] WSAStartup failed with error: " + std::to_string(err));
         return false;
     }
 
@@ -77,7 +101,7 @@ bool port_is_in_use(const char *addr, unsigned short port, int &err) {
     err = 0;
 
     if (ConnectSocket == INVALID_SOCKET) {
-        loggingF("[CppJsLib] Unable to connect to server. Port is not in use\n");
+        loggingF("[CppJsLib] Unable to connect to server. Port is not in use");
         WSACleanup();
         return false;
     }
@@ -97,7 +121,7 @@ bool port_is_in_use(const char *addr, unsigned short port, int &err) {
     WSACleanup();
 
     return true;
-#else
+#   else
     int sock = 0;
     struct sockaddr_in serv_addr{};
     if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
@@ -125,5 +149,6 @@ bool port_is_in_use(const char *addr, unsigned short port, int &err) {
 
     close(sock);
     return true;
-#endif //CPPJSLIB_WINDOWS
+#   endif //CPPJSLIB_WINDOWS
+#endif //CPPJSLIB_USE_JUTILS
 }

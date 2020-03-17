@@ -174,7 +174,7 @@ CPPJSLIB_EXPORT void WebGUI::call_jsFn(std::vector<std::string> *argV, const cha
     if (results) {
         // Wait for the results to come in
         if (wait != -1) wait *= 100;
-        unsigned int counter = 0;
+        int counter = 0;
         while (results->size() < list->size() && counter < wait) {
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
             if (wait != -1) counter++;

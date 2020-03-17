@@ -102,6 +102,9 @@ namespace CppJsLib {
         template<class>
         struct TypeConverter;
 
+        template <class>
+        struct cString;
+
         template<class>
         struct ExposedFunction;
 
@@ -331,6 +334,13 @@ namespace CppJsLib {
             typedef typename remove_pointer<T>::type type;
         };
 
+        template <>
+        struct cString<std::string> {
+            static std::string convert(const std::string &data) {
+                return data;
+            }
+        };
+
         template<class T>
         struct cString {
             static T convert(const std::string &data) {
@@ -549,6 +559,11 @@ namespace CppJsLib {
 
 #endif //CPPJSLIB_STATIC_DEFINE
 
+#ifdef CPPJSLIB_BUILD_JNI_DLL
+        void exportJavaFunction(const std::string& name, std::string returnType, std::string *argTypes, int numArgs,
+                                const std::function<std::string(std::string *, int)> &fn);
+#endif //CPPJSLIB_BUILD_JNI_DLL
+
         template<class...Args>
         inline void _exportFunction(void(*f)(Args...), std::string name) {
             this->log("[CppJsLib] Exposing void function with name " + name);
@@ -612,9 +627,6 @@ namespace CppJsLib {
             }
 
             this->log("[CppJsLib] Importing js function with name " + fName);
-#   ifndef CPPJSLIB_ENABLE_HTTPS
-            bool ssl = false;
-#   endif //CPPJSLIB_ENABLE_HTTPS
             util::JsFunction<void(Args...)> *f = nullptr;
             util::initJsFunction(&f, fName, this);
 
@@ -637,9 +649,6 @@ namespace CppJsLib {
             }
 
             this->log("[CppJsLib] Importing js function with name " + fName);
-#   ifndef CPPJSLIB_ENABLE_HTTPS
-            bool ssl = false;
-#   endif //CPPJSLIB_ENABLE_HTTPS
             util::JsFunction<std::vector<R>(Args...)> *f = nullptr;
             util::initJsFunction(&f, fName, this, waitS);
 

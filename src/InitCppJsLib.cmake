@@ -20,6 +20,16 @@ function(initCppJsLib target source_dir include_dir)
         set(HTTPS ${ARGV4})
     endif ()
 
+    if (ARGV5)
+        message(STATUS "Setting USE_JUTILS to ${ARGV5}")
+        set(USE_JUTILS ${ARGV5})
+    endif ()
+
+    if (ARGV6)
+        message(STATUS "Setting BUILD_JNI_DLL to ${ARGV6}")
+        set(BUILD_JNI_DLL ${ARGV6})
+    endif ()
+
     if (${JSON} MATCHES ${include_dir})
         message(STATUS "json.hpp found in include folder")
     else ()
@@ -202,10 +212,29 @@ function(initCppJsLib target source_dir include_dir)
             "${source_dir}/utils/*.cpp"
             )
 
+    FILE(GLOB include
+            ${source_dir}/include/*.h
+            )
+
+    if (USE_JUTILS)
+        add_compile_definitions(CPPJSLIB_USE_JUTILS)
+        target_link_directories(${target} PRIVATE ${source_dir}/lib)
+        target_link_libraries(${target} cppJsLibJUtils)
+    endif ()
+
     if (NOT WIN32)
         target_link_libraries(${target} pthread)
     endif ()
 
-    target_sources(${target} PRIVATE ${base_sources} ${utils})
-    target_include_directories(${target} PRIVATE ${source_dir})
+    if (BUILD_JNI_DLL)
+        message(STATUS "Building dll for use with Java")
+        FILE(GLOB jni
+                ${source_dir}/jni/*.h
+                ${source_dir}/jni/*.cpp
+                )
+        target_include_directories(${target} PRIVATE "C:\\Program Files\\Java\\jdk-13.0.1\\include" "C:\\Program Files\\Java\\jdk-13.0.1\\include\\win32")
+    endif()
+
+    target_sources(${target} PRIVATE ${base_sources} ${utils} ${include} ${jni})
+    target_include_directories(${target} PRIVATE ${source_dir} "C:\\Program Files\\Java\\jdk-13.0.1\\include" "C:\\Program Files\\Java\\jdk-13.0.1\\include\\win32")
 endfunction()
