@@ -28,7 +28,7 @@ if (USE_DLL)
     target_link_libraries(Test CppJsLib)
     add_compile_definitions(TEST_USE_DLL)
 else ()
-    initCppJsLib(Test "${CMAKE_SOURCE_DIR}/src" "${CMAKE_SOURCE_DIR}/include" ${ENABLE_WEBSOCKET} ${HTTPS} TRUE)
+    initCppJsLib(Test "${CMAKE_SOURCE_DIR}/src" "${CMAKE_SOURCE_DIR}/include" ${ENABLE_WEBSOCKET} ${HTTPS})
 endif ()
 
 target_include_directories(Test PRIVATE "${CMAKE_SOURCE_DIR}/src")

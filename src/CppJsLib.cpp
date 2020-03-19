@@ -231,3 +231,11 @@ CPPJSLIB_EXPORT void CppJsLib::deleteWebGUI(WebGUI *&webGui) {
 
 #endif //CPPJSLIB_BUILD_LIB
 
+CPPJSLIB_EXPORT void CppJsLib::util::pushToStrVecVector(WebGUI *webGui, std::vector<char *> *v) {
+    webGui->pushToStrVecVector(v);
+}
+
+CPPJSLIB_EXPORT void CppJsLib::util::pushToVoidPtrVector(WebGUI *webGui, void *ptr) {
+    webGui->pushToVoidPtrVector(ptr);
+}
+

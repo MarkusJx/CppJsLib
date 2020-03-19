@@ -99,6 +99,10 @@ namespace CppJsLib {
 
         CPPJSLIB_EXPORT std::string *createStringArrayFromJSON(int *size, const std::string &data);
 
+        CPPJSLIB_EXPORT void pushToStrVecVector(WebGUI *webGui, std::vector<char *> *v);
+
+        CPPJSLIB_EXPORT void pushToVoidPtrVector(WebGUI *webGui, void *ptr);
+
         template<class>
         struct TypeConverter;
 
@@ -226,7 +230,7 @@ namespace CppJsLib {
                 tmp->wait = waitS;
 
                 tmp->responseReturns = new std::vector<char *>();
-                _wGui->pushToStrVecVector(tmp->responseReturns);
+                pushToStrVecVector(_wGui, tmp->responseReturns);
             }
 
             *toInit = tmp;
@@ -485,7 +489,7 @@ namespace CppJsLib {
                 delete[] types;
 
                 tmp->fnString = strdup(fnString.c_str());
-                wGui->pushToVoidPtrVector(static_cast<void *>(tmp->fnString));
+                pushToVoidPtrVector(wGui, static_cast<void *>(tmp->fnString));
                 tmp->f = f;
             }
 
