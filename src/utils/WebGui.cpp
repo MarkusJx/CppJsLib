@@ -59,7 +59,9 @@ WebGUI::WebGUI(const std::string &base_dir, const std::string &cert_path,
         return;
     }
 
+#if defined(CPPJSLIB_ENABLE_WEBSOCKET) && defined(CPPJSLIB_ENABLE_HTTPS)
     setPassword();
+#endif
 
     char *cert = strdup(cert_path.c_str());
     char *private_key = strdup(private_key_path.c_str());
