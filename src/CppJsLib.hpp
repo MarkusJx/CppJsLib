@@ -536,6 +536,26 @@ namespace CppJsLib {
 
     CPPJSLIB_EXPORT void deleteWebGUI(WebGUI *&webGui);
 
+    using WebGUI_ptr = std::unique_ptr<CppJsLib::WebGUI, decltype(&CppJsLib::deleteWebGUI)>;
+
+    inline WebGUI_ptr createWebGUI(const std::string &base_dir) {
+        WebGUI *webGui;
+        createWebGUI(webGui, base_dir);
+        return WebGUI_ptr(webGui, deleteWebGUI);
+    }
+
+#   ifdef CPPJSLIB_ENABLE_HTTPS
+
+    inline WebGUI_ptr
+    createWebGUI(const std::string &base_dir, const std::string &cert_path, const std::string &private_key_path,
+                 unsigned short websocket_plain_fallback_port = 0) {
+        WebGUI *webGui;
+        createWebGUI(webGui, base_dir, cert_path, private_key_path, websocket_plain_fallback_port);
+        return WebGUI_ptr(webGui, deleteWebGUI);
+    }
+
+#   endif //CPPJSLIB_ENABLE_HTTPS
+
 #endif //defined(CPPJSLIB_BUILD_LIB) || !defined (CPPJSLIB_STATIC_DEFINE)
 
     class WebGUI {
@@ -670,7 +690,9 @@ namespace CppJsLib {
         start(int port, int websocketPort, const std::string &host = "localhost", bool block = true);
 
 #else
+
         CPPJSLIB_EXPORT bool start(int port, const std::string &host = "localhost", bool block = true);
+
 #endif //CPPJSLIB_ENABLE_WEBSOCKET
 
         CPPJSLIB_EXPORT void setLogger(const std::function<void(const std::string &)> &loggingFunction);
@@ -680,6 +702,10 @@ namespace CppJsLib {
         CPPJSLIB_EXPORT void pushToVoidPtrVector(void *f);
 
         CPPJSLIB_EXPORT void pushToStrVecVector(std::vector<char *> *v);
+
+        CPPJSLIB_EXPORT void set_mount_point(const char *mnt, const char *dir);
+
+        CPPJSLIB_EXPORT void remove_mount_point(const char *mnt);
 
         /**
          * A function used by the getHttpServer macro

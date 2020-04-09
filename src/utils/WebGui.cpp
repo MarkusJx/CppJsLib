@@ -46,7 +46,7 @@ WebGUI::WebGUI(const std::string &base_dir)
 
     char *base = strdup(base_dir.c_str());
     pushToVoidPtrVector((void *) base);
-    std::static_pointer_cast<httplib::Server>(server)->set_base_dir(base);
+    std::static_pointer_cast<httplib::Server>(server)->set_mount_point("/", base);
 }
 
 #ifdef CPPJSLIB_ENABLE_HTTPS
@@ -97,7 +97,7 @@ WebGUI::WebGUI(const std::string &base_dir, const std::string &cert_path,
 
     char *base = strdup(base_dir.c_str());
     pushToVoidPtrVector((void *) base);
-    std::static_pointer_cast<httplib::SSLServer>(server)->set_base_dir(base);
+    std::static_pointer_cast<httplib::SSLServer>(server)->set_mount_point("/", base);
 }
 
 #endif //CPPJSLIB_ENABLE_HTTPS
@@ -105,7 +105,8 @@ WebGUI::WebGUI(const std::string &base_dir, const std::string &cert_path,
 #ifdef CPPJSLIB_ENABLE_WEBSOCKET
 CPPJSLIB_EXPORT bool WebGUI::start(int port, int websocketPort, const std::string &host, bool block) {
 #else
-    CPPJSLIB_EXPORT bool WebGUI::start(int port, const std::string &host, bool block) {
+
+CPPJSLIB_EXPORT bool WebGUI::start(int port, const std::string &host, bool block) {
 #endif //CPPJSLIB_ENABLE_WEBSOCKET
 
     // Check if the ports are occupied, if enabled
@@ -194,9 +195,9 @@ CPPJSLIB_EXPORT bool WebGUI::start(int port, int websocketPort, const std::strin
         std::static_pointer_cast<httplib::SSLServer>(server)->Get("/init_ws", init_ws_handler);
     } else {
 #endif //CPPJSLIB_ENABLE_HTTPS
-        std::static_pointer_cast<httplib::Server>(server)->Get("/init", initHandler);
-        std::static_pointer_cast<httplib::Server>(server)->Get("/CppJsLib.js", CppJsLibJsHandler);
-        std::static_pointer_cast<httplib::Server>(server)->Get("/init_ws", init_ws_handler);
+    std::static_pointer_cast<httplib::Server>(server)->Get("/init", initHandler);
+    std::static_pointer_cast<httplib::Server>(server)->Get("/CppJsLib.js", CppJsLibJsHandler);
+    std::static_pointer_cast<httplib::Server>(server)->Get("/init_ws", init_ws_handler);
 #ifdef CPPJSLIB_ENABLE_HTTPS
     }
 #endif //CPPJSLIB_ENABLE_HTTPS
@@ -247,14 +248,14 @@ CPPJSLIB_EXPORT bool WebGUI::start(int port, int websocketPort, const std::strin
         };
     } else {
 #endif //CPPJSLIB_ENABLE_HTTPS
-        std::shared_ptr<httplib::Server> svr = std::static_pointer_cast<httplib::Server>(server);
-        func = [svr, host, port, runningPtr, stoppedPtr]() {
-            if (!svr->listen(host.c_str(), port)) {
-                (*runningPtr) = false;
-            }
+    std::shared_ptr<httplib::Server> svr = std::static_pointer_cast<httplib::Server>(server);
+    func = [svr, host, port, runningPtr, stoppedPtr]() {
+        if (!svr->listen(host.c_str(), port)) {
+            (*runningPtr) = false;
+        }
 
-            (*stoppedPtr) = true;
-        };
+        (*stoppedPtr) = true;
+    };
 #ifdef CPPJSLIB_ENABLE_HTTPS
     }
 #endif //CPPJSLIB_ENABLE_HTTPS
@@ -284,7 +285,7 @@ CPPJSLIB_EXPORT void WebGUI::callFromPost(const char *target, const PostHandler 
         std::static_pointer_cast<httplib::SSLServer>(server)->Post(target, f);
     else
 #endif //CPPJSLIB_ENABLE_HTTPS
-        std::static_pointer_cast<httplib::Server>(server)->Post(target, f);
+    std::static_pointer_cast<httplib::Server>(server)->Post(target, f);
 }
 
 CPPJSLIB_EXPORT void WebGUI::setLogger(const std::function<void(const std::string &)> &f) {
@@ -347,6 +348,24 @@ CPPJSLIB_EXPORT void WebGUI::pushToStrVecVector(std::vector<char *> *v) {
 
 CPPJSLIB_EXPORT void WebGUI::insertToInitMap(char *name, char *exposedFStr) {
     initMap.insert(std::pair<char *, char *>(name, exposedFStr));
+}
+
+CPPJSLIB_EXPORT void WebGUI::set_mount_point(const char *mnt, const char *dir) {
+#ifdef CPPJSLIB_ENABLE_HTTPS
+    if (ssl)
+        std::static_pointer_cast<httplib::SSLServer>(server)->set_mount_point(mnt, dir);
+    else
+#endif //CPPJSLIB_ENABLE_HTTPS
+    std::static_pointer_cast<httplib::Server>(server)->set_mount_point(mnt, dir);
+}
+
+CPPJSLIB_EXPORT void WebGUI::remove_mount_point(const char *mnt) {
+#ifdef CPPJSLIB_ENABLE_HTTPS
+    if (ssl)
+        std::static_pointer_cast<httplib::SSLServer>(server)->remove_mount_point(mnt);
+    else
+#endif //CPPJSLIB_ENABLE_HTTPS
+    std::static_pointer_cast<httplib::Server>(server)->remove_mount_point(mnt);
 }
 
 WebGUI::~WebGUI() {

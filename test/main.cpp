@@ -53,7 +53,11 @@ int main() {
 #ifdef TEST_ENABLE_HTTPS
     std::cout << "Tests were built with HTTPS support enabled" << std::endl;
 #ifdef TEST_USE_DLL
+#   ifdef CPPJSLIB_ENABLE_HTTPS
     CppJsLib::createWebGUI(wGui, "web", "cert.pem", "server.pem");
+#   else
+    CppJsLib::createWebGUI(wGui, "web");
+#   endif
 #else
     wGui = new CppJsLib::WebGUI("web", "cert.pem", "server.pem");
 #endif
