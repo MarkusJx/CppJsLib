@@ -106,7 +106,7 @@ namespace CppJsLib {
         template<class>
         struct TypeConverter;
 
-        template <class>
+        template<class>
         struct cString;
 
         template<class>
@@ -338,7 +338,7 @@ namespace CppJsLib {
             typedef typename remove_pointer<T>::type type;
         };
 
-        template <>
+        template<>
         struct cString<std::string> {
             static std::string convert(const std::string &data) {
                 return data;
