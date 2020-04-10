@@ -19,6 +19,8 @@
 #include <cassert>
 #ifdef CPPJSLIB_WINDOWS
 #   include <crtdbg.h>
+#include <random>
+#include "DifferentWebServer.hpp"
 
 #   define ASSERT_MEM_OK() assert(_CrtCheckMemory())
 #else
@@ -54,9 +56,9 @@ int main() {
     std::cout << "Tests were built with HTTPS support enabled" << std::endl;
 #ifdef TEST_USE_DLL
 #   ifdef CPPJSLIB_ENABLE_HTTPS
-    CppJsLib::createWebGUI(wGui, "web", "cert.pem", "server.pem");
+    wGui = CppJsLib::createWebGUI("web", "cert.pem", "server.pem");
 #   else
-    CppJsLib::createWebGUI(wGui, "web");
+    wGui = CppJsLib::createWebGUI("web");
 #   endif
 #else
     wGui = new CppJsLib::WebGUI("web", "cert.pem", "server.pem");
@@ -76,6 +78,17 @@ int main() {
 
     ASSERT_MEM_OK();
 
+#ifdef TEST_USE_DLL
+    {
+        /*CppJsLib::WebGUI_ptr ptr = CppJsLib::createWebGUI_ptr("web");
+        ptr->start(8025, 8026, "localhost", false);
+        std::this_thread::sleep_for(std::chrono::milliseconds(20));
+        ptr->stop();*/
+    }
+#endif //TEST_USE_DLL
+
+    ASSERT_MEM_OK();
+
     std::cout << "Starting web server..." << std::endl;
 #ifdef CPPJSLIB_ENABLE_WEBSOCKET
 #   define TEST_WS_PORT 8026,
@@ -86,14 +99,16 @@ int main() {
 #ifdef TEST_GHBUILD
     bool block = false;
 #else
-    bool block = true;
+    bool block = false;
 #endif
+    DifferentWebServerTest();
+
     wGui->start(8026, TEST_WS_PORT CppJsLib::localhost, block);
 
     func(5);
 
     std::cout << "Stopping web server..." << std::endl;
-    if (CppJsLib::stop(wGui)) {
+    if (wGui->stop()) {
         std::cout << "Web server stopped" << std::endl;
     }
 

@@ -13,14 +13,14 @@
 
 using namespace CppJsLib;
 
-CPPJSLIB_EXPORT bool CppJsLib::stop(WebGUI *webGui, bool block, int waitMaxSeconds) {
+CPPJSLIB_EXPORT bool CppJsLib::util::stop(WebGUI *webGui, bool block, int waitMaxSeconds) {
     if (webGui->running) {
 #ifdef CPPJSLIB_ENABLE_HTTPS
         if (webGui->ssl)
             webGui->getHttpsServer()->stop();
         else
 #endif //CPPJSLIB_ENABLE_HTTPS
-            webGui->getHttpServer()->stop();
+        webGui->getHttpServer()->stop();
         if (waitMaxSeconds != CPPJSLIB_DURATION_INFINITE && block) {
             waitMaxSeconds = waitMaxSeconds * 100;
             int waited = 0;
@@ -98,15 +98,36 @@ CPPJSLIB_EXPORT std::string *CppJsLib::util::createStringArrayFromJSON(int *size
 #ifdef CPPJSLIB_ENABLE_WEBSOCKET
 
 CPPJSLIB_EXPORT void CppJsLib::util::callJsFunc(WebGUI *wGui, std::vector<std::string> *argV, char *funcName,
-                                                std::vector<char *> *results, int wait) {
+                                                std::vector<std::string> *results, int wait) {
     wGui->call_jsFn(argV, funcName, results, wait);
 }
 
-template<typename EndpointType>
-void empty_on_message(EndpointType *, const websocketpp::connection_hdl &, typename EndpointType::message_ptr) {}
+// Source: https://stackoverflow.com/a/440240
+std::string gen_random(const int len) {
+    std::string tmp;
+    tmp.resize(len);
+    static const char alphanum[] =
+            "0123456789"
+            "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+            "abcdefghijklmnopqrstuvwxyz";
+
+    // Seed with a real random value, if available
+    std::random_device r;
+
+    std::default_random_engine e1(r());
+    std::uniform_int_distribution<int> uniform_dist(0, sizeof(alphanum) - 2);
+
+    for (int i = 0; i < len; ++i) {
+        tmp[i] = alphanum[uniform_dist(e1)];
+    }
+
+    tmp[len] = 0;
+
+    return tmp;
+}
 
 CPPJSLIB_EXPORT void WebGUI::call_jsFn(std::vector<std::string> *argV, const char *funcName,
-                                       std::vector<char *> *results, int wait) {
+                                       std::vector<std::string> *results, int wait) {
     // Dump the list of arguments into a json string
     nlohmann::json j;
     if (!argV->empty()) {
@@ -117,38 +138,20 @@ CPPJSLIB_EXPORT void WebGUI::call_jsFn(std::vector<std::string> *argV, const cha
         j[funcName].push_back("");
     }
 
-    std::string str = j.dump();
-
     std::shared_ptr<wspp::con_list> list = std::static_pointer_cast<wspp::con_list>(ws_connections);
 
     // Set the message handlers if the function is non-void
+    std::string callback = gen_random(40);
     if (results) {
-#   ifdef CPPJSLIB_ENABLE_HTTPS
-        if (ssl) {
-            std::shared_ptr<wspp::server_tls> ws_svr = std::static_pointer_cast<wspp::server_tls>(ws_server);
-            ws_svr->set_message_handler(bind([results](wspp::server_tls *s, const websocketpp::connection_hdl &hdl,
-                                                       const wspp::server_tls::message_ptr &msg) {
-                results->push_back(strdup(msg->get_payload().c_str()));
-            }, ws_svr.get(), ::_1, ::_2));
-            if (fallback_plain) {
-                std::shared_ptr<wspp::server> ws_plain_svr = std::static_pointer_cast<wspp::server>(ws_plain_server);
-                ws_plain_svr->set_message_handler(
-                        bind([results](wspp::server *s, const websocketpp::connection_hdl &hdl,
-                                       const wspp::server_tls::message_ptr &msg) {
-                            results->push_back(strdup(msg->get_payload().c_str()));
-                        }, ws_plain_svr.get(), ::_1, ::_2));
-            }
-        } else {
-#   endif //CPPJSLIB_ENABLE_HTTPS
-            std::shared_ptr<wspp::server> ws_svr = std::static_pointer_cast<wspp::server>(ws_server);
-            ws_svr->set_message_handler(bind([results](wspp::server *s, const websocketpp::connection_hdl &hdl,
-                                                       const wspp::server::message_ptr &msg) {
-                results->push_back(strdup(msg->get_payload().c_str()));
-            }, ws_svr.get(), ::_1, ::_2));
-#   ifdef CPPJSLIB_ENABLE_HTTPS
+        while (jsFnCallbacks.count(callback) != 0) {
+            callback = gen_random(40);
         }
-#   endif //CPPJSLIB_ENABLE_HTTPS
+
+        j["callback"] = callback;
+        jsFnCallbacks.insert(std::make_pair(callback, results));
     }
+
+    std::string str = j.dump();
 
     // Send request to all clients
     for (const auto &it : *list) {
@@ -156,9 +159,12 @@ CPPJSLIB_EXPORT void WebGUI::call_jsFn(std::vector<std::string> *argV, const cha
         if (ssl) {
             std::static_pointer_cast<wspp::server_tls>(ws_server)->send(it, str,
                                                                         websocketpp::frame::opcode::value::text);
-        } else
-#   endif //CPPJSLIB_ENABLE_HTTPS
+        } else {
             std::static_pointer_cast<wspp::server>(ws_server)->send(it, str, websocketpp::frame::opcode::value::text);
+        }
+#   else
+        std::static_pointer_cast<wspp::server>(ws_server)->send(it, str, websocketpp::frame::opcode::value::text);
+#   endif //CPPJSLIB_ENABLE_HTTPS
     }
 
 #   ifdef CPPJSLIB_ENABLE_HTTPS
@@ -179,24 +185,12 @@ CPPJSLIB_EXPORT void WebGUI::call_jsFn(std::vector<std::string> *argV, const cha
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
             if (wait != -1) counter++;
         }
-    }
 
-    // Remove the message handler
-#   ifdef CPPJSLIB_ENABLE_HTTPS
-    if (ssl) {
-        std::shared_ptr<wspp::server_tls> ws_svr = std::static_pointer_cast<wspp::server_tls>(ws_server);
-        ws_svr->set_message_handler(bind(&empty_on_message<wspp::server_tls>, ws_svr.get(), ::_1, ::_2));
-        if (fallback_plain) {
-            std::shared_ptr<wspp::server> ws_plain_svr = std::static_pointer_cast<wspp::server>(ws_plain_server);
-            ws_plain_svr->set_message_handler(bind(&empty_on_message<wspp::server>, ws_plain_svr.get(), ::_1, ::_2));
+        // Remove the message handler
+        if (jsFnCallbacks.find(callback) != jsFnCallbacks.end()) {
+            jsFnCallbacks.erase(jsFnCallbacks.find(callback));
         }
-    } else {
-#   endif //CPPJSLIB_ENABLE_HTTPS
-        std::shared_ptr<wspp::server> ws_svr = std::static_pointer_cast<wspp::server>(ws_server);
-        ws_svr->set_message_handler(bind(&empty_on_message<wspp::server>, ws_svr.get(), ::_1, ::_2));
-#   ifdef CPPJSLIB_ENABLE_HTTPS
     }
-#   endif //CPPJSLIB_ENABLE_HTTPS
 }
 
 #endif //CPPJSLIB_ENABLE_WEBSOCKET
@@ -213,25 +207,25 @@ CPPJSLIB_EXPORT void CppJsLib::setError(const std::function<void(const std::stri
 
 #ifdef CPPJSLIB_ENABLE_HTTPS
 
-CPPJSLIB_EXPORT void CppJsLib::createWebGUI(WebGUI *&webGui, const std::string &base_dir, const std::string &cert_path,
+CPPJSLIB_EXPORT WebGUI* CppJsLib::createWebGUI(const std::string &base_dir, const std::string &cert_path,
                                             const std::string &private_key_path,
                                             unsigned short websocket_plain_fallback_port) {
-        webGui = new WebGUI(base_dir, cert_path, private_key_path, websocket_plain_fallback_port);
+    return new WebGUI(base_dir, cert_path, private_key_path, websocket_plain_fallback_port);
 }
 
 #endif
 
-CPPJSLIB_EXPORT void CppJsLib::createWebGUI(WebGUI *&webGui, const std::string &base_dir) {
-    webGui = new CppJsLib::WebGUI(base_dir);
+CPPJSLIB_EXPORT WebGUI* CppJsLib::createWebGUI(const std::string &base_dir) {
+    return new CppJsLib::WebGUI(base_dir);
 }
 
-CPPJSLIB_EXPORT void CppJsLib::deleteWebGUI(WebGUI *&webGui) {
+CPPJSLIB_EXPORT void CppJsLib::deleteWebGUI(WebGUI *webGui) {
     delete webGui;
 }
 
 #endif //CPPJSLIB_BUILD_LIB
 
-CPPJSLIB_EXPORT void CppJsLib::util::pushToStrVecVector(WebGUI *webGui, std::vector<char *> *v) {
+CPPJSLIB_EXPORT void CppJsLib::util::pushToStrVecVector(WebGUI *webGui, std::vector<std::string> *v) {
     webGui->pushToStrVecVector(v);
 }
 

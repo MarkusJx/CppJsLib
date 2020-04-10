@@ -23,7 +23,7 @@ if (ENABLE_HTTPS)
     message(STATUS "Building Tests with HTTPS enabled")
 endif ()
 
-add_executable(Test main.cpp)
+add_executable(Test main.cpp DifferentWebServer.cpp DifferentWebServer.hpp)
 if (USE_DLL)
     target_link_libraries(Test CppJsLib)
     add_compile_definitions(TEST_USE_DLL)

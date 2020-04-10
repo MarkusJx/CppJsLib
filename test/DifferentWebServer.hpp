@@ -1,0 +1,10 @@
+//
+// Created by markus on 10/04/2020.
+//
+
+#ifndef CPPJSLIBALL_DIFFERENTWEBSERVER_HPP
+#define CPPJSLIBALL_DIFFERENTWEBSERVER_HPP
+
+void DifferentWebServerTest();
+
+#endif //CPPJSLIBALL_DIFFERENTWEBSERVER_HPP

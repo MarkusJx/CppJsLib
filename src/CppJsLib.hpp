@@ -99,15 +99,26 @@ namespace CppJsLib {
 
         CPPJSLIB_EXPORT std::string *createStringArrayFromJSON(int *size, const std::string &data);
 
-        CPPJSLIB_EXPORT void pushToStrVecVector(WebGUI *webGui, std::vector<char *> *v);
+        CPPJSLIB_EXPORT void pushToStrVecVector(WebGUI *webGui, std::vector<std::string> *v);
 
         CPPJSLIB_EXPORT void pushToVoidPtrVector(WebGUI *webGui, void *ptr);
 
-        template<class>
-        struct TypeConverter;
+        /**
+         * Stop the web server
+         * Do not use this. Or use it at your own risk
+         *
+         * @param webGui the webGui object to stop
+         * @param block if this is a blocking call
+         * @param maxWaitSeconds a max number of seconds to wait
+         * @return if the operation was successful
+         */
+        CPPJSLIB_EXPORT bool stop(WebGUI *webGui, bool block = true, int maxWaitSeconds = CPPJSLIB_DURATION_INFINITE);
 
         template<class>
-        struct cString;
+        struct [[maybe_unused]] TypeConverter;
+
+        template<class>
+        struct [[maybe_unused]] cString;
 
         template<class>
         struct ExposedFunction;
@@ -128,7 +139,7 @@ namespace CppJsLib {
 
         CPPJSLIB_EXPORT void
         callJsFunc(WebGUI *wGui, std::vector<std::string> *argV, char *funcName,
-                   std::vector<char *> *results = nullptr, int wait = -1);
+                   std::vector<std::string> *results = nullptr, int wait = -1);
 
         template<class T>
         inline std::string getEl(T dt) {
@@ -170,11 +181,10 @@ namespace CppJsLib {
                 callJsFunc(wGui, &argV, fnName, responseReturns, wait);
 
                 std::vector<R> tmp;
-                for (char *c : *responseReturns) {
+                for (std::string c : *responseReturns) {
                     tmp.push_back(ConvertString<R>(c));
-                    free(c);
                 }
-                std::vector<char *>().swap(*responseReturns);
+                std::vector<std::string>().swap(*responseReturns);
 
                 return tmp;
             }
@@ -182,7 +192,7 @@ namespace CppJsLib {
             char fnName[CPPJSLIB_MAX_FUNCNAME_LEN] = "";
             int wait = -1;
             WebGUI *wGui = nullptr;
-            std::vector<char *> *responseReturns = nullptr;
+            std::vector<std::string> *responseReturns = nullptr;
         };
 
         template<class R, class... Args>
@@ -193,11 +203,10 @@ namespace CppJsLib {
                 callJsFunc(wGui, &argV, fnName, responseReturns, wait);
 
                 std::vector<R> tmp;
-                for (char *c : *responseReturns) {
+                for (std::string c : *responseReturns) {
                     tmp.push_back(ConvertString<R>(c));
-                    free(c);
                 }
-                std::vector<char *>().swap(*responseReturns);
+                std::vector<std::string>().swap(*responseReturns);
 
                 return tmp;
             }
@@ -205,7 +214,7 @@ namespace CppJsLib {
             char fnName[CPPJSLIB_MAX_FUNCNAME_LEN] = "";
             int wait = -1;
             WebGUI *wGui = nullptr;
-            std::vector<char *> *responseReturns = nullptr;
+            std::vector<std::string> *responseReturns = nullptr;
         };
 
         template<class ...Args>
@@ -229,7 +238,7 @@ namespace CppJsLib {
                 tmp->wGui = _wGui;
                 tmp->wait = waitS;
 
-                tmp->responseReturns = new std::vector<char *>();
+                tmp->responseReturns = new std::vector<std::string>();
                 pushToStrVecVector(_wGui, tmp->responseReturns);
             }
 
@@ -518,40 +527,118 @@ namespace CppJsLib {
         };
     }
 
+    /**
+     * Set a general logging function
+     *
+     * @param loggingFunction the logging function
+     */
     CPPJSLIB_EXPORT void setLogger(const std::function<void(const std::string &)> &loggingFunction);
 
+    /**
+     * Set a general error function
+     *
+     * @param errorFunction  the error function
+     */
     CPPJSLIB_EXPORT void setError(const std::function<void(const std::string &)> &errorFunction);
 
 #if defined(CPPJSLIB_BUILD_LIB) || !defined (CPPJSLIB_STATIC_DEFINE)
 
 #   ifdef CPPJSLIB_ENABLE_HTTPS
 
-    CPPJSLIB_EXPORT void createWebGUI(WebGUI *&webGui, const std::string &base_dir, const std::string &cert_path,
-                                      const std::string &private_key_path,
-                                      unsigned short websocket_plain_fallback_port = 0);
+    /**
+     * Create a WebGUI instance
+     *
+     * @param webGui a pointer to a WebGUI object to populate
+     * @param base_dir the base directory
+     * @param cert_path the certificate path
+     * @param private_key_path the private key path
+     * @param websocket_plain_fallback_port a websocket fallback port, if encryption did fail
+     */
+    CPPJSLIB_EXPORT WebGUI *createWebGUI(const std::string &base_dir, const std::string &cert_path,
+                                         const std::string &private_key_path,
+                                         unsigned short websocket_plain_fallback_port = 0);
 
 #   endif //CPPJSLIB_ENABLE_HTTPS
 
-    CPPJSLIB_EXPORT void createWebGUI(WebGUI *&webGui, const std::string &base_dir);
+    /**
+     * Create a WebGUI instance
+     * It is actually recommended to use WebGUI_ptr
+     *
+     * @param webGui the base directory
+     * @param base_dir
+     */
+    CPPJSLIB_EXPORT WebGUI *createWebGUI(const std::string &base_dir = "");
 
-    CPPJSLIB_EXPORT void deleteWebGUI(WebGUI *&webGui);
+    /**
+     * Delete the WebGUI
+     * It is actually recommended to use WebGUI_ptr
+     *
+     * @param webGui a pointer to the WebGUI object to deallocate
+     */
+    CPPJSLIB_EXPORT void deleteWebGUI(WebGUI *webGui);
 
+    /**
+     * A WebGUI_ptr to handle the deallocation
+     */
     using WebGUI_ptr = std::unique_ptr<CppJsLib::WebGUI, decltype(&CppJsLib::deleteWebGUI)>;
 
-    inline WebGUI_ptr createWebGUI(const std::string &base_dir) {
-        WebGUI *webGui;
-        createWebGUI(webGui, base_dir);
-        return WebGUI_ptr(webGui, deleteWebGUI);
+    /**
+     * A WebGUI_shared_ptr to handle the deallocation
+     */
+    using WebGUI_shared_ptr = std::shared_ptr<CppJsLib::WebGUI>;
+
+    /**
+     * Create a WebGUI instance
+     *
+     * @param base_dir the base directory
+     * @return a WebGUI_shared_ptr object, which will handle the deallocation
+     */
+    inline WebGUI_shared_ptr createWebGUI_shared(const std::string &base_dir = "") {
+        return WebGUI_shared_ptr(createWebGUI(base_dir), deleteWebGUI);
+    }
+
+    /**
+     * Create a WebGUI instance
+     *
+     * @param base_dir the base directory
+     * @return a WebGUI_ptr object, which will handle the deallocation
+     */
+    inline WebGUI_ptr createWebGUI_ptr(const std::string &base_dir = "") {
+        return WebGUI_ptr(createWebGUI(base_dir), deleteWebGUI);
     }
 
 #   ifdef CPPJSLIB_ENABLE_HTTPS
 
+    /**
+     * Create a WebGUI instance
+     *
+     * @param base_dir the base directory
+     * @param cert_path the certificate path
+     * @param private_key_path the private key path
+     * @param websocket_plain_fallback_port a websocket fallback port, if encryption did fail
+     * @return a WebGUI_shared_ptr object, which will handle the deallocation
+     */
+    inline WebGUI_shared_ptr
+    createWebGUI_shared(const std::string &base_dir, const std::string &cert_path, const std::string &private_key_path,
+                        unsigned short websocket_plain_fallback_port = 0) {
+        return WebGUI_shared_ptr(createWebGUI(base_dir, cert_path, private_key_path, websocket_plain_fallback_port),
+                                 deleteWebGUI);
+    }
+
+    /**
+     * Create a WebGUI instance
+     *
+     * @param base_dir the base directory
+     * @param cert_path the certificate path
+     * @param private_key_path the private key path
+     * @param websocket_plain_fallback_port a websocket fallback port, if encryption did fail
+     * @return a WebGUI_ptr object, which will handle the deallocation
+     */
     inline WebGUI_ptr
-    createWebGUI(const std::string &base_dir, const std::string &cert_path, const std::string &private_key_path,
-                 unsigned short websocket_plain_fallback_port = 0) {
-        WebGUI *webGui;
-        createWebGUI(webGui, base_dir, cert_path, private_key_path, websocket_plain_fallback_port);
-        return WebGUI_ptr(webGui, deleteWebGUI);
+    createWebGUI_ptr(const std::string &base_dir, const std::string &cert_path, const std::string &private_key_path,
+                     unsigned short websocket_plain_fallback_port = 0) {
+        return WebGUI_ptr(createWebGUI(base_dir, cert_path, private_key_path, websocket_plain_fallback_port),
+                          deleteWebGUI);
     }
 
 #   endif //CPPJSLIB_ENABLE_HTTPS
@@ -572,22 +659,37 @@ namespace CppJsLib {
 #   ifdef CPPJSLIB_ENABLE_HTTPS
 
         /**
-         * @warning this constructor will be undeclared when built without ssl support
+         * A WebGUI constructor
+         *
+         * @param base_dir the base directory
+         * @param cert_path the certificate path
+         * @param private_key_path the private key path
+         * @param websocket_plain_fallback_port a websocket fallback port, if encryption did fail
          */
         WebGUI(const std::string &base_dir, const std::string &cert_path,
                const std::string &private_key_path, unsigned short websocket_plain_fallback_port = 0);
 
 #   endif //CPPJSLIB_ENABLE_HTTPS
 
-        explicit WebGUI(const std::string &base_dir);
+        /**
+         * A WebGUI constructor
+         * @param base_dir the base directory
+         */
+        explicit WebGUI(const std::string &base_dir = "");
 
 #endif //CPPJSLIB_STATIC_DEFINE
 
 #ifdef CPPJSLIB_BUILD_JNI_DLL
+        /**
+         * Do not use this
+         */
         void exportJavaFunction(const std::string& name, std::string returnType, std::string *argTypes, int numArgs,
                                 const std::function<std::string(std::string *, int)> &fn);
 #endif //CPPJSLIB_BUILD_JNI_DLL
 
+        /**
+         * Do not use this
+         */
         template<class...Args>
         inline void _exportFunction(void(*f)(Args...), std::string name) {
             this->log("[CppJsLib] Exposing void function with name " + name);
@@ -613,6 +715,9 @@ namespace CppJsLib {
             }
         }
 
+        /**
+         * Do not use this
+         */
         template<class R, class...Args>
         inline void _exportFunction(R(*f)(Args...), std::string name) {
             this->log("[CppJsLib] Exposing function with name " + name);
@@ -640,10 +745,16 @@ namespace CppJsLib {
 
 #ifdef CPPJSLIB_ENABLE_WEBSOCKET
 
+        /**
+         * Do not use this
+         */
         CPPJSLIB_EXPORT void
         call_jsFn(std::vector<std::string> *argV, const char *funcName,
-                  std::vector<char *> *results = nullptr, int wait = -1);
+                  std::vector<std::string> *results = nullptr, int wait = -1);
 
+        /**
+         * Do not use this
+         */
         template<class...Args>
         inline void _importJsFunction(std::function<void(Args...)> &function, std::string fName) {
             if (fName[0] == '*') {
@@ -665,6 +776,9 @@ namespace CppJsLib {
             }
         }
 
+        /**
+         * Do not use this
+         */
         template<class R, class...Args>
         inline void
         _importJsFunction(std::function<std::vector<R>(Args...)> &function, std::string fName, int waitS = -1) {
@@ -686,26 +800,79 @@ namespace CppJsLib {
             }
         }
 
+        /**
+         * Start the web server
+         *
+         * @param port the port to use
+         * @param websocketPort the websocket port to use
+         * @param host the hostname to use
+         * @param block if this is a blocking call
+         * @return if the operation was successful
+         */
         CPPJSLIB_EXPORT bool
         start(int port, int websocketPort, const std::string &host = "localhost", bool block = true);
 
+        CPPJSLIB_EXPORT bool startNoWeb(int port, bool block = true);
+
 #else
 
+        /**
+         * Start the web server
+         *
+         * @param port the port to use
+         * @param host the hostname to use
+         * @param block if this is a blocking call
+         * @return if the operation was successful
+         */
         CPPJSLIB_EXPORT bool start(int port, const std::string &host = "localhost", bool block = true);
 
 #endif //CPPJSLIB_ENABLE_WEBSOCKET
 
+        /**
+         * Set the logger
+         *
+         * @param loggingFunction the logging function
+         */
         CPPJSLIB_EXPORT void setLogger(const std::function<void(const std::string &)> &loggingFunction);
 
+        /**
+         * Set the error function
+         *
+         * @param errorFunction the error function
+         */
         CPPJSLIB_EXPORT void setError(const std::function<void(const std::string &)> &errorFunction);
 
+        /**
+         * Do not use this
+         */
         CPPJSLIB_EXPORT void pushToVoidPtrVector(void *f);
 
-        CPPJSLIB_EXPORT void pushToStrVecVector(std::vector<char *> *v);
+        /**
+         * Do not use this
+         */
+        CPPJSLIB_EXPORT void pushToStrVecVector(std::vector<std::string> *v);
 
+        /**
+         * Set a mount point
+         *
+         * @param mnt the mount point
+         * @param dir the directory to mount
+         */
         CPPJSLIB_EXPORT void set_mount_point(const char *mnt, const char *dir);
 
+        /**
+         * Remove a mount point
+         *
+         * @param mnt the mount point to remove
+         */
         CPPJSLIB_EXPORT void remove_mount_point(const char *mnt);
+
+        /**
+         * Stop the web server
+         *
+         * @return if the operation was successful
+         */
+        CPPJSLIB_EXPORT bool stop();
 
         /**
          * A function used by the getHttpServer macro
@@ -758,6 +925,9 @@ namespace CppJsLib {
 
 #endif //CPPJSLIB_STATIC_DEFINE
 
+        /**
+         * Set this to false to not check if any ports are in use when started
+         */
         bool check_ports;
         bool running;
         bool stopped;
@@ -766,6 +936,7 @@ namespace CppJsLib {
         const unsigned short fallback_plain;
 #endif //CPPJSLIB_ENABLE_HTTPS
     private:
+        bool websocket_only;
 #ifdef CPPJSLIB_ENABLE_WEBSOCKET
         std::shared_ptr<void> ws_server;
         std::shared_ptr<void> ws_connections;
@@ -778,9 +949,11 @@ namespace CppJsLib {
 
         std::map<char *, char *> initMap;
         std::vector<void *> voidPtrVector;
-        std::vector<std::vector<char *> *> strVecVector;
+        std::vector<std::vector<std::string> *> strVecVector;
 
         using PostHandler = std::function<std::string(std::string req_body)>;
+        std::map<std::string, PostHandler> websocketTargets;
+        std::map<std::string, std::vector<std::string>*> jsFnCallbacks;
         std::function<void(const std::string &)> _loggingF;
         std::function<void(const std::string &)> _errorF;
 
@@ -793,12 +966,23 @@ namespace CppJsLib {
         CPPJSLIB_EXPORT void insertToInitMap(char *name, char *exposedFStr);
     };
 
-    CPPJSLIB_EXPORT bool stop(WebGUI *webGui, bool block = true, int maxWaitSeconds = CPPJSLIB_DURATION_INFINITE);
-
+    /**
+     * Check if there was an error
+     *
+     * @return false, if there was an error
+     */
     CPPJSLIB_EXPORT bool ok();
 
+    /**
+     * Get the last error
+     *
+     * @return the last error string
+     */
     CPPJSLIB_EXPORT std::string getLastError();
 
+    /**
+     * Reset the last error
+     */
     CPPJSLIB_EXPORT void resetLastError();
 }
 
