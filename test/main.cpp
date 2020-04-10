@@ -105,7 +105,9 @@ int main() {
 
     wGui->start(8026, TEST_WS_PORT CppJsLib::localhost, block);
 
+#ifdef CPPJSLIB_ENABLE_WEBSOCKET
     func(5);
+#endif
 
     std::cout << "Stopping web server..." << std::endl;
     if (wGui->stop()) {
