@@ -921,6 +921,8 @@ namespace CppJsLib {
         ~WebGUI() = delete;
 #else
 
+        CPPJSLIB_EXPORT bool isRunning();
+
         ~WebGUI();
 
 #endif //CPPJSLIB_STATIC_DEFINE

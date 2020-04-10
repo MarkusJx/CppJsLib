@@ -14,44 +14,50 @@
 using namespace CppJsLib;
 
 CPPJSLIB_EXPORT bool CppJsLib::util::stop(WebGUI *webGui, bool block, int waitMaxSeconds) {
-    if (webGui->running) {
+    if (webGui->isRunning()) {
 #ifdef CPPJSLIB_ENABLE_HTTPS
         if (webGui->ssl)
             webGui->getHttpsServer()->stop();
         else
-#endif //CPPJSLIB_ENABLE_HTTPS
+            webGui->getHttpServer()->stop();
+#else
         webGui->getHttpServer()->stop();
+#endif //CPPJSLIB_ENABLE_HTTPS
+
+#ifdef CPPJSLIB_ENABLE_WEBSOCKET
+#   ifdef CPPJSLIB_ENABLE_HTTPS
+        if (webGui->ssl) {
+            webGui->getTLSWebServer()->stop();
+            if (webGui->fallback_plain)
+                webGui->getWebServer()->stop();
+        } else {
+            webGui->getWebServer()->stop();
+        }
+#   else
+        webGui->getWebServer()->stop();
+#   endif //CPPJSLIB_ENABLE_HTTPS
+#endif //CPPJSLIB_ENABLE_WEBSOCKET
+
         if (waitMaxSeconds != CPPJSLIB_DURATION_INFINITE && block) {
             waitMaxSeconds = waitMaxSeconds * 100;
             int waited = 0;
-            while (!webGui->stopped && waited < waitMaxSeconds) {
+            while (webGui->isRunning() && waited < waitMaxSeconds) {
                 std::this_thread::sleep_for(std::chrono::milliseconds(10));
                 waited++;
             }
 
-            if (!webGui->stopped) {
+            if (webGui->isRunning()) {
                 errorF("Timed out during socket close");
             }
         } else if (block) {
-            while (!webGui->stopped) {
+            while (webGui->isRunning()) {
                 std::this_thread::sleep_for(std::chrono::milliseconds(10));
             }
         }
     }
-    webGui->running = !webGui->stopped;
+    webGui->running = webGui->isRunning();
 
-#ifdef CPPJSLIB_ENABLE_WEBSOCKET
-#   ifdef CPPJSLIB_ENABLE_HTTPS
-    if (webGui->ssl) {
-        webGui->getTLSWebServer()->stop();
-        if (webGui->fallback_plain)
-            webGui->getWebServer()->stop();
-    } else
-#   endif //CPPJSLIB_ENABLE_HTTPS
-        webGui->getWebServer()->stop();
-#endif //CPPJSLIB_ENABLE_WEBSOCKET
-
-    return webGui->stopped;
+    return !webGui->isRunning();
 }
 
 CPPJSLIB_EXPORT std::string *CppJsLib::util::parseJSONInput(int *size, const std::string &args) {
