@@ -54,17 +54,21 @@ int main() {
     ASSERT_MEM_OK();
 #ifdef TEST_ENABLE_HTTPS
     std::cout << "Tests were built with HTTPS support enabled" << std::endl;
-#ifdef TEST_USE_DLL
-#   ifdef CPPJSLIB_ENABLE_HTTPS
+#   ifdef TEST_USE_DLL
+#       ifdef CPPJSLIB_ENABLE_HTTPS
     wGui = CppJsLib::createWebGUI("web", "cert.pem", "server.pem");
-#   else
+#       else
     wGui = CppJsLib::createWebGUI("web");
+#       endif
+#   else
+    wGui = new CppJsLib::WebGUI("web", "cert.pem", "server.pem");
 #   endif
 #else
-    wGui = new CppJsLib::WebGUI("web", "cert.pem", "server.pem");
-#endif
-#else
+#   ifdef TEST_USE_DLL
+    wGui = CppJsLib::createWebGUI("web");
+#   else
     wGui = new CppJsLib::WebGUI("web");
+#   endif
 #endif
     ASSERT_MEM_OK();
 
@@ -75,17 +79,6 @@ int main() {
 #endif
     wGui->expose(f);
     wGui->expose(d);
-
-    ASSERT_MEM_OK();
-
-#ifdef TEST_USE_DLL
-    {
-        /*CppJsLib::WebGUI_ptr ptr = CppJsLib::createWebGUI_ptr("web");
-        ptr->start(8025, 8026, "localhost", false);
-        std::this_thread::sleep_for(std::chrono::milliseconds(20));
-        ptr->stop();*/
-    }
-#endif //TEST_USE_DLL
 
     ASSERT_MEM_OK();
 
@@ -101,6 +94,20 @@ int main() {
 #else
     bool block = false;
 #endif
+
+    ASSERT_MEM_OK();
+
+#ifdef TEST_USE_DLL
+    {
+        CppJsLib::WebGUI_ptr ptr = CppJsLib::createWebGUI_ptr("web");
+        ptr->start(8026, TEST_WS_PORT "localhost", false);
+        std::this_thread::sleep_for(std::chrono::milliseconds(20));
+        ptr->stop();
+    }
+#endif //TEST_USE_DLL
+
+    ASSERT_MEM_OK();
+
     DifferentWebServerTest();
 
     wGui->start(8026, TEST_WS_PORT CppJsLib::localhost, block);
