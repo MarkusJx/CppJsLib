@@ -17,7 +17,6 @@
 #include <thread>
 
 #include <cassert>
-
 #ifdef CPPJSLIB_WINDOWS
 #   include <crtdbg.h>
 

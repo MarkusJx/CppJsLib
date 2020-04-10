@@ -62,6 +62,10 @@ jobs:
       run: cmake -DBuildTests=TRUE .
     - name: build
       run: cmake --build .
+    - name: list src
+      run: ls
+      working-directory: src/Debug
+      if: always()
     - name: run test
       shell: cmd
       run: Test.exe
