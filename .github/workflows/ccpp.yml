@@ -213,7 +213,9 @@ jobs:
       - name: Install Boost
         run: choco install -y boost-msvc-14.1
       - name: run cmake
-        run: cmake -DENABLE_HTTPS=TRUE -DENABLE_WEBSOCKET=TRUE -DUSE_DLL=TRUE .
+        run: cmake -DENABLE_HTTPS=TRUE -DENABLE_WEBSOCKET=TRUE -DBUILDDLL=TRUE .
+        env:
+          BOOST_ROOT: C:/local/boost_1_67_0
       - name: build
         run: cmake --build . --config Release
       - name: copy libcrypto to src folder
@@ -233,11 +235,11 @@ jobs:
         with:
           name: CppJsLibReleaseWinOpenssl
           path: src/Release
-      - name: Upload test
-        uses: actions/upload-artifact@v1
-        with:
-          name: CppJsLibReleaseWinTestOpenssl
-          path: test/Release
+      #- name: Upload test
+      #  uses: actions/upload-artifact@v1
+      #  with:
+      #    name: CppJsLibReleaseWinTestOpenssl
+      #    path: test/Release
 
   build-macos-release:
 
