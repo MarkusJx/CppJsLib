@@ -26,7 +26,7 @@ jobs:
       with:
         args: -O include/httplib.h https://raw.githubusercontent.com/yhirose/cpp-httplib/master/httplib.h
     - name: cmake
-      run: cmake -DCMAKE_BUILD_TYPE=Debug -DUSE_DLL=TRUE -DENABLE_WEBSOCKET=TRUE -DENABLE_HTTPS=TRUE .
+      run: cmake -DCMAKE_BUILD_TYPE=Debug -DUSE_DLL=TRUE .
     - name: build
       run: cmake --build . 
     - name: run test
@@ -59,7 +59,7 @@ jobs:
       shell: powershell
       run: wget https://raw.githubusercontent.com/yhirose/cpp-httplib/master/httplib.h -OutFile include/httplib.h
     - name: cmake
-      run: cmake -DENABLE_WEBSOCKET=TRUE -DENABLE_HTTPS=TRUE -DUSE_DLL=TRUE .
+      run: cmake -DUSE_DLL=TRUE .
     - name: build
       run: cmake --build .
     #- name: run test
@@ -90,7 +90,7 @@ jobs:
     - name: get httplib
       run: wget -O include/httplib.h https://raw.githubusercontent.com/yhirose/cpp-httplib/master/httplib.h
     - name: cmake
-      run: cmake -DCMAKE_BUILD_TYPE=Debug -DENABLE_WEBSOCKET=TRUE -DENABLE_HTTPS=TRUE -DUSE_DLL=TRUE .
+      run: cmake -DCMAKE_BUILD_TYPE=Debug -DUSE_DLL=TRUE .
     - name: build
       run: cmake --build .
     - name: run test
@@ -125,7 +125,7 @@ jobs:
       with:
         args: -O include/httplib.h https://raw.githubusercontent.com/yhirose/cpp-httplib/master/httplib.h
     - name: cmake
-      run: cmake -DCMAKE_BUILD_TYPE=Release -DENABLE_WEBSOCKET=TRUE -DENABLE_HTTPS=TRUE -DUSE_DLL=TRUE .
+      run: cmake -DCMAKE_BUILD_TYPE=Release -DUSE_DLL=TRUE .
     - name: build
       run: cmake --build . 
     - name: run test
@@ -158,7 +158,7 @@ jobs:
       shell: powershell
       run: wget https://raw.githubusercontent.com/yhirose/cpp-httplib/master/httplib.h -OutFile include/httplib.h
     - name: cmake
-      run: cmake -DENABLE_WEBSOCKET=TRUE -DENABLE_HTTPS=TRUE -DUSE_DLL=TRUE .
+      run: cmake -DUSE_DLL=TRUE .
     - name: build
       run: cmake --build . --config Release
     #- name: run test
@@ -271,7 +271,7 @@ jobs:
     - name: get httplib
       run: wget -O include/httplib.h https://raw.githubusercontent.com/yhirose/cpp-httplib/master/httplib.h
     - name: cmake
-      run: cmake -DCMAKE_BUILD_TYPE=Release -DENABLE_WEBSOCKET=TRUE -DENABLE_HTTPS=TRUE -DUSE_DLL=TRUE .
+      run: cmake -DCMAKE_BUILD_TYPE=Release -DUSE_DLL=TRUE .
     - name: build
       run: cmake --build .
     - name: run test
