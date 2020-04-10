@@ -26,7 +26,7 @@ jobs:
       with:
         args: -O include/httplib.h https://raw.githubusercontent.com/yhirose/cpp-httplib/master/httplib.h
     - name: cmake
-      run: cmake -DCMAKE_BUILD_TYPE=Debug -DUSE_DLL=TRUE -DBuildTests=TRUE .
+      run: cmake -DCMAKE_BUILD_TYPE=Debug -DUSE_DLL=TRUE -DENABLE_WEBSOCKET=TRUE -DENABLE_HTTPS=TRUE .
     - name: build
       run: cmake --build . 
     - name: run test
@@ -59,13 +59,13 @@ jobs:
       shell: powershell
       run: wget https://raw.githubusercontent.com/yhirose/cpp-httplib/master/httplib.h -OutFile include/httplib.h
     - name: cmake
-      run: cmake -DBuildTests=TRUE -DUSE_DLL=TRUE .
+      run: cmake -DENABLE_WEBSOCKET=TRUE -DENABLE_HTTPS=TRUE -DUSE_DLL=TRUE .
     - name: build
       run: cmake --build .
-    - name: run test
-      shell: cmd
-      run: Test.exe
-      working-directory: ./test/Debug
+    #- name: run test
+    #  shell: cmd
+    #  run: Test.exe
+    #  working-directory: ./test/Debug
     - name: Upload library
       uses: actions/upload-artifact@v1
       with:
@@ -90,7 +90,7 @@ jobs:
     - name: get httplib
       run: wget -O include/httplib.h https://raw.githubusercontent.com/yhirose/cpp-httplib/master/httplib.h
     - name: cmake
-      run: cmake -DCMAKE_BUILD_TYPE=Debug -DBuildTests=TRUE -DUSE_DLL=TRUE .
+      run: cmake -DCMAKE_BUILD_TYPE=Debug -DENABLE_WEBSOCKET=TRUE -DENABLE_HTTPS=TRUE -DUSE_DLL=TRUE .
     - name: build
       run: cmake --build .
     - name: run test
@@ -125,7 +125,7 @@ jobs:
       with:
         args: -O include/httplib.h https://raw.githubusercontent.com/yhirose/cpp-httplib/master/httplib.h
     - name: cmake
-      run: cmake -DCMAKE_BUILD_TYPE=Release -DBuildTests=TRUE -DUSE_DLL=TRUE .
+      run: cmake -DCMAKE_BUILD_TYPE=Release -DENABLE_WEBSOCKET=TRUE -DENABLE_HTTPS=TRUE -DUSE_DLL=TRUE .
     - name: build
       run: cmake --build . 
     - name: run test
@@ -158,13 +158,13 @@ jobs:
       shell: powershell
       run: wget https://raw.githubusercontent.com/yhirose/cpp-httplib/master/httplib.h -OutFile include/httplib.h
     - name: cmake
-      run: cmake -DBuildTests=TRUE -DUSE_DLL=TRUE .
+      run: cmake -DENABLE_WEBSOCKET=TRUE -DENABLE_HTTPS=TRUE -DUSE_DLL=TRUE .
     - name: build
       run: cmake --build . --config Release
-    - name: run test
-      run: Test.exe
-      shell: cmd
-      working-directory: ./test/Release
+    #- name: run test
+    #  run: Test.exe
+    #  shell: cmd
+    #  working-directory: ./test/Release
     - name: Upload library
       uses: actions/upload-artifact@v1
       with:
@@ -232,7 +232,7 @@ jobs:
       - run: ls
         working-directory: include/boost_1_69_0/stage/lib
       - name: run cmake
-        run: cmake -DBuildTests=TRUE -DENABLE_HTTPS=TRUE -DENABLE_WEBSOCKET=TRUE -DUSE_DLL=TRUE .
+        run: cmake -DENABLE_HTTPS=TRUE -DENABLE_WEBSOCKET=TRUE -DUSE_DLL=TRUE .
       - name: build
         run: cmake --build . --config Release
       - name: copy libcrypto to src folder
@@ -271,7 +271,7 @@ jobs:
     - name: get httplib
       run: wget -O include/httplib.h https://raw.githubusercontent.com/yhirose/cpp-httplib/master/httplib.h
     - name: cmake
-      run: cmake -DCMAKE_BUILD_TYPE=Release -DBuildTests=TRUE -DUSE_DLL=TRUE .
+      run: cmake -DCMAKE_BUILD_TYPE=Release -DENABLE_WEBSOCKET=TRUE -DENABLE_HTTPS=TRUE -DUSE_DLL=TRUE .
     - name: build
       run: cmake --build .
     - name: run test
