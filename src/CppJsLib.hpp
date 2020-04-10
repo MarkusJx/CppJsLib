@@ -925,6 +925,8 @@ namespace CppJsLib {
 
 #endif //CPPJSLIB_STATIC_DEFINE
 
+        CPPJSLIB_EXPORT bool isRunning();
+
         /**
          * Set this to false to not check if any ports are in use when started
          */

@@ -557,6 +557,34 @@ CPPJSLIB_EXPORT bool WebGUI::stop() {
     return CppJsLib::util::stop(this, true, -1);
 }
 
+CPPJSLIB_EXPORT bool WebGUI::isRunning() {
+#ifdef CPPJSLIB_ENABLE_WEBSOCKET
+    if (websocket_only) {
+#   ifdef CPPJSLIB_ENABLE_HTTPS
+        if (ssl) {
+            return std::static_pointer_cast<wspp::server_tls>(ws_server)->is_listening();
+        } else {
+            return std::static_pointer_cast<wspp::server>(ws_server)->is_listening();
+        }
+#   else
+        return std::static_pointer_cast<wspp::server>(ws_server)->is_listening();
+#   endif
+    } else {
+#   ifdef CPPJSLIB_ENABLE_HTTPS
+        if (ssl) {
+            return std::static_pointer_cast<httplib::SSLServer>(server)->is_running();
+        } else {
+            return std::static_pointer_cast<httplib::Server>(server)->is_running();
+        }
+#   else
+        return std::static_pointer_cast<httplib::Server>(server)->is_running();
+#   endif
+    }
+#else
+    return std::static_pointer_cast<httplib::Server>(server)->is_running();
+#endif
+}
+
 WebGUI::~WebGUI() {
     stop();
 

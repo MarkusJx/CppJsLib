@@ -24,7 +24,7 @@ CPPJSLIB_EXPORT bool CppJsLib::util::stop(WebGUI *webGui, bool block, int waitMa
         if (waitMaxSeconds != CPPJSLIB_DURATION_INFINITE && block) {
             waitMaxSeconds = waitMaxSeconds * 100;
             int waited = 0;
-            while (!webGui->stopped && waited < waitMaxSeconds) {
+            while (webGui->isRunning() && waited < waitMaxSeconds) {
                 std::this_thread::sleep_for(std::chrono::milliseconds(10));
                 waited++;
             }
@@ -33,7 +33,7 @@ CPPJSLIB_EXPORT bool CppJsLib::util::stop(WebGUI *webGui, bool block, int waitMa
                 errorF("Timed out during socket close");
             }
         } else if (block) {
-            while (!webGui->stopped) {
+            while (webGui->isRunning()) {
                 std::this_thread::sleep_for(std::chrono::milliseconds(10));
             }
         }
