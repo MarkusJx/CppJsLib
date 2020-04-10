@@ -210,27 +210,8 @@ jobs:
         run: unzip websocketpp.zip
       - name: move websocketpp
         run: mv websocketpp-0.8.1/websocketpp include/websocketpp
-      - uses: ilammy/msvc-dev-cmd@v1
-        with:
-          toolset: 14.2
-      - name: download boost
-        run: wget https://dl.bintray.com/boostorg/release/1.69.0/source/boost_1_69_0.zip -OutFile boost.zip
-        shell: powershell
-      - name: unzip boost
-        run: unzip boost.zip
-      - name: move boost
-        run: mv boost_1_69_0 include/boost_1_69_0
-      - run: bootstrap.bat
-        working-directory: include/boost_1_69_0
-      - name: build boost
-        working-directory: include/boost_1_69_0
-        run: |
-            b2.exe toolset=msvc-14.1
-            bjam.exe toolset=msvc-14.1
-      - run: ls
-        working-directory: include
-      - run: ls
-        working-directory: include/boost_1_69_0/stage/lib
+      - name: Install Boost
+        run: choco install -y boost-msvc-14.1
       - name: run cmake
         run: cmake -DENABLE_HTTPS=TRUE -DENABLE_WEBSOCKET=TRUE -DUSE_DLL=TRUE .
       - name: build
