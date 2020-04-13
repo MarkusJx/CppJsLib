@@ -108,7 +108,7 @@ jobs:
         uses: papeloto/action-zip@v1
         with:
           files: src/Release/CppJsLib.dll src/Release/CppJsLib.lib src/CppJsLib.hpp
-          dest: win-am64.zip
+          dest: win-amd64.zip
       - name: Upload artifact
         uses: actions/upload-artifact@v1.0.0
         with:
