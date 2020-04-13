@@ -73,9 +73,9 @@ int main() {
     ASSERT_MEM_OK();
 
 #ifdef TEST_ENABLE_WEBSOCKET
-    wGui->importFunction(fn);
-    wGui->importFunction(func);
-    wGui->importFunction(tf, 0);
+    wGui->import(fn);
+    wGui->import(func);
+    wGui->import(tf, 0);
 #endif
     wGui->expose(f);
     wGui->expose(d);
@@ -108,7 +108,7 @@ int main() {
 
     ASSERT_MEM_OK();
 
-    //DifferentWebServerTest();
+    DifferentWebServerTest();
 
     wGui->start(8026, TEST_WS_PORT CppJsLib::localhost, block);
 

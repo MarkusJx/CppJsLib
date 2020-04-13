@@ -69,7 +69,7 @@ cppJsLib.onLoad(function () {
 ```c++
 // JS functions with return value always return a std::vector with the individual
 // responses of all clients
-std::function<std::vector<int>()> func;
+std::function<std::vector<int()> func;
 
 // Create WebGUI object and use a unique_ptr for automatic memory management
 auto gui = WebGUI::create_unique("web");
@@ -141,6 +141,74 @@ WebGUI gui("web");
 ### Delete it
 ```c++
 delete gui;
+```
+
+## Adding it to your project
+### Using prebuilt binaries
+* You can download the latest artifact on [GitHub Actions](https://github.com/MarkusJx/CppJsLib/actions?query=workflow%3A"C%2FC%2B%2B+CI")
+* Add ```CppJsLib.hpp``` to your include path
+* Add openssl libraries (windows version can be found [here](https://www.npcglib.org/~stathis/blog/precompiled-openssl)), the CppJsLib library and ```CppJsLibJs/CppJsLib.js``` to the output folder
+* Link against ``CppJsLib``
+
+### Not using prebuilt binaries
+Also known as 'building yourself' or 'the not fun way'
+* To build with websocket protocol support, boost >= 1.60 < 1.70 must be installed (on windows the environment variable ``BOOST_ROOT`` must point to where the boost installation is located)
+* To build with SSL support OpenSSL must be installed
+* CMake is used to build the project
+* Add ``InitCppJsLib.cmake`` to where your ``CMakeLists.txt`` is located
+* Add following lines to the end of your ``CMakeLists.txt``:
+```cmake
+include(InitCppJsLib.cmake)
+
+initCppJsLib(<your-project> ${CMAKE_SOURCE_DIR}/<source-folder> ${CMAKE_SOURCE_DIR}/<include-folder>)
+```
+* The following CMake flags can be used to enable different options:
+```
+ENABLE_WEBSOCKET: Enable websocket protocol support (Boost required)
+ENABLE_HTTPS: Enable HTTPS support (OpenSSL required)
+USE_JUTILS: Use a dll built with GraalVM to use Java to check if a port is in use
+BUILD_JNI_DLL: Build a dll to be called with JNI
+```
+
+## Java binding
+### Basic example
+```java
+private static void fn1(int i) {
+    // Code
+}
+
+private static int fn2(String s) {
+    // Code
+}
+
+public static void main(String[] args) {
+    // Create instance of WebGUI
+    WebGUI gui = new WebGUI("web");
+
+    // Expose void function, cast types to the required type,
+    // set the function name and the argument types
+    gui.exposeVoidFunction(types -> fn1((int) types[0]), "fn1", int.class);
+
+    // Expose non-void function, cast types, set the function name,
+    // the return type and the argument types
+    gui.exposeFunction(types -> fn2((String) types[0]), "fn2", int.class, String.class);
+
+    // Import javascript void function with name and argument types
+    JavaScriptVoidFunc fn = gui.importVoidFunction("func", int.class);
+
+    // Call JavaScript function
+    fn.call(0);
+
+    // Import non-void function with name, a timeout, -1 equals infinite,
+    // the return type and the argument types
+    JavaScriptFunc<Integer> f = gui.importFunction("f", -1, int.class, int.class);
+
+    // Start the servers with their ports on this machine, without blocking
+    gui.start(8025, 8026, "localhost", false);
+        
+    // Stop the servers
+    gui.stop();
+}
 ```
 
 ## License

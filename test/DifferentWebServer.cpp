@@ -24,10 +24,10 @@ void DifferentWebServerTest() {
 #ifdef CPPJSLIB_ENABLE_WEBSOCKET
 #   ifdef TEST_USE_DLL
     auto srv = CppJsLib::WebGUI::create_unique("WebSocketOnly");
-    auto ptr = CppJsLib::WebGUI::create_unique("");
+    auto ptr = CppJsLib::WebGUI::create_unique();
 #   else
     auto srv = std::make_unique<CppJsLib::WebGUI>("WebSocketOnly");
-    auto ptr = std::make_unique<CppJsLib::WebGUI>("");
+    auto ptr = std::make_unique<CppJsLib::WebGUI>();
 #   endif
     std::cout << "Starting html server" << std::endl;
     srv->check_ports = false;

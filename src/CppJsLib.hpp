@@ -69,7 +69,7 @@
 
 #define expose(func) _exportFunction(func, #func)
 #ifdef CPPJSLIB_ENABLE_WEBSOCKET
-#   define importFunction(func, ...) _importJsFunction(func, #func, ##__VA_ARGS__)
+#   define import(func, ...) _importJsFunction(func, #func, ##__VA_ARGS__)
 #   define getWebServer() _getWebServer<websocketpp::server<websocketpp::config::asio>>()
 #   ifdef CPPJSLIB_ENABLE_HTTPS
 #       define getTLSWebServer() _getTLSWebServer<websocketpp::server<websocketpp::config::asio_tls>>()
@@ -115,10 +115,10 @@ namespace CppJsLib {
         CPPJSLIB_EXPORT bool stop(WebGUI *webGui, bool block = true, int maxWaitSeconds = CPPJSLIB_DURATION_INFINITE);
 
         template<class>
-        struct [[maybe_unused]] TypeConverter;
+        struct TypeConverter;
 
         template<class>
-        struct [[maybe_unused]] cString;
+        struct  cString;
 
         template<class>
         struct ExposedFunction;
@@ -558,7 +558,6 @@ namespace CppJsLib {
         /**
          * Create a WebGUI instance
          *
-         * @param webGui a pointer to a WebGUI object to populate
          * @param base_dir the base directory
          * @param cert_path the certificate path
          * @param private_key_path the private key path
@@ -574,8 +573,8 @@ namespace CppJsLib {
          * Create a WebGUI instance
          * It is actually recommended to use WebGUI_ptr
          *
-         * @param webGui the base directory
-         * @param base_dir
+
+         * @param base_dir the base directory
          */
         CPPJSLIB_EXPORT static WebGUI *create(const std::string &base_dir = "");
 
@@ -649,6 +648,72 @@ namespace CppJsLib {
                          unsigned short websocket_plain_fallback_port = 0) {
             return WebGUI_unique(create(base_dir, cert_path, private_key_path, websocket_plain_fallback_port),
                               deleteInstance);
+        }
+
+#   endif //CPPJSLIB_ENABLE_HTTPS
+
+#else
+
+        /**
+         * A WebGUI_ptr to handle the deallocation
+         */
+        using WebGUI_unique = std::unique_ptr<CppJsLib::WebGUI>;
+
+        /**
+         * A WebGUI_shared_ptr to handle the deallocation
+         */
+        using WebGUI_shared_ptr = std::shared_ptr<CppJsLib::WebGUI>;
+
+        /**
+         * Create a WebGUI instance
+         *
+         * @param base_dir the base directory
+         * @return a WebGUI_shared_ptr object, which will handle the deallocation
+         */
+        static inline WebGUI_shared_ptr create_shared(const std::string &base_dir = "") {
+            return std::make_shared<WebGUI>(base_dir);
+        }
+
+        /**
+         * Create a WebGUI instance
+         *
+         * @param base_dir the base directory
+         * @return a WebGUI_ptr object, which will handle the deallocation
+         */
+        static inline WebGUI_unique create_unique(const std::string &base_dir = "") {
+            return std::make_unique<WebGUI>(base_dir);
+        }
+
+#   ifdef CPPJSLIB_ENABLE_HTTPS
+
+        /**
+         * Create a WebGUI instance
+         *
+         * @param base_dir the base directory
+         * @param cert_path the certificate path
+         * @param private_key_path the private key path
+         * @param websocket_plain_fallback_port a websocket fallback port, if encryption did fail
+         * @return a WebGUI_shared_ptr object, which will handle the deallocation
+         */
+        static inline WebGUI_shared_ptr
+        create_shared(const std::string &base_dir, const std::string &cert_path, const std::string &private_key_path,
+                            unsigned short websocket_plain_fallback_port = 0) {
+            return std::make_shared<WebGUI>(base_dir, cert_path, private_key_path, websocket_plain_fallback_port);
+        }
+
+        /**
+         * Create a WebGUI instance
+         *
+         * @param base_dir the base directory
+         * @param cert_path the certificate path
+         * @param private_key_path the private key path
+         * @param websocket_plain_fallback_port a websocket fallback port, if encryption did fail
+         * @return a WebGUI_ptr object, which will handle the deallocation
+         */
+        static inline WebGUI_unique
+        create_ptr(const std::string &base_dir, const std::string &cert_path, const std::string &private_key_path,
+                         unsigned short websocket_plain_fallback_port = 0) {
+            return std::make_unique<WebGUI>(base_dir, cert_path, private_key_path, websocket_plain_fallback_port);
         }
 
 #   endif //CPPJSLIB_ENABLE_HTTPS
@@ -825,6 +890,24 @@ namespace CppJsLib {
          * @return if the operation was successful
          */
         CPPJSLIB_EXPORT bool start(int port, const std::string &host = "localhost", bool block = true);
+
+        /**
+         * Do not use this
+         */
+        template<class...Args>
+        inline void import(std::function<void(Args...)> &function) {
+            function[] (Args... args) {
+                _errorF("Javascript function called but CppJsLib was built without websocket support");
+            }
+        }
+
+        template<class R, class...Args>
+        inline void import(std::function<std::vector<R>(Args...)> &function, int waitS = -1) {
+            function = [] (Args... args) {
+                _errorF("Javascript function called but CppJsLib was built without websocket support");
+                return std::vector<R>();
+            };
+        }
 
 #endif //CPPJSLIB_ENABLE_WEBSOCKET
 
