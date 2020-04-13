@@ -56,7 +56,7 @@ int main() {
     std::cout << "Tests were built with HTTPS support enabled" << std::endl;
 #   ifdef TEST_USE_DLL
 #       ifdef CPPJSLIB_ENABLE_HTTPS
-    wGui = CppJsLib::createWebGUI("web", "cert.pem", "server.pem");
+    wGui = CppJsLib::WebGUI::create("web", "cert.pem", "server.pem");
 #       else
     wGui = CppJsLib::createWebGUI("web");
 #       endif
@@ -99,7 +99,7 @@ int main() {
 
 #ifdef TEST_USE_DLL
     {
-        CppJsLib::WebGUI_ptr ptr = CppJsLib::createWebGUI_ptr("web");
+        CppJsLib::WebGUI::WebGUI_unique ptr = CppJsLib::WebGUI::create_unique("web");
         ptr->start(8026, TEST_WS_PORT "localhost", false);
         std::this_thread::sleep_for(std::chrono::milliseconds(20));
         ptr->stop();
@@ -108,7 +108,7 @@ int main() {
 
     ASSERT_MEM_OK();
 
-    DifferentWebServerTest();
+    //DifferentWebServerTest();
 
     wGui->start(8026, TEST_WS_PORT CppJsLib::localhost, block);
 
@@ -122,7 +122,7 @@ int main() {
     }
 
 #ifdef TEST_USE_DLL
-    CppJsLib::deleteWebGUI(wGui);
+    CppJsLib::WebGUI::deleteInstance(wGui);
 #else
     delete wGui;
 #endif

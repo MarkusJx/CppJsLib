@@ -209,28 +209,6 @@ CPPJSLIB_EXPORT void CppJsLib::setError(const std::function<void(const std::stri
     setErrorF(f);
 }
 
-#if defined(CPPJSLIB_BUILD_LIB) || !defined (CPPJSLIB_STATIC_DEFINE)
-
-#ifdef CPPJSLIB_ENABLE_HTTPS
-
-CPPJSLIB_EXPORT WebGUI* CppJsLib::createWebGUI(const std::string &base_dir, const std::string &cert_path,
-                                            const std::string &private_key_path,
-                                            unsigned short websocket_plain_fallback_port) {
-    return new WebGUI(base_dir, cert_path, private_key_path, websocket_plain_fallback_port);
-}
-
-#endif
-
-CPPJSLIB_EXPORT WebGUI* CppJsLib::createWebGUI(const std::string &base_dir) {
-    return new CppJsLib::WebGUI(base_dir);
-}
-
-CPPJSLIB_EXPORT void CppJsLib::deleteWebGUI(WebGUI *webGui) {
-    delete webGui;
-}
-
-#endif //CPPJSLIB_BUILD_LIB
-
 CPPJSLIB_EXPORT void CppJsLib::util::pushToStrVecVector(WebGUI *webGui, std::vector<std::string> *v) {
     webGui->pushToStrVecVector(v);
 }

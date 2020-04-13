@@ -23,8 +23,8 @@ int webSocketOnlyTest(int n) {
 void DifferentWebServerTest() {
 #ifdef CPPJSLIB_ENABLE_WEBSOCKET
 #   ifdef TEST_USE_DLL
-    auto srv = CppJsLib::createWebGUI_ptr("WebSocketOnly");
-    auto ptr = CppJsLib::createWebGUI_ptr("");
+    auto srv = CppJsLib::WebGUI::create_unique("WebSocketOnly");
+    auto ptr = CppJsLib::WebGUI::create_unique("");
 #   else
     auto srv = std::make_unique<CppJsLib::WebGUI>("WebSocketOnly");
     auto ptr = std::make_unique<CppJsLib::WebGUI>("");

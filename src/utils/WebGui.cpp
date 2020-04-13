@@ -19,6 +19,28 @@ using namespace CppJsLib;
 #   define CPPJSLIB_DISABLE_SSL_MACRO
 #endif //CPPJSLIB_ENABLE_HTTPS
 
+#if defined(CPPJSLIB_BUILD_LIB) || !defined (CPPJSLIB_STATIC_DEFINE)
+
+#ifdef CPPJSLIB_ENABLE_HTTPS
+
+CPPJSLIB_EXPORT WebGUI* WebGUI::create(const std::string &base_dir, const std::string &cert_path,
+                                               const std::string &private_key_path,
+                                               unsigned short websocket_plain_fallback_port) {
+    return new WebGUI(base_dir, cert_path, private_key_path, websocket_plain_fallback_port);
+}
+
+#endif
+
+CPPJSLIB_EXPORT WebGUI* WebGUI::create(const std::string &base_dir) {
+    return new CppJsLib::WebGUI(base_dir);
+}
+
+CPPJSLIB_EXPORT void WebGUI::deleteInstance(WebGUI *webGui) {
+    delete webGui;
+}
+
+#endif //CPPJSLIB_BUILD_LIB
+
 WebGUI::WebGUI(const std::string &base_dir)
         : initMap(), voidPtrVector(), strVecVector(), websocketTargets(), jsFnCallbacks()CPPJSLIB_DISABLE_SSL_MACRO {
     std::shared_ptr<httplib::Server> svr = std::make_shared<httplib::Server>();

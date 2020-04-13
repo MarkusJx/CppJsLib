@@ -541,110 +541,6 @@ namespace CppJsLib {
      */
     CPPJSLIB_EXPORT void setError(const std::function<void(const std::string &)> &errorFunction);
 
-#if defined(CPPJSLIB_BUILD_LIB) || !defined (CPPJSLIB_STATIC_DEFINE)
-
-#   ifdef CPPJSLIB_ENABLE_HTTPS
-
-    /**
-     * Create a WebGUI instance
-     *
-     * @param webGui a pointer to a WebGUI object to populate
-     * @param base_dir the base directory
-     * @param cert_path the certificate path
-     * @param private_key_path the private key path
-     * @param websocket_plain_fallback_port a websocket fallback port, if encryption did fail
-     */
-    CPPJSLIB_EXPORT WebGUI *createWebGUI(const std::string &base_dir, const std::string &cert_path,
-                                         const std::string &private_key_path,
-                                         unsigned short websocket_plain_fallback_port = 0);
-
-#   endif //CPPJSLIB_ENABLE_HTTPS
-
-    /**
-     * Create a WebGUI instance
-     * It is actually recommended to use WebGUI_ptr
-     *
-     * @param webGui the base directory
-     * @param base_dir
-     */
-    CPPJSLIB_EXPORT WebGUI *createWebGUI(const std::string &base_dir = "");
-
-    /**
-     * Delete the WebGUI
-     * It is actually recommended to use WebGUI_ptr
-     *
-     * @param webGui a pointer to the WebGUI object to deallocate
-     */
-    CPPJSLIB_EXPORT void deleteWebGUI(WebGUI *webGui);
-
-    /**
-     * A WebGUI_ptr to handle the deallocation
-     */
-    using WebGUI_ptr = std::unique_ptr<CppJsLib::WebGUI, decltype(&CppJsLib::deleteWebGUI)>;
-
-    /**
-     * A WebGUI_shared_ptr to handle the deallocation
-     */
-    using WebGUI_shared_ptr = std::shared_ptr<CppJsLib::WebGUI>;
-
-    /**
-     * Create a WebGUI instance
-     *
-     * @param base_dir the base directory
-     * @return a WebGUI_shared_ptr object, which will handle the deallocation
-     */
-    inline WebGUI_shared_ptr createWebGUI_shared(const std::string &base_dir = "") {
-        return WebGUI_shared_ptr(createWebGUI(base_dir), deleteWebGUI);
-    }
-
-    /**
-     * Create a WebGUI instance
-     *
-     * @param base_dir the base directory
-     * @return a WebGUI_ptr object, which will handle the deallocation
-     */
-    inline WebGUI_ptr createWebGUI_ptr(const std::string &base_dir = "") {
-        return WebGUI_ptr(createWebGUI(base_dir), deleteWebGUI);
-    }
-
-#   ifdef CPPJSLIB_ENABLE_HTTPS
-
-    /**
-     * Create a WebGUI instance
-     *
-     * @param base_dir the base directory
-     * @param cert_path the certificate path
-     * @param private_key_path the private key path
-     * @param websocket_plain_fallback_port a websocket fallback port, if encryption did fail
-     * @return a WebGUI_shared_ptr object, which will handle the deallocation
-     */
-    inline WebGUI_shared_ptr
-    createWebGUI_shared(const std::string &base_dir, const std::string &cert_path, const std::string &private_key_path,
-                        unsigned short websocket_plain_fallback_port = 0) {
-        return WebGUI_shared_ptr(createWebGUI(base_dir, cert_path, private_key_path, websocket_plain_fallback_port),
-                                 deleteWebGUI);
-    }
-
-    /**
-     * Create a WebGUI instance
-     *
-     * @param base_dir the base directory
-     * @param cert_path the certificate path
-     * @param private_key_path the private key path
-     * @param websocket_plain_fallback_port a websocket fallback port, if encryption did fail
-     * @return a WebGUI_ptr object, which will handle the deallocation
-     */
-    inline WebGUI_ptr
-    createWebGUI_ptr(const std::string &base_dir, const std::string &cert_path, const std::string &private_key_path,
-                     unsigned short websocket_plain_fallback_port = 0) {
-        return WebGUI_ptr(createWebGUI(base_dir, cert_path, private_key_path, websocket_plain_fallback_port),
-                          deleteWebGUI);
-    }
-
-#   endif //CPPJSLIB_ENABLE_HTTPS
-
-#endif //defined(CPPJSLIB_BUILD_LIB) || !defined (CPPJSLIB_STATIC_DEFINE)
-
     class WebGUI {
     public:
         // Delete any constructor not allowed to initialize everything correctly
@@ -654,6 +550,110 @@ namespace CppJsLib {
         WebGUI(const WebGUI &) = delete;
 
         WebGUI &operator=(const WebGUI &) = delete;
+
+#if defined(CPPJSLIB_BUILD_LIB) || !defined (CPPJSLIB_STATIC_DEFINE)
+
+#   ifdef CPPJSLIB_ENABLE_HTTPS
+
+        /**
+         * Create a WebGUI instance
+         *
+         * @param webGui a pointer to a WebGUI object to populate
+         * @param base_dir the base directory
+         * @param cert_path the certificate path
+         * @param private_key_path the private key path
+         * @param websocket_plain_fallback_port a websocket fallback port, if encryption did fail
+         */
+        CPPJSLIB_EXPORT static WebGUI *create(const std::string &base_dir, const std::string &cert_path,
+                                             const std::string &private_key_path,
+                                             unsigned short websocket_plain_fallback_port = 0);
+
+#   endif //CPPJSLIB_ENABLE_HTTPS
+
+        /**
+         * Create a WebGUI instance
+         * It is actually recommended to use WebGUI_ptr
+         *
+         * @param webGui the base directory
+         * @param base_dir
+         */
+        CPPJSLIB_EXPORT static WebGUI *create(const std::string &base_dir = "");
+
+        /**
+         * Delete the WebGUI
+         * It is actually recommended to use WebGUI_ptr
+         *
+         * @param webGui a pointer to the WebGUI object to deallocate
+         */
+        CPPJSLIB_EXPORT static void deleteInstance(WebGUI *webGui);
+
+        /**
+         * A WebGUI_ptr to handle the deallocation
+         */
+        using WebGUI_unique = std::unique_ptr<CppJsLib::WebGUI, decltype(&CppJsLib::WebGUI::deleteInstance)>;
+
+        /**
+         * A WebGUI_shared_ptr to handle the deallocation
+         */
+        using WebGUI_shared_ptr = std::shared_ptr<CppJsLib::WebGUI>;
+
+        /**
+         * Create a WebGUI instance
+         *
+         * @param base_dir the base directory
+         * @return a WebGUI_shared_ptr object, which will handle the deallocation
+         */
+        static inline WebGUI_shared_ptr create_shared(const std::string &base_dir = "") {
+            return WebGUI_shared_ptr(create(base_dir), deleteInstance);
+        }
+
+        /**
+         * Create a WebGUI instance
+         *
+         * @param base_dir the base directory
+         * @return a WebGUI_ptr object, which will handle the deallocation
+         */
+        static inline WebGUI_unique create_unique(const std::string &base_dir = "") {
+            return WebGUI_unique(create(base_dir), deleteInstance);
+        }
+
+#   ifdef CPPJSLIB_ENABLE_HTTPS
+
+        /**
+         * Create a WebGUI instance
+         *
+         * @param base_dir the base directory
+         * @param cert_path the certificate path
+         * @param private_key_path the private key path
+         * @param websocket_plain_fallback_port a websocket fallback port, if encryption did fail
+         * @return a WebGUI_shared_ptr object, which will handle the deallocation
+         */
+        static inline WebGUI_shared_ptr
+        create_shared(const std::string &base_dir, const std::string &cert_path, const std::string &private_key_path,
+                            unsigned short websocket_plain_fallback_port = 0) {
+            return WebGUI_shared_ptr(create(base_dir, cert_path, private_key_path, websocket_plain_fallback_port),
+                                     deleteInstance);
+        }
+
+        /**
+         * Create a WebGUI instance
+         *
+         * @param base_dir the base directory
+         * @param cert_path the certificate path
+         * @param private_key_path the private key path
+         * @param websocket_plain_fallback_port a websocket fallback port, if encryption did fail
+         * @return a WebGUI_ptr object, which will handle the deallocation
+         */
+        static inline WebGUI_unique
+        create_ptr(const std::string &base_dir, const std::string &cert_path, const std::string &private_key_path,
+                         unsigned short websocket_plain_fallback_port = 0) {
+            return WebGUI_unique(create(base_dir, cert_path, private_key_path, websocket_plain_fallback_port),
+                              deleteInstance);
+        }
+
+#   endif //CPPJSLIB_ENABLE_HTTPS
+
+#endif //defined(CPPJSLIB_BUILD_LIB) || !defined (CPPJSLIB_STATIC_DEFINE)
 
 #ifdef CPPJSLIB_STATIC_DEFINE
 #   ifdef CPPJSLIB_ENABLE_HTTPS
