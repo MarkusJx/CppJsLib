@@ -143,12 +143,72 @@ WebGUI gui("web");
 delete gui;
 ```
 
+## Logging
+### Set logger
+#### For all future instances
+```c++
+CppJsLib::setLogger([] (const auto &msg) {
+    // Do something
+});
+```
+
+#### For a specific instance
+```c++
+gui->setLogger([] (const auto &msg) {
+    // Do something
+});
+```
+
+### Set error message handler
+#### For all future versions
+```c++
+CppJsLib::setError([] (const auto &err) {
+    // Do something
+});
+```
+
+#### For a specific instance
+```c++
+gui->setError([] (const auto &err) {
+    // Do something
+});
+```
+
+## Get underlying [yhirose/cpp-httplib](https://github.com/yhirose/cpp-httplib) server
+### Without SSL
+```c++
+auto srv = gui->getHttpServer();
+```
+
+### With SSL
+```c++
+auto srv = gui->getHttpsServer();
+```
+
+## Get underlying [zaphoyd/websocketpp](https://github.com/zaphoyd/websocketpp) websocket server
+### Without SSL
+```c++
+auto wssrv = gui->getWebServer();
+```
+
+### With SSL
+```c++
+auto wssrv = gui->getTLSWebServer();
+```
+
 ## Adding it to your project
 ### Using prebuilt binaries
 * You can download the latest artifact on [GitHub Actions](https://github.com/MarkusJx/CppJsLib/actions?query=workflow%3A"C%2FC%2B%2B+CI")
 * Add ```CppJsLib.hpp``` to your include path
 * Add openssl libraries (windows version can be found [here](https://www.npcglib.org/~stathis/blog/precompiled-openssl)), the CppJsLib library and ```CppJsLibJs/CppJsLib.js``` to the output folder
 * Link against ``CppJsLib``
+* Define macros before including ``CppJsLib.hpp``:
+```c++
+#define CPPJSLIB_ENABLE_WEBSOCKET
+#define CPPJSLIB_ENABLE_HTTPS
+
+#include <CppJsLib.hpp>
+```
 
 ### Not using prebuilt binaries
 Also known as 'building yourself' or 'the not fun way'

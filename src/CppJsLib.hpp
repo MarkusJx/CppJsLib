@@ -545,7 +545,7 @@ namespace CppJsLib {
     public:
         // Delete any constructor not allowed to initialize everything correctly
         // and to prevent heap corruptions to occur
-        WebGUI() = delete;
+        //WebGUI() = delete;
 
         WebGUI(const WebGUI &) = delete;
 
@@ -740,7 +740,13 @@ namespace CppJsLib {
          * A WebGUI constructor
          * @param base_dir the base directory
          */
-        explicit WebGUI(const std::string &base_dir = "");
+        explicit WebGUI(const std::string &base_dir);
+
+        WebGUI() : WebGUI("") {}
+
+#else
+
+        WebGUI() = delete;
 
 #endif //CPPJSLIB_STATIC_DEFINE
 
@@ -879,6 +885,11 @@ namespace CppJsLib {
 
         CPPJSLIB_EXPORT bool startNoWeb(int port, bool block = true);
 
+        /**
+         * Please don't call this
+         */
+        CPPJSLIB_EXPORT bool start(int port, const std::string &host = "localhost", bool block = true);
+
 #else
 
         /**
@@ -896,14 +907,14 @@ namespace CppJsLib {
          */
         template<class...Args>
         inline void import(std::function<void(Args...)> &function) {
-            function[] (Args... args) {
+            function = [this] (Args... args) {
                 _errorF("Javascript function called but CppJsLib was built without websocket support");
             }
         }
 
         template<class R, class...Args>
         inline void import(std::function<std::vector<R>(Args...)> &function, int waitS = -1) {
-            function = [] (Args... args) {
+            function = [this] (Args... args) {
                 _errorF("Javascript function called but CppJsLib was built without websocket support");
                 return std::vector<R>();
             };

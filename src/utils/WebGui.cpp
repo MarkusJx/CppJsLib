@@ -275,6 +275,11 @@ CPPJSLIB_EXPORT bool WebGUI::startNoWeb(int port, bool block) {
 #   endif
 }
 
+CPPJSLIB_EXPORT bool WebGUI::start(int port, const std::string &host, bool block) {
+    _errorF("Can not start servers without websocketPort set, when built with websocket protocol support. Please define macro 'CPPJSLIB_ENABLE_WEBSOCKET' before including CppJsLib.hpp");
+    return false;
+}
+
 CPPJSLIB_EXPORT bool WebGUI::start(int port, int websocketPort, const std::string &host, bool block) {
 #else
 
