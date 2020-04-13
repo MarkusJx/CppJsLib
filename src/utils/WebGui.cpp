@@ -23,15 +23,15 @@ using namespace CppJsLib;
 
 #ifdef CPPJSLIB_ENABLE_HTTPS
 
-CPPJSLIB_EXPORT WebGUI* WebGUI::create(const std::string &base_dir, const std::string &cert_path,
-                                               const std::string &private_key_path,
-                                               unsigned short websocket_plain_fallback_port) {
+CPPJSLIB_EXPORT WebGUI *WebGUI::create(const std::string &base_dir, const std::string &cert_path,
+                                       const std::string &private_key_path,
+                                       unsigned short websocket_plain_fallback_port) {
     return new WebGUI(base_dir, cert_path, private_key_path, websocket_plain_fallback_port);
 }
 
 #endif
 
-CPPJSLIB_EXPORT WebGUI* WebGUI::create(const std::string &base_dir) {
+CPPJSLIB_EXPORT WebGUI *WebGUI::create(const std::string &base_dir) {
     return new CppJsLib::WebGUI(base_dir);
 }
 
@@ -400,15 +400,15 @@ CPPJSLIB_EXPORT bool WebGUI::start(int port, int websocketPort, const std::strin
 #   ifdef CPPJSLIB_ENABLE_HTTPS
     if (ssl) {
         _startNoWeb(std::static_pointer_cast<wspp::server_tls>(ws_server), websocketPort, false, "",
-                std::map<std::string, std::function<std::string(std::string)>>(), _errorF, false, jsFnCallbacks);
-    }else {
+                    std::map<std::string, std::function<std::string(std::string)>>(), _errorF, false, jsFnCallbacks);
+    } else {
         _startNoWeb(std::static_pointer_cast<wspp::server>(ws_server), websocketPort, false, "",
-                std::map<std::string, std::function<std::string(std::string)>>(), _errorF, false, jsFnCallbacks);
+                    std::map<std::string, std::function<std::string(std::string)>>(), _errorF, false, jsFnCallbacks);
     }
 
     if (fallback_plain) {
         _startNoWeb(std::static_pointer_cast<wspp::server>(ws_plain_server), websocketPort, false, "",
-                std::map<std::string, std::function<std::string(std::string)>>(), _errorF, false, jsFnCallbacks);
+                    std::map<std::string, std::function<std::string(std::string)>>(), _errorF, false, jsFnCallbacks);
     }
 #   else
     _startNoWeb(std::static_pointer_cast<wspp::server>(ws_server), websocketPort, false, "",
