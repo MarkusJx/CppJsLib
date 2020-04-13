@@ -909,7 +909,7 @@ namespace CppJsLib {
         inline void import(std::function<void(Args...)> &function) {
             function = [this] (Args... args) {
                 _errorF("Javascript function called but CppJsLib was built without websocket support");
-            }
+            };
         }
 
         template<class R, class...Args>
