@@ -118,7 +118,7 @@ namespace CppJsLib {
         struct TypeConverter;
 
         template<class>
-        struct  cString;
+        struct cString;
 
         template<class>
         struct ExposedFunction;
@@ -564,8 +564,8 @@ namespace CppJsLib {
          * @param websocket_plain_fallback_port a websocket fallback port, if encryption did fail
          */
         CPPJSLIB_EXPORT static WebGUI *create(const std::string &base_dir, const std::string &cert_path,
-                                             const std::string &private_key_path,
-                                             unsigned short websocket_plain_fallback_port = 0);
+                                              const std::string &private_key_path,
+                                              unsigned short websocket_plain_fallback_port = 0);
 
 #   endif //CPPJSLIB_ENABLE_HTTPS
 
@@ -629,7 +629,7 @@ namespace CppJsLib {
          */
         static inline WebGUI_shared_ptr
         create_shared(const std::string &base_dir, const std::string &cert_path, const std::string &private_key_path,
-                            unsigned short websocket_plain_fallback_port = 0) {
+                      unsigned short websocket_plain_fallback_port = 0) {
             return WebGUI_shared_ptr(create(base_dir, cert_path, private_key_path, websocket_plain_fallback_port),
                                      deleteInstance);
         }
@@ -645,9 +645,9 @@ namespace CppJsLib {
          */
         static inline WebGUI_unique
         create_ptr(const std::string &base_dir, const std::string &cert_path, const std::string &private_key_path,
-                         unsigned short websocket_plain_fallback_port = 0) {
+                   unsigned short websocket_plain_fallback_port = 0) {
             return WebGUI_unique(create(base_dir, cert_path, private_key_path, websocket_plain_fallback_port),
-                              deleteInstance);
+                                 deleteInstance);
         }
 
 #   endif //CPPJSLIB_ENABLE_HTTPS
@@ -1049,7 +1049,7 @@ namespace CppJsLib {
 
         using PostHandler = std::function<std::string(std::string req_body)>;
         std::map<std::string, PostHandler> websocketTargets;
-        std::map<std::string, std::vector<std::string>*> jsFnCallbacks;
+        std::map<std::string, std::vector<std::string> *> jsFnCallbacks;
         std::function<void(const std::string &)> _loggingF;
         std::function<void(const std::string &)> _errorF;
 
