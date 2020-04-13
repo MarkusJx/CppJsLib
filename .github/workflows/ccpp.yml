@@ -116,67 +116,36 @@ jobs:
     - uses: actions/checkout@v1
     - name: create include
       run: mkdir include
-    - name: get json
-      uses: wei/wget@v1.1.1
-      with:
-        args: -O include/json.hpp https://github.com/nlohmann/json/releases/download/v3.7.3/json.hpp
-    - name: get httplib
-      uses: wei/wget@v1.1.1
-      with:
-        args: -O include/httplib.h https://raw.githubusercontent.com/yhirose/cpp-httplib/master/httplib.h
+    - name: install boost
+      run: sudo apt-get install libboost1.65-all-dev -y
+    #- name: get json
+    #  uses: wei/wget@v1.1.1
+    #  with:
+    #    args: -O include/json.hpp https://github.com/nlohmann/json/releases/download/v3.7.3/json.hpp
+    #- name: get httplib
+    #  uses: wei/wget@v1.1.1
+    #  with:
+    #    args: -O include/httplib.h https://raw.githubusercontent.com/yhirose/cpp-httplib/master/httplib.h
     - name: cmake
-      run: cmake -DCMAKE_BUILD_TYPE=Release -DUSE_DLL=TRUE .
+      run: cmake -DCMAKE_BUILD_TYPE=Release -DENABLE_HTTPS=TRUE -DENABLE_WEBSOCKET=TRUE -DBUILDDLL=TRUE .
     - name: build
       run: cmake --build . 
-    - name: run test
-      run: ./Test
-      shell: bash
-      working-directory: ./test
+    #- name: run test
+    #  run: ./Test
+    #  shell: bash
+    #  working-directory: ./test
     - name: Upload object
       uses: actions/upload-artifact@v1
       with:
         name: CppJsLibReleaseLinux
         path: src/libCppJsLib.so
-    - name: Upload test
-      uses: actions/upload-artifact@v1
-      with:
-        name: CppJsLibReleaseLinuxTest
-        path: test
-        
+    #- name: Upload test
+    #  uses: actions/upload-artifact@v1
+    #  with:
+    #    name: CppJsLibReleaseLinuxTest
+    #    path: test
+
   build-windows-release:
-
-    runs-on: windows-latest
-    
-    steps:
-    - uses: actions/checkout@v1
-    - name: create include
-      run: mkdir include
-    - name: get json
-      shell: powershell
-      run: wget https://github.com/nlohmann/json/releases/download/v3.7.3/json.hpp -OutFile include/json.hpp
-    - name: get httplib
-      shell: powershell
-      run: wget https://raw.githubusercontent.com/yhirose/cpp-httplib/master/httplib.h -OutFile include/httplib.h
-    - name: cmake
-      run: cmake -DUSE_DLL=TRUE .
-    - name: build
-      run: cmake --build . --config Release
-    #- name: run test
-    #  run: Test.exe
-    #  shell: cmd
-    #  working-directory: ./test/Release
-    - name: Upload library
-      uses: actions/upload-artifact@v1
-      with:
-        name: CppJsLibReleaseWin
-        path: src/Release
-    - name: Upload test
-      uses: actions/upload-artifact@v1
-      with:
-        name: CppJsLibReleaseWinTest
-        path: test/Release
-
-  build-windows-all-release:
 
     runs-on: windows-latest
 
@@ -186,12 +155,12 @@ jobs:
         run: mkdir include
       - name: create lib folder
         run: mkdir lib
-      - name: get json
-        shell: powershell
-        run: wget https://github.com/nlohmann/json/releases/download/v3.7.3/json.hpp -OutFile include/json.hpp
-      - name: get httplib
-        shell: powershell
-        run: wget https://raw.githubusercontent.com/yhirose/cpp-httplib/master/httplib.h -OutFile include/httplib.h
+      #- name: get json
+      #  shell: powershell
+      #  run: wget https://github.com/nlohmann/json/releases/download/v3.7.3/json.hpp -OutFile include/json.hpp
+      #- name: get httplib
+      #  shell: powershell
+      #  run: wget https://raw.githubusercontent.com/yhirose/cpp-httplib/master/httplib.h -OutFile include/httplib.h
       - name: download openssl
         shell: powershell
         run: wget https://www.npcglib.org/~stathis/downloads/openssl-1.1.0f-vs2017.7z -OutFile openssl.7z
@@ -203,9 +172,9 @@ jobs:
       - name: copy openssl libs
         run: cp -r openssl-1.1.0f-vs2017/lib64/. lib
         shell: cmd
-      - name: download websocketpp
-        run: wget https://github.com/zaphoyd/websocketpp/archive/0.8.1.zip -OutFile websocketpp.zip
-        shell: powershell
+      #- name: download websocketpp
+      #  run: wget https://github.com/zaphoyd/websocketpp/archive/0.8.1.zip -OutFile websocketpp.zip
+      #  shell: powershell
       - name: unzip websocketpp
         run: unzip websocketpp.zip
       - name: move websocketpp
@@ -249,12 +218,14 @@ jobs:
     - uses: actions/checkout@v1
     - name: create include
       run: mkdir include
-    - name: get json
-      run: wget -O include/json.hpp https://github.com/nlohmann/json/releases/download/v3.7.3/json.hpp
-    - name: get httplib
-      run: wget -O include/httplib.h https://raw.githubusercontent.com/yhirose/cpp-httplib/master/httplib.h
+    - name: install boost
+      run: brew install boost@1.60
+    #- name: get json
+    #  run: wget -O include/json.hpp https://github.com/nlohmann/json/releases/download/v3.7.3/json.hpp
+    #- name: get httplib
+    #  run: wget -O include/httplib.h https://raw.githubusercontent.com/yhirose/cpp-httplib/master/httplib.h
     - name: cmake
-      run: cmake -DCMAKE_BUILD_TYPE=Release -DUSE_DLL=TRUE .
+      run: cmake -DCMAKE_BUILD_TYPE=Release -DENABLE_HTTPS=TRUE -DENABLE_WEBSOCKET=TRUE -DBUILDDLL=TRUE .
     - name: build
       run: cmake --build .
     - name: run test
@@ -266,8 +237,8 @@ jobs:
       with:
         name: CppJsLibReleaseMacOs
         path: src/libCppJsLib.dylib
-    - name: Upload test
-      uses: actions/upload-artifact@v1
-      with:
-        name: CppJsLibReleaseMacOsTest
-        path: test
+    #- name: Upload test
+    #  uses: actions/upload-artifact@v1
+    #  with:
+    #    name: CppJsLibReleaseMacOsTest
+    #    path: test
