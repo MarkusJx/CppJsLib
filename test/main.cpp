@@ -58,14 +58,14 @@ int main() {
 #       ifdef CPPJSLIB_ENABLE_HTTPS
     wGui = CppJsLib::WebGUI::create("web", "cert.pem", "server.pem");
 #       else
-    wGui = CppJsLib::createWebGUI("web");
+    wGui = CppJsLib::WebGUI::create("web");
 #       endif
 #   else
     wGui = new CppJsLib::WebGUI("web", "cert.pem", "server.pem");
 #   endif
 #else
 #   ifdef TEST_USE_DLL
-    wGui = CppJsLib::createWebGUI("web");
+    wGui = CppJsLib::WebGUI::create("web");
 #   else
     wGui = new CppJsLib::WebGUI("web");
 #   endif
