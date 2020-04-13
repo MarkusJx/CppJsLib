@@ -17,7 +17,9 @@
 #include <thread>
 
 #include <cassert>
+
 #ifdef CPPJSLIB_WINDOWS
+
 #   include <crtdbg.h>
 
 #   define ASSERT_MEM_OK() assert(_CrtCheckMemory())
