@@ -1,9 +1,9 @@
-name: Create_release
+name: Create Release
 
 on:
   push:
     tags: 
-      - 'v*'
+      - '*'
 
 jobs:
   build-ubuntu-release:
@@ -45,7 +45,7 @@ jobs:
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}  
         asset_path: ./rel.zip
-        asset_name: linux-x64.zip
+        asset_name: linux-amd64.zip
         asset_content_type: application/zip
 
   build-windows-release:
@@ -90,7 +90,7 @@ jobs:
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}  
           asset_path: ./rel.zip
-          asset_name: win-x64.zip
+          asset_name: win-amd64.zip
           asset_content_type: application/zip
 
   build-macos-release:
@@ -120,5 +120,5 @@ jobs:
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}  
         asset_path: ./rel.zip
-        asset_name: macos-x64.zip
+        asset_name: macos-amd64.zip
         asset_content_type: application/zip
