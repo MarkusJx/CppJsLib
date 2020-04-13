@@ -1,0 +1,124 @@
+name: Create_release
+
+on:
+  push:
+    tags: 
+      - 'v*'
+
+jobs:
+  build-ubuntu-release:
+
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v1
+    - name: create include
+      run: mkdir include
+    - name: install boost
+      run: sudo apt-get install libboost1.65-all-dev -y
+    - name: cmake
+      run: cmake -DCMAKE_BUILD_TYPE=Release -DENABLE_HTTPS=TRUE -DENABLE_WEBSOCKET=TRUE -DBUILDDLL=TRUE .
+    - name: build
+      run: cmake --build . 
+    - name: zip files
+      uses: papeloto/action-zip@v1
+      with:
+        files: src/libCppJsLib.so src/CppJsLib.hpp
+        dest: rel.zip
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: Release ${{ github.ref }}
+        draft: false
+        prerelease: false
+        body: |
+          Automated release
+    - name: Upload Release Asset
+      id: upload-release-asset 
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}  
+        asset_path: ./rel.zip
+        asset_name: linux-x64.zip
+        asset_content_type: application/zip
+
+  build-windows-release:
+    needs: [build-ubuntu-release]
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v1
+      - name: create include folder
+        run: mkdir include
+      - name: create lib folder
+        run: mkdir lib
+      - name: download openssl
+        shell: powershell
+        run: wget https://www.npcglib.org/~stathis/downloads/openssl-1.1.0f-vs2017.7z -OutFile openssl.7z
+      - name: unzip openssl
+        run: 7z x openssl.7z -r -y
+      - name: copy openssl headers
+        run: cp -r openssl-1.1.0f-vs2017/include64/openssl include
+        shell: cmd
+      - name: copy openssl libs
+        run: cp -r openssl-1.1.0f-vs2017/lib64/. lib
+        shell: cmd
+      - name: Install Boost
+        run: choco install -y boost-msvc-14.1
+      - name: run cmake
+        run: cmake -DENABLE_HTTPS=TRUE -DENABLE_WEBSOCKET=TRUE -DBUILDDLL=TRUE .
+        env:
+          BOOST_ROOT: C:/local/boost_1_67_0
+      - name: build
+        run: cmake --build . --config Release
+      - name: zip files
+        uses: papeloto/action-zip@v1
+        with:
+          files: src/Release/CppJsLib.dll src/Release/CppJsLib.lib src/CppJsLib.hpp
+          dest: rel.zip
+      - name: Upload Release Asset
+        id: upload-release-asset 
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}  
+          asset_path: ./rel.zip
+          asset_name: win-x64.zip
+          asset_content_type: application/zip
+
+  build-macos-release:
+    needs: [build-ubuntu-release]
+    runs-on: macos-latest
+
+    steps:
+    - uses: actions/checkout@v1
+    - name: create include
+      run: mkdir include
+    - name: install boost
+      run: brew install boost@1.60
+    - name: cmake
+      run: cmake -DCMAKE_BUILD_TYPE=Release -DENABLE_HTTPS=TRUE -DENABLE_WEBSOCKET=TRUE -DBUILDDLL=TRUE -DBOOST_ROOT="/usr/local/opt/boost@1.60" .
+    - name: build
+      run: cmake --build .
+    - name: zip files
+      uses: papeloto/action-zip@v1
+      with:
+        files: src/libCppJsLib.dylib src/CppJsLib.hpp
+        dest: rel.zip
+    - name: Upload Release Asset
+      id: upload-release-asset 
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}  
+        asset_path: ./rel.zip
+        asset_name: macos-x64.zip
+        asset_content_type: application/zip
