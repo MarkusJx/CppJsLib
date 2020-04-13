@@ -161,33 +161,33 @@ jobs:
       - name: Install Boost
         run: choco install -y boost-msvc-14.1
       - name: run cmake
-        run: cmake -DENABLE_HTTPS=TRUE -DENABLE_WEBSOCKET=TRUE -DUSE_DLL=TRUE .
+        run: cmake -DENABLE_HTTPS=TRUE -DENABLE_WEBSOCKET=TRUE -DBUILDDLL=TRUE .
         env:
           BOOST_ROOT: C:/local/boost_1_67_0
       - name: build
         run: cmake --build . --config Release
-      - name: copy libcrypto to src folder
-        run: cp openssl-1.1.0f-vs2017/bin64/libcryptoMD.dll src/Release/libcryptoMD.dll
-      - name: copy libssl to src folder
-        run: cp openssl-1.1.0f-vs2017/bin64/libsslMD.dll src/Release/libsslMD.dll
-      - name: copy libcrypto to test folder
-        run: cp openssl-1.1.0f-vs2017/bin64/libcryptoMD.dll test/Release/libcryptoMD.dll
-      - name: copy libssl to test folder
-        run: cp openssl-1.1.0f-vs2017/bin64/libsslMD.dll test/Release/libsslMD.dll
-      - name: run test
-        run: Test.exe
-        shell: cmd
-        working-directory: ./test/Release
+      #- name: copy libcrypto to src folder
+      #  run: cp openssl-1.1.0f-vs2017/bin64/libcryptoMD.dll src/Release/libcryptoMD.dll
+      #- name: copy libssl to src folder
+      #  run: cp openssl-1.1.0f-vs2017/bin64/libsslMD.dll src/Release/libsslMD.dll
+      #- name: copy libcrypto to test folder
+      #  run: cp openssl-1.1.0f-vs2017/bin64/libcryptoMD.dll test/Release/libcryptoMD.dll
+      #- name: copy libssl to test folder
+      #  run: cp openssl-1.1.0f-vs2017/bin64/libsslMD.dll test/Release/libsslMD.dll
+      #- name: run test
+      #  run: Test.exe
+      #  shell: cmd
+      #  working-directory: ./test/Release
       - name: Upload library
         uses: actions/upload-artifact@v1
         with:
           name: CppJsLibReleaseWinOpenssl
           path: src/Release
-      - name: Upload test
-        uses: actions/upload-artifact@v1
-        with:
-          name: CppJsLibReleaseWinTestOpenssl
-          path: test/Release
+      #- name: Upload test
+      #  uses: actions/upload-artifact@v1
+      #  with:
+      #    name: CppJsLibReleaseWinTestOpenssl
+      #    path: test/Release
 
   build-macos-release:
 
