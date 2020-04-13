@@ -7,7 +7,7 @@ on:
 
 jobs:
   build-ubuntu-release:
-
+    needs: [build-windows-release, build-macos-release]
     runs-on: ubuntu-latest
     
     steps:
@@ -47,9 +47,36 @@ jobs:
         asset_path: ./rel.zip
         asset_name: linux-amd64.zip
         asset_content_type: application/zip
+    - name: Download artifact win
+      uses: actions/download-artifact@v1.0.0
+      with:
+        name: win-release
+    - name: Upload Release Asset
+      id: upload-release-asset-win
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}  
+        asset_path: ./win-release/win-amd64.zip
+        asset_name: win-amd64.zip
+        asset_content_type: application/zip
+    - name: Download artifact macos
+      uses: actions/download-artifact@v1.0.0
+      with:
+        name: macos-release
+    - name: Upload Release Asset
+      id: upload-release-asset-macos
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}  
+        asset_path: ./macos-release/macos-amd64.zip
+        asset_name: macos-amd64.zip
+        asset_content_type: application/zip
 
   build-windows-release:
-    needs: [build-ubuntu-release]
     runs-on: windows-latest
 
     steps:
@@ -81,20 +108,14 @@ jobs:
         uses: papeloto/action-zip@v1
         with:
           files: src/Release/CppJsLib.dll src/Release/CppJsLib.lib src/CppJsLib.hpp
-          dest: rel.zip
-      - name: Upload Release Asset
-        id: upload-release-asset 
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          dest: win-am64.zip
+      - name: Upload artifact
+        uses: actions/upload-artifact@v1.0.0
         with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}  
-          asset_path: ./rel.zip
-          asset_name: win-amd64.zip
-          asset_content_type: application/zip
+          name: win-release
+          path: win-amd64.zip
 
   build-macos-release:
-    needs: [build-ubuntu-release]
     runs-on: macos-latest
 
     steps:
@@ -111,14 +132,10 @@ jobs:
       uses: papeloto/action-zip@v1
       with:
         files: src/libCppJsLib.dylib src/CppJsLib.hpp
-        dest: rel.zip
-    - name: Upload Release Asset
-      id: upload-release-asset 
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        dest: macos.zip
+    - name: Upload artifact
+      uses: actions/upload-artifact@v1.0.0
       with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}  
-        asset_path: ./rel.zip
-        asset_name: macos-amd64.zip
-        asset_content_type: application/zip
+        name: macos-release
+        path: macos-amd64.zip
+
