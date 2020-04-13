@@ -118,14 +118,6 @@ jobs:
       run: mkdir include
     - name: install boost
       run: sudo apt-get install libboost1.65-all-dev -y
-    #- name: get json
-    #  uses: wei/wget@v1.1.1
-    #  with:
-    #    args: -O include/json.hpp https://github.com/nlohmann/json/releases/download/v3.7.3/json.hpp
-    #- name: get httplib
-    #  uses: wei/wget@v1.1.1
-    #  with:
-    #    args: -O include/httplib.h https://raw.githubusercontent.com/yhirose/cpp-httplib/master/httplib.h
     - name: cmake
       run: cmake -DCMAKE_BUILD_TYPE=Release -DENABLE_HTTPS=TRUE -DENABLE_WEBSOCKET=TRUE -DBUILDDLL=TRUE .
     - name: build
@@ -155,12 +147,6 @@ jobs:
         run: mkdir include
       - name: create lib folder
         run: mkdir lib
-      #- name: get json
-      #  shell: powershell
-      #  run: wget https://github.com/nlohmann/json/releases/download/v3.7.3/json.hpp -OutFile include/json.hpp
-      #- name: get httplib
-      #  shell: powershell
-      #  run: wget https://raw.githubusercontent.com/yhirose/cpp-httplib/master/httplib.h -OutFile include/httplib.h
       - name: download openssl
         shell: powershell
         run: wget https://www.npcglib.org/~stathis/downloads/openssl-1.1.0f-vs2017.7z -OutFile openssl.7z
@@ -172,17 +158,10 @@ jobs:
       - name: copy openssl libs
         run: cp -r openssl-1.1.0f-vs2017/lib64/. lib
         shell: cmd
-      #- name: download websocketpp
-      #  run: wget https://github.com/zaphoyd/websocketpp/archive/0.8.1.zip -OutFile websocketpp.zip
-      #  shell: powershell
-      #- name: unzip websocketpp
-      #  run: unzip websocketpp.zip
-      #- name: move websocketpp
-      #  run: mv websocketpp-0.8.1/websocketpp include/websocketpp
       - name: Install Boost
         run: choco install -y boost-msvc-14.1
       - name: run cmake
-        run: cmake -DENABLE_HTTPS=TRUE -DENABLE_WEBSOCKET=TRUE -DBUILDDLL=TRUE .
+        run: cmake -DENABLE_HTTPS=TRUE -DENABLE_WEBSOCKET=TRUE -DUSE_DLL=TRUE .
         env:
           BOOST_ROOT: C:/local/boost_1_67_0
       - name: build
@@ -195,20 +174,20 @@ jobs:
         run: cp openssl-1.1.0f-vs2017/bin64/libcryptoMD.dll test/Release/libcryptoMD.dll
       - name: copy libssl to test folder
         run: cp openssl-1.1.0f-vs2017/bin64/libsslMD.dll test/Release/libsslMD.dll
-      #- name: run test
-      #  run: Test.exe
-      #  shell: cmd
-      #  working-directory: ./test/Release
+      - name: run test
+        run: Test.exe
+        shell: cmd
+        working-directory: ./test/Release
       - name: Upload library
         uses: actions/upload-artifact@v1
         with:
           name: CppJsLibReleaseWinOpenssl
           path: src/Release
-      #- name: Upload test
-      #  uses: actions/upload-artifact@v1
-      #  with:
-      #    name: CppJsLibReleaseWinTestOpenssl
-      #    path: test/Release
+      - name: Upload test
+        uses: actions/upload-artifact@v1
+        with:
+          name: CppJsLibReleaseWinTestOpenssl
+          path: test/Release
 
   build-macos-release:
 
@@ -220,10 +199,6 @@ jobs:
       run: mkdir include
     - name: install boost
       run: brew install boost@1.60
-    #- name: get json
-    #  run: wget -O include/json.hpp https://github.com/nlohmann/json/releases/download/v3.7.3/json.hpp
-    #- name: get httplib
-    #  run: wget -O include/httplib.h https://raw.githubusercontent.com/yhirose/cpp-httplib/master/httplib.h
     - name: cmake
       run: cmake -DCMAKE_BUILD_TYPE=Release -DENABLE_HTTPS=TRUE -DENABLE_WEBSOCKET=TRUE -DBUILDDLL=TRUE .
     - name: build
