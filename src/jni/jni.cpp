@@ -12,6 +12,10 @@
 #include "../CppJsLib.hpp"
 #include "com_markusjx_cppjslib_nt_CppJsLibNative.h"
 
+#ifdef CPPJSLIB_UNIX
+typedef int errno_t;
+#endif
+
 #define ELIF_CMP_JT(s1) } else if (strcmp(s1, jType) == 0) {
 #define JAVA_STRING_CLS() env->FindClass("Ljava/lang/String;")
 #define SET_JVM() if (jvm == nullptr) env->GetJavaVM(&jvm)
