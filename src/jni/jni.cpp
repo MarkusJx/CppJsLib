@@ -10,7 +10,7 @@
 #define CPPJSLIB_BUILD_JNI_DLL
 
 #include "../CppJsLib.hpp"
-#include "markusjx_cppjslib_nt_CppJsLibNative.h"
+#include "com_markusjx_cppjslib_nt_CppJsLibNative.h"
 
 #define ELIF_CMP_JT(s1) } else if (strcmp(s1, jType) == 0) {
 #define JAVA_STRING_CLS() env->FindClass("Ljava/lang/String;")
@@ -103,24 +103,23 @@ public:
         free(fName);
 
         vector<string> tmp;
-        for (char *c : responseReturns) {
-            tmp.push_back(CppJsLib::util::ConvertString<string>(c));
-            free(c);
+        for (const std::string &s : responseReturns) {
+            tmp.push_back(CppJsLib::util::ConvertString<string>(s));
         }
-        vector<char *>().swap(responseReturns);
+        vector<std::string>().swap(responseReturns);
 
         return tmp;
     }
 
     ~J_JsFunction() {
-        for (char *c : responseReturns) {
-            free(c);
+        if (!responseReturns.empty()) {
+            vector<std::string>().swap(responseReturns);
         }
-    }
+    };
 
     int wait;
     string returnType;
-    vector<char *> responseReturns;
+    vector<std::string> responseReturns;
 };
 
 class WebGUIContainer {
@@ -264,8 +263,8 @@ CppJsLib::WebGUI::exportJavaFunction(const std::string &name, std::string return
  * Method:    initWebGUI
  * Signature: (Ljava/lang/String;)I
  */
-JNIEXPORT jint JNICALL Java_markusjx_cppjslib_nt_CppJsLibNative_initWebGUI__Ljava_lang_String_2(JNIEnv *env, jclass,
-                                                                                                jstring base_dir) {
+JNIEXPORT jint JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_initWebGUI__Ljava_lang_String_2(JNIEnv *env, jclass,
+                                                                                                    jstring base_dir) {
     SET_JVM();
     mtx.lock();
     const char *dir = env->GetStringUTFChars(base_dir, &isFalse);
@@ -285,7 +284,7 @@ JNIEXPORT jint JNICALL Java_markusjx_cppjslib_nt_CppJsLibNative_initWebGUI__Ljav
  * Signature: (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;I)I
  */
 JNIEXPORT jint
-JNICALL Java_markusjx_cppjslib_nt_CppJsLibNative_initWebGUI__Ljava_lang_String_2Ljava_lang_String_2Ljava_lang_String_2I(
+JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_initWebGUI__Ljava_lang_String_2Ljava_lang_String_2Ljava_lang_String_2I(
         JNIEnv *env, jclass, jstring base_dir, jstring cert_path, jstring private_key_path,
         jint websocket_fallback_plain) {
     SET_JVM();
@@ -313,11 +312,11 @@ JNICALL Java_markusjx_cppjslib_nt_CppJsLibNative_initWebGUI__Ljava_lang_String_2
  * Method:    running
  * Signature: (I)Z
  */
-JNIEXPORT jboolean JNICALL Java_markusjx_cppjslib_nt_CppJsLibNative_running(JNIEnv *env, jclass, jint id) {
+JNIEXPORT jboolean JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_running(JNIEnv *env, jclass, jint id) {
     SET_JVM();
     WebGUIContainer *c = findContainer(id);
     if (c)
-        return c->webGui->running;
+        return c->webGui->isRunning();
     else
         return false;
 }
@@ -327,11 +326,11 @@ JNIEXPORT jboolean JNICALL Java_markusjx_cppjslib_nt_CppJsLibNative_running(JNIE
  * Method:    stopped
  * Signature: (I)Z
  */
-JNIEXPORT jboolean JNICALL Java_markusjx_cppjslib_nt_CppJsLibNative_stopped(JNIEnv *env, jclass, jint id) {
+JNIEXPORT jboolean JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_stopped(JNIEnv *env, jclass, jint id) {
     SET_JVM();
     WebGUIContainer *c = findContainer(id);
     if (c)
-        return c->webGui->stopped;
+        return !c->webGui->isRunning();
     else
         return false;
 }
@@ -342,7 +341,7 @@ JNIEXPORT jboolean JNICALL Java_markusjx_cppjslib_nt_CppJsLibNative_stopped(JNIE
  * Signature: (IZ)V
  */
 JNIEXPORT void
-JNICALL Java_markusjx_cppjslib_nt_CppJsLibNative_checkPorts__IZ(JNIEnv *env, jclass, jint id, jboolean val) {
+JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_checkPorts__IZ(JNIEnv *env, jclass, jint id, jboolean val) {
     SET_JVM();
     WebGUIContainer *c = findContainer(id);
     if (c)
@@ -354,7 +353,7 @@ JNICALL Java_markusjx_cppjslib_nt_CppJsLibNative_checkPorts__IZ(JNIEnv *env, jcl
  * Method:    checkPorts
  * Signature: (I)Z
  */
-JNIEXPORT jboolean JNICALL Java_markusjx_cppjslib_nt_CppJsLibNative_checkPorts__I(JNIEnv *env, jclass, jint id) {
+JNIEXPORT jboolean JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_checkPorts__I(JNIEnv *env, jclass, jint id) {
     SET_JVM();
     WebGUIContainer *c = findContainer(id);
     if (c)
@@ -369,7 +368,8 @@ JNIEXPORT jboolean JNICALL Java_markusjx_cppjslib_nt_CppJsLibNative_checkPorts__
  * Signature: (ILmarkusjx/cppjslib/interfaces/LoggingFunction;)V
  */
 JNIEXPORT void
-JNICALL Java_markusjx_cppjslib_nt_CppJsLibNative_setLogger(JNIEnv *env, jclass, jint id, jobject loggingFunction) {
+JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_setLogger__ILcom_markusjx_cppjslib_interfaces_LoggingFunction_2(
+        JNIEnv *env, jclass, jint id, jobject loggingFunction) {
     SET_JVM();
     WebGUIContainer *c = findContainer(id);
     if (c) {
@@ -384,7 +384,7 @@ JNICALL Java_markusjx_cppjslib_nt_CppJsLibNative_setLogger(JNIEnv *env, jclass, 
                 return;
             }
 
-            jclass LoggingFunction = env->FindClass("Lmarkusjx/cppjslib/interfaces/LoggingFunction;");
+            jclass LoggingFunction = env->FindClass("Lcom/markusjx/cppjslib/interfaces/LoggingFunction;");
             jmethodID log = env->GetMethodID(LoggingFunction, "log", "(Ljava/lang/String;)V");
             jstring msg = env->NewStringUTF(s.c_str());
 
@@ -400,7 +400,8 @@ JNICALL Java_markusjx_cppjslib_nt_CppJsLibNative_setLogger(JNIEnv *env, jclass, 
  * Signature: (ILmarkusjx/cppjslib/interfaces/LoggingFunction;)V
  */
 JNIEXPORT void
-JNICALL Java_markusjx_cppjslib_nt_CppJsLibNative_setError(JNIEnv *env, jclass, jint id, jobject errorFunction) {
+JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_setError__ILcom_markusjx_cppjslib_interfaces_LoggingFunction_2(
+        JNIEnv *env, jclass, jint id, jobject errorFunction) {
     SET_JVM();
     WebGUIContainer *c = findContainer(id);
     if (c) {
@@ -415,7 +416,7 @@ JNICALL Java_markusjx_cppjslib_nt_CppJsLibNative_setError(JNIEnv *env, jclass, j
                 return;
             }
 
-            jclass LoggingFunction = env->FindClass("Lmarkusjx/cppjslib/interfaces/LoggingFunction;");
+            jclass LoggingFunction = env->FindClass("Lcom/markusjx/cppjslib/interfaces/LoggingFunction;");
             jmethodID log = env->GetMethodID(LoggingFunction, "log", "(Ljava/lang/String;)V");
             jstring msg = env->NewStringUTF(s.c_str());
 
@@ -431,9 +432,10 @@ JNICALL Java_markusjx_cppjslib_nt_CppJsLibNative_setError(JNIEnv *env, jclass, j
  * Signature: (Lmarkusjx/cppjslib/interfaces/LoggingFunction;)V
  */
 JNIEXPORT void
-JNICALL Java_markusjx_cppjslib_nt_CppJsLibNative_setLogger__Lmarkusjx_cppjslib_interfaces_LoggingFunction_2(JNIEnv *env,
-                                                                                                            jclass,
-                                                                                                            jobject loggingFunction) {
+JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_setLogger__Lcom_markusjx_cppjslib_interfaces_LoggingFunction_2(
+        JNIEnv *env,
+        jclass,
+        jobject loggingFunction) {
     SET_JVM();
     jobject loggingF = env->NewGlobalRef(loggingFunction);
     if (lF)
@@ -448,7 +450,7 @@ JNICALL Java_markusjx_cppjslib_nt_CppJsLibNative_setLogger__Lmarkusjx_cppjslib_i
             return;
         }
 
-        jclass LoggingFunction = env->FindClass("Lmarkusjx/cppjslib/interfaces/LoggingFunction;");
+        jclass LoggingFunction = env->FindClass("Lcom/markusjx/cppjslib/interfaces/LoggingFunction;");
         jmethodID log = env->GetMethodID(LoggingFunction, "log", "(Ljava/lang/String;)V");
         jstring msg = env->NewStringUTF(s.c_str());
 
@@ -463,9 +465,8 @@ JNICALL Java_markusjx_cppjslib_nt_CppJsLibNative_setLogger__Lmarkusjx_cppjslib_i
  * Signature: (Lmarkusjx/cppjslib/interfaces/LoggingFunction;)V
  */
 JNIEXPORT void
-JNICALL Java_markusjx_cppjslib_nt_CppJsLibNative_setError__Lmarkusjx_cppjslib_interfaces_LoggingFunction_2(JNIEnv *env,
-                                                                                                           jclass,
-                                                                                                           jobject errorFunction) {
+JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_setError__Lcom_markusjx_cppjslib_interfaces_LoggingFunction_2(
+        JNIEnv *env, jclass, jobject errorFunction) {
     SET_JVM();
     jobject errorF = env->NewGlobalRef(errorFunction);
     if (eF)
@@ -480,7 +481,7 @@ JNICALL Java_markusjx_cppjslib_nt_CppJsLibNative_setError__Lmarkusjx_cppjslib_in
             return;
         }
 
-        jclass LoggingFunction = env->FindClass("Lmarkusjx/cppjslib/interfaces/LoggingFunction;");
+        jclass LoggingFunction = env->FindClass("Lcom/markusjx/cppjslib/interfaces/LoggingFunction;");
         jmethodID log = env->GetMethodID(LoggingFunction, "log", "(Ljava/lang/String;)V");
         jstring msg = env->NewStringUTF(s.c_str());
 
@@ -494,8 +495,9 @@ JNICALL Java_markusjx_cppjslib_nt_CppJsLibNative_setError__Lmarkusjx_cppjslib_in
  * Method:    setWebSocketOpenHandler
  * Signature: (ILmarkusjx/cppjslib/interfaces/Handler;)V
  */
-JNIEXPORT void JNICALL Java_markusjx_cppjslib_nt_CppJsLibNative_setWebSocketOpenHandler(JNIEnv *env, jclass, jint id,
-                                                                                        jobject handler) {
+JNIEXPORT void
+JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_setWebSocketOpenHandler(JNIEnv *env, jclass, jint id,
+                                                                             jobject handler) {
     SET_JVM();
     WebGUIContainer *c = findContainer(id);
     if (c) {
@@ -510,7 +512,7 @@ JNIEXPORT void JNICALL Java_markusjx_cppjslib_nt_CppJsLibNative_setWebSocketOpen
                 return;
             }
 
-            jclass Handler = env->FindClass("Lmarkusjx/cppjslib/interfaces/Handler;");
+            jclass Handler = env->FindClass("Lcom/markusjx/cppjslib/interfaces/Handler;");
             jmethodID call = env->GetMethodID(Handler, "call", "()V");
 
             env->CallVoidMethod(hdl, call);
@@ -524,8 +526,9 @@ JNIEXPORT void JNICALL Java_markusjx_cppjslib_nt_CppJsLibNative_setWebSocketOpen
  * Method:    setWebSocketCloseHandler
  * Signature: (ILmarkusjx/cppjslib/interfaces/Handler;)V
  */
-JNIEXPORT void JNICALL Java_markusjx_cppjslib_nt_CppJsLibNative_setWebSocketCloseHandler(JNIEnv *env, jclass, jint id,
-                                                                                         jobject handler) {
+JNIEXPORT void
+JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_setWebSocketCloseHandler(JNIEnv *env, jclass, jint id,
+                                                                              jobject handler) {
     SET_JVM();
     WebGUIContainer *c = findContainer(id);
     if (c) {
@@ -540,7 +543,7 @@ JNIEXPORT void JNICALL Java_markusjx_cppjslib_nt_CppJsLibNative_setWebSocketClos
                 return;
             }
 
-            jclass Handler = env->FindClass("Lmarkusjx/cppjslib/interfaces/Handler;");
+            jclass Handler = env->FindClass("Lcom/markusjx/cppjslib/interfaces/Handler;");
             jmethodID call = env->GetMethodID(Handler, "call", "()V");
 
             env->CallVoidMethod(hdl, call);
@@ -555,8 +558,8 @@ JNIEXPORT void JNICALL Java_markusjx_cppjslib_nt_CppJsLibNative_setWebSocketClos
  * Signature: (IIILjava/lang/String;Z)Z
  */
 JNIEXPORT jboolean
-JNICALL Java_markusjx_cppjslib_nt_CppJsLibNative_start(JNIEnv *env, jclass, jint id, jint port, jint websocketPort,
-                                                       jstring host, jboolean block) {
+JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_start(JNIEnv *env, jclass, jint id, jint port, jint websocketPort,
+                                                           jstring host, jboolean block) {
     SET_JVM();
     WebGUIContainer *c = findContainer(id);
     if (c) {
@@ -571,15 +574,69 @@ JNICALL Java_markusjx_cppjslib_nt_CppJsLibNative_start(JNIEnv *env, jclass, jint
 
 /*
  * Class:     markusjx_cppjslib_nt_CppJsLibNative
+ * Method:    startNoWeb
+ * Signature: (IIZ)Z
+ */
+JNIEXPORT jboolean
+JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_startNoWeb(JNIEnv *env, jclass, jint id, jint port,
+                                                                jboolean block) {
+    SET_JVM();
+    WebGUIContainer *c = findContainer(id);
+    if (c) {
+        return c->webGui->startNoWeb(port, block);
+    } else {
+        return false;
+    }
+}
+
+/*
+ * Class:     com_markusjx_cppjslib_nt_CppJsLibNative
+ * Method:    setMountPoint
+ * Signature: (ILjava/lang/String;Ljava/lang/String;)V
+ */
+JNIEXPORT void
+JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_setMountPoint(JNIEnv *env, jclass, jint id, jstring mnt,
+                                                                   jstring dir) {
+    SET_JVM();
+    WebGUIContainer *c = findContainer(id);
+    if (c) {
+        auto _mnt = env->GetStringUTFChars(mnt, &isFalse);
+        auto _dir = env->GetStringUTFChars(dir, &isFalse);
+
+        c->webGui->set_mount_point(_mnt, _dir);
+
+        env->ReleaseStringUTFChars(mnt, _mnt);
+        env->ReleaseStringUTFChars(dir, _dir);
+    }
+}
+
+/*
+ * Class:     com_markusjx_cppjslib_nt_CppJsLibNative
+ * Method:    removeMountPoint
+ * Signature: (ILjava/lang/String;)V
+ */
+JNIEXPORT void
+JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_removeMountPoint(JNIEnv *env, jclass, jint id, jstring mnt) {
+    SET_JVM();
+    WebGUIContainer *c = findContainer(id);
+    if (c) {
+        auto _mnt = env->GetStringUTFChars(mnt, &isFalse);
+        c->webGui->remove_mount_point(_mnt);
+        env->ReleaseStringUTFChars(mnt, _mnt);
+    }
+}
+
+/*
+ * Class:     markusjx_cppjslib_nt_CppJsLibNative
  * Method:    stop
  * Signature: (IZI)Z
  */
 JNIEXPORT jboolean
-JNICALL Java_markusjx_cppjslib_nt_CppJsLibNative_stop(JNIEnv *env, jclass, jint id, jboolean block, jint maxWait) {
+JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_stop(JNIEnv *env, jclass, jint id, jboolean block, jint maxWait) {
     SET_JVM();
     WebGUIContainer *c = findContainer(id);
     if (c)
-        return CppJsLib::stop(c->webGui, block, maxWait);
+        return CppJsLib::util::stop(c->webGui, block, maxWait);
     else
         return false;
 }
@@ -590,9 +647,9 @@ JNICALL Java_markusjx_cppjslib_nt_CppJsLibNative_stop(JNIEnv *env, jclass, jint 
  * Signature: (ILmarkusjx/cppjslib/interfaces/CExposedFunc;Ljava/lang/String;Ljava/lang/String;[Ljava/lang/String;)V
  */
 JNIEXPORT void
-JNICALL Java_markusjx_cppjslib_nt_CppJsLibNative_exposeFunction(JNIEnv *env, jclass, jint id, jobject func,
-                                                                jstring name, jstring returnType,
-                                                                jobjectArray argTypes) {
+JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_exposeFunction(JNIEnv *env, jclass, jint id, jobject func,
+                                                                    jstring name, jstring returnType,
+                                                                    jobjectArray argTypes) {
     SET_JVM();
     WebGUIContainer *c = findContainer(id);
     if (c) {
@@ -622,7 +679,7 @@ JNICALL Java_markusjx_cppjslib_nt_CppJsLibNative_exposeFunction(JNIEnv *env, jcl
                 return "";
             }
 
-            jclass ExposedFunc = env->FindClass("Lmarkusjx/cppjslib/interfaces/CExposedFunc;");
+            jclass ExposedFunc = env->FindClass("Lcom/markusjx/cppjslib/interfaces/CExposedFunc;");
             jmethodID call = env->GetMethodID(ExposedFunc, "call", "([Ljava/lang/String;)[Ljava/lang/String;");
 
             jclass String = JAVA_STRING_CLS();
@@ -651,8 +708,8 @@ JNICALL Java_markusjx_cppjslib_nt_CppJsLibNative_exposeFunction(JNIEnv *env, jcl
  * Signature: (ILmarkusjx/cppjslib/interfaces/CExposedVoidFunc;Ljava/lang/String;[Ljava/lang/String;)V
  */
 JNIEXPORT void
-JNICALL Java_markusjx_cppjslib_nt_CppJsLibNative_exposeVoidFunction(JNIEnv *env, jclass, jint id, jobject func,
-                                                                    jstring name, jobjectArray argTypes) {
+JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_exposeVoidFunction(JNIEnv *env, jclass, jint id, jobject func,
+                                                                        jstring name, jobjectArray argTypes) {
     SET_JVM();
     WebGUIContainer *c = findContainer(id);
     if (c) {
@@ -679,7 +736,7 @@ JNICALL Java_markusjx_cppjslib_nt_CppJsLibNative_exposeVoidFunction(JNIEnv *env,
                 errorF("[CppJsLib] Could not initialize JNIEnv. Error: " + std::to_string(err));
                 return "";
             }
-            jclass ExposedFunc = env->FindClass("Lmarkusjx/cppjslib/interfaces/CExposedVoidFunc;");
+            jclass ExposedFunc = env->FindClass("Lcom/markusjx/cppjslib/interfaces/CExposedVoidFunc;");
             jmethodID call = env->GetMethodID(ExposedFunc, "call", "([Ljava/lang/String;)V");
 
             jclass String = JAVA_STRING_CLS();
@@ -709,8 +766,9 @@ JNICALL Java_markusjx_cppjslib_nt_CppJsLibNative_exposeVoidFunction(JNIEnv *env,
  * Signature: (ILjava/lang/String;Ljava/lang/String;[Ljava/lang/String;)I
  */
 JNIEXPORT jint
-JNICALL Java_markusjx_cppjslib_nt_CppJsLibNative_importFunction(JNIEnv *env, jclass, jint id, jstring name,
-                                                                jstring returnType, jobjectArray argTypes, jint wait) {
+JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_importFunction(JNIEnv *env, jclass, jint id, jstring name,
+                                                                    jstring returnType, jobjectArray argTypes,
+                                                                    jint wait) {
     SET_JVM();
     WebGUIContainer *c = findContainer(id);
     int res = -1;
@@ -751,8 +809,8 @@ JNICALL Java_markusjx_cppjslib_nt_CppJsLibNative_importFunction(JNIEnv *env, jcl
  * Signature: (II[Ljava/lang/Object;)Ljava/lang/Object;
  */
 JNIEXPORT jobjectArray
-JNICALL Java_markusjx_cppjslib_nt_CppJsLibNative_callJSFunction(JNIEnv *env, jclass, jint clsID, jint id,
-                                                                jobjectArray args) {
+JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_callJSFunction(JNIEnv *env, jclass, jint clsID, jint id,
+                                                                    jobjectArray args) {
     SET_JVM();
     jclass String = JAVA_STRING_CLS();
     WebGUIContainer *c = findContainer(id);
@@ -791,8 +849,8 @@ JNICALL Java_markusjx_cppjslib_nt_CppJsLibNative_callJSFunction(JNIEnv *env, jcl
  * Signature: (II[Ljava/lang/String;)V
  */
 JNIEXPORT void
-JNICALL Java_markusjx_cppjslib_nt_CppJsLibNative_callVoidJsFunction(JNIEnv *env, jclass, jint clsID, jint id,
-                                                                    jobjectArray args) {
+JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_callVoidJsFunction(JNIEnv *env, jclass, jint clsID, jint id,
+                                                                        jobjectArray args) {
     SET_JVM();
     WebGUIContainer *c = findContainer(id);
     if (c) {
@@ -823,7 +881,7 @@ JNICALL Java_markusjx_cppjslib_nt_CppJsLibNative_callVoidJsFunction(JNIEnv *env,
  * Signature: ([Ljava/lang/String;)Ljava/lang/String;
  */
 JNIEXPORT jstring
-JNICALL Java_markusjx_cppjslib_nt_CppJsLibNative_stringArrayToJSON(JNIEnv *env, jclass, jobjectArray arr) {
+JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_stringArrayToJSON(JNIEnv *env, jclass, jobjectArray arr) {
     SET_JVM();
     jsize len = env->GetArrayLength(arr);
     vector<string> v;
@@ -850,7 +908,7 @@ JNICALL Java_markusjx_cppjslib_nt_CppJsLibNative_stringArrayToJSON(JNIEnv *env, 
  * Signature: (Ljava/lang/String;)[Ljava/lang/String;
  */
 JNIEXPORT jobjectArray
-JNICALL Java_markusjx_cppjslib_nt_CppJsLibNative_createStringArrayFromJSON(JNIEnv *env, jclass, jstring json) {
+JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_createStringArrayFromJSON(JNIEnv *env, jclass, jstring json) {
     SET_JVM();
     const char *s = env->GetStringUTFChars(json, &isFalse);
 
@@ -874,7 +932,7 @@ JNICALL Java_markusjx_cppjslib_nt_CppJsLibNative_createStringArrayFromJSON(JNIEn
  * Method:    deleteWebGUI
  * Signature: (I)V
  */
-JNIEXPORT void JNICALL Java_markusjx_cppjslib_nt_CppJsLibNative_deleteWebGUI(JNIEnv *env, jclass, jint id) {
+JNIEXPORT void JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_deleteWebGUI(JNIEnv *env, jclass, jint id) {
     SET_JVM();
     for (auto it = instances.begin(); it != instances.end(); ++it) {
         if ((*it)->id == id) {
@@ -890,7 +948,7 @@ JNIEXPORT void JNICALL Java_markusjx_cppjslib_nt_CppJsLibNative_deleteWebGUI(JNI
  * Method:    ok
  * Signature: ()Z
  */
-JNIEXPORT jboolean JNICALL Java_markusjx_cppjslib_nt_CppJsLibNative_ok(JNIEnv *env, jclass) {
+JNIEXPORT jboolean JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_ok(JNIEnv *env, jclass) {
     SET_JVM();
     return CppJsLib::ok();
 }
@@ -900,7 +958,7 @@ JNIEXPORT jboolean JNICALL Java_markusjx_cppjslib_nt_CppJsLibNative_ok(JNIEnv *e
  * Method:    getLastError
  * Signature: ()Ljava/lang/String;
  */
-JNIEXPORT jstring JNICALL Java_markusjx_cppjslib_nt_CppJsLibNative_getLastError(JNIEnv *env, jclass) {
+JNIEXPORT jstring JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_getLastError(JNIEnv *env, jclass) {
     SET_JVM();
     return env->NewStringUTF(CppJsLib::getLastError().c_str());
 }
@@ -910,7 +968,7 @@ JNIEXPORT jstring JNICALL Java_markusjx_cppjslib_nt_CppJsLibNative_getLastError(
  * Method:    resetLastError
  * Signature: ()V
  */
-JNIEXPORT void JNICALL Java_markusjx_cppjslib_nt_CppJsLibNative_resetLastError(JNIEnv *env, jclass) {
+JNIEXPORT void JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_resetLastError(JNIEnv *env, jclass) {
     SET_JVM();
     CppJsLib::resetLastError();
 }

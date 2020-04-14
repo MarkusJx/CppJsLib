@@ -738,10 +738,15 @@ namespace CppJsLib {
 
         /**
          * A WebGUI constructor
+         *
          * @param base_dir the base directory
          */
         explicit WebGUI(const std::string &base_dir);
 
+        /**
+        * Create a WebGUI instance without a base directory
+        * May only be used to start without a http(s) server
+        */
         WebGUI() : WebGUI("") {}
 
 #else
@@ -883,6 +888,13 @@ namespace CppJsLib {
         CPPJSLIB_EXPORT bool
         start(int port, int websocketPort, const std::string &host = "localhost", bool block = true);
 
+        /**
+         * Start only the websocket servers without the http(s) server
+         *
+         * @param port the port to listen on
+         * @param block if this is a blocking call
+         * @return if the operation was successful
+         */
         CPPJSLIB_EXPORT bool startNoWeb(int port, bool block = true);
 
         /**
