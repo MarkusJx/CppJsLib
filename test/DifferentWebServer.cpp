@@ -34,7 +34,9 @@ void DifferentWebServerTest() {
     srv->start(80, 81, "localhost", false);
 
     ptr->expose(webSocketOnlyTest);
+
     std::cout << "Starting websocket server" << std::endl;
+
     ptr->check_ports = false;
     ptr->startNoWeb(8025, true);
     std::this_thread::sleep_for(std::chrono::minutes(1));

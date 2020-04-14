@@ -7,6 +7,8 @@ on:
       - "LICENSE"
       - "CppJsLibJs/**"
       - ".gitignore"
+      - ".github/workflows/release.yml"
+      - ".github/workflows/javabinding.yml"
 
 jobs:
   build-ubuntu:
@@ -181,13 +183,48 @@ jobs:
       - name: Upload library
         uses: actions/upload-artifact@v1
         with:
-          name: CppJsLibReleaseWinOpenssl
+          name: CppJsLibReleaseWin
           path: src/Release
       #- name: Upload test
       #  uses: actions/upload-artifact@v1
       #  with:
       #    name: CppJsLibReleaseWinTestOpenssl
       #    path: test/Release
+  
+  build-win32-release:
+
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v1
+      - name: create include folder
+        run: mkdir include
+      - name: create lib folder
+        run: mkdir lib
+      - name: download openssl
+        shell: powershell
+        run: wget https://www.npcglib.org/~stathis/downloads/openssl-1.1.0f-vs2017.7z -OutFile openssl.7z
+      - name: unzip openssl
+        run: 7z x openssl.7z -r -y
+      - name: copy openssl headers
+        run: cp -r openssl-1.1.0f-vs2017/include/openssl include
+        shell: cmd
+      - name: copy openssl libs
+        run: cp -r openssl-1.1.0f-vs2017/lib/. lib
+        shell: cmd
+      - name: Install Boost
+        run: choco install -y boost-msvc-14.1
+      - name: run cmake
+        run: cmake -G "Visual Studio 16 2019" -A Win32 -DENABLE_HTTPS=TRUE -DENABLE_WEBSOCKET=TRUE -DBUILDDLL=TRUE .
+        env:
+          BOOST_ROOT: C:/local/boost_1_67_0
+      - name: build
+        run: cmake --build . --config Release
+      - name: Upload library
+        uses: actions/upload-artifact@v1
+        with:
+          name: CppJsLibReleaseWin32
+          path: src/Release
 
   build-macos-release:
 
