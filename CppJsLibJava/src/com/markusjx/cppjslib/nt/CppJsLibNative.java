@@ -1,8 +1,15 @@
-package markusjx.cppjslib.nt;
+package com.markusjx.cppjslib.nt;
 
-import markusjx.cppjslib.interfaces.*;
+import com.markusjx.cppjslib.interfaces.CExposedFunc;
+import com.markusjx.cppjslib.interfaces.CExposedVoidFunc;
+import com.markusjx.cppjslib.interfaces.Handler;
+import com.markusjx.cppjslib.interfaces.LoggingFunction;
 
-public class CppJsLibNative {
+/**
+ * Native functions. Do not call
+ * @hidden Do not use
+ */
+public final class CppJsLibNative {
     static {
         System.loadLibrary("CppJsLib");
     }
@@ -32,6 +39,12 @@ public class CppJsLibNative {
     public static native void setWebSocketCloseHandler(int id, Handler handler);
 
     public static native boolean start(int id, int port, int websocketPort, String host, boolean block);
+
+    public static native boolean startNoWeb(int id, int port, boolean block);
+
+    public static native void setMountPoint(int id, String mnt, String dir);
+
+    public static native void removeMountPoint(int id, String mnt);
 
     public static native boolean stop(int id, boolean block, int maxWaitSeconds);
 
