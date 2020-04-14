@@ -1,8 +1,18 @@
-package markusjx.cppjslib;
+package com.markusjx.cppjslib.util;
 
-import markusjx.cppjslib.nt.CppJsLibNative;
+import com.markusjx.cppjslib.nt.CppJsLibNative;
 
-public class utils {
+/**
+ * A generic util class used by some other classes.
+ * Should not be used by anyone else
+ */
+public final class utils {
+    /**
+     * Convert a class array to a class
+     *
+     * @param array the array to get the class from
+     * @return the resulting class
+     */
     private static Class<?> toClass(Class<?> array) {
         if (Boolean[].class == array || boolean[].class == array) return Boolean.class;
         if (Byte[].class == array || byte[].class == array) return Byte.class;
@@ -14,6 +24,30 @@ public class utils {
         return array;
     }
 
+    /**
+     * Convert a String array to an Object array
+     *
+     * @param cls       the class of the object
+     * @param toConvert the array to convert
+     * @param <R>       the return type
+     * @return the resulting array
+     */
+    public static <R> R[] toObject(Class<R> cls, String[] toConvert) {
+        Object[] tmp = new Object[toConvert.length];
+        for (int i = 0; i < toConvert.length; i++) {
+            tmp[i] = toObject(cls, toConvert[i]);
+        }
+
+        return (R[]) tmp;
+    }
+
+    /**
+     * Convert a String to an object
+     *
+     * @param clazz the object class to convert to
+     * @param value the value to convert
+     * @return the resulting object
+     */
     public static Object toObject(Class<?> clazz, String value) {
         if (clazz.isArray()) {
             String[] arr = CppJsLibNative.createStringArrayFromJSON(value);
@@ -33,6 +67,13 @@ public class utils {
         return value;
     }
 
+    /**
+     * Convert an Object to a String
+     *
+     * @param obj  the Object to convert
+     * @param type the type class of the object
+     * @return the resulting string
+     */
     public static String objToString(Object obj, Class<?> type) {
         if (type.isArray()) {
             Object[] arr = (Object[]) obj;
