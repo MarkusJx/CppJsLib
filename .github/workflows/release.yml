@@ -110,6 +110,12 @@ jobs:
       uses: actions/download-artifact@v1.0.0
       with:
         name: win-java-release
+    - name: zip files
+      uses: papeloto/action-zip@v1
+      with:
+        files: win-java-release/CppJsLib.dll CppJsLibJava/src/CppJsLibJava.jar
+        dest: win-java-amd64.zip
+      
     # Upload windows artifacts
     - name: Upload Release Asset
       id: upload-release-asset-win
@@ -128,7 +134,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}  
-        asset_path: ./win-java-release/win-java-amd64.zip
+        asset_path: ./win-java-amd64.zip
         asset_name: win-java-amd64.zip
         asset_content_type: application/zip
     # Download macos artifacts
@@ -191,27 +197,14 @@ jobs:
         uses: actions/setup-java@v1
         with:
           java-version: '11.0.3'
-      - name: Build jar
-        working-directory: CppJsLibJava/src
-        run: |
-          del Main.java
-          dir /s /B *.java > sources.txt
-          javac @sources.txt
-          jar cvf CppJsLibJava.jar com/markusjx/cppjslib/*.class com/markusjx/cppjslib/nt/*.class com/markusjx/cppjslib/interfaces/*.class com/markusjx/cppjslib/functional/*.class com/markusjx/cppjslib/util/*.class
       - name: Run cmake for jni
         run: cmake -DENABLE_HTTPS=TRUE -DENABLE_WEBSOCKET=TRUE -DBUILDDLL=TRUE -DBUILD_JNI_DLL=TRUE .
       - name: Build jni dll
         run: cmake --build . --config Release
-      - name: zip files
-        uses: papeloto/action-zip@v1
-        with:
-          files: src/Release/CppJsLib.dll CppJsLibJava/src/CppJsLibJava.jar
-          dest: win-java-amd64.zip
-      - name: Upload artifact
         uses: actions/upload-artifact@v1.0.0
         with:
           name: win-java-release
-          path: win-java-amd64.zip
+          path: src/Release/CppJsLib.dll
       
   build-macos-release:
     runs-on: macos-latest
