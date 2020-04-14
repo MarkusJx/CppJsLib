@@ -76,7 +76,6 @@ bool port_is_in_use(const char *addr, unsigned short port, int &err) {
 
     // Attempt to connect to an address until one succeeds
     for (ptr = result; ptr != nullptr; ptr = ptr->ai_next) {
-
         // Create a SOCKET for connecting to server
         ConnectSocket = socket(ptr->ai_family, ptr->ai_socktype,
                                ptr->ai_protocol);
