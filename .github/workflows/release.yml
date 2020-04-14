@@ -249,7 +249,7 @@ jobs:
       working-directory: CppJsLibJava/src
       run: |
         rm Main.java
-        find -name "*.java" > sources.txt
+        find . -name "*.java" > sources.txt
         mkdir javadoc
         javadoc -html5 -private -d javadoc @sources.txt
     - name: Build jar
