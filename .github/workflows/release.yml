@@ -199,6 +199,8 @@ jobs:
           java-version: '11.0.3'
       - name: Run cmake for jni
         run: cmake -DENABLE_HTTPS=TRUE -DENABLE_WEBSOCKET=TRUE -DBUILDDLL=TRUE -DBUILD_JNI_DLL=TRUE .
+        env:
+          BOOST_ROOT: C:/local/boost_1_67_0
       - name: Build jni dll
         run: cmake --build . --config Release
       - name: Upload artifact
