@@ -38,6 +38,11 @@ jobs:
         find -name "*.java" > sources.txt
         mkdir javadoc
         javadoc -html5 -private -d javadoc @sources.txt
+    - name: Zip javadoc
+      uses: papeloto/action-zip@v1
+      with:
+        files: CppJsLibJava/src/javadoc
+        dest: javadoc.zip
     - name: Build jar
       working-directory: CppJsLibJava/src
       run: |
@@ -85,6 +90,16 @@ jobs:
         upload_url: ${{ steps.create_release.outputs.upload_url }}  
         asset_path: ./linux-java-amd64.zip
         asset_name: linux-java-amd64.zip
+        asset_content_type: application/zip
+    - name: Upload Javadoc
+      id: upload-javadoc
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}  
+        asset_path: ./javadoc.zip
+        asset_name: javadoc.zip
         asset_content_type: application/zip
     # Download windows artifacts
     - name: Download artifact win
@@ -179,7 +194,7 @@ jobs:
       - name: Build jar
         working-directory: CppJsLibJava/src
         run: |
-          rm Main.java
+          del Main.java
           dir /s /B *.java > sources.txt
           javac @sources.txt
           jar cvf CppJsLibJava.jar com/markusjx/cppjslib/*.class com/markusjx/cppjslib/nt/*.class com/markusjx/cppjslib/interfaces/*.class com/markusjx/cppjslib/functional/*.class com/markusjx/cppjslib/util/*.class
