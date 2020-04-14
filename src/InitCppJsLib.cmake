@@ -249,7 +249,6 @@ function(initCppJsLib target source_dir include_dir)
         message(STATUS "No library includes were defined, not linking anything")
     endif ()
 
-
     if (ENABLE_WEBSOCKET)
         if (WIN32)
             target_compile_options(${target} PRIVATE "/bigobj")
