@@ -188,7 +188,7 @@ jobs:
     - name: install boost
       run: brew install boost@1.60
     - name: cmake
-      run: cmake -DCMAKE_BUILD_TYPE=Release -DENABLE_HTTPS=TRUE -DENABLE_WEBSOCKET=TRUE -DBUILDDLL=TRUE -DBOOST_ROOT="/usr/local/opt/boost@1.60" .
+      run: cmake -DCMAKE_BUILD_TYPE=Release -DENABLE_WEBSOCKET=TRUE -DBUILDDLL=TRUE -DBOOST_ROOT="/usr/local/opt/boost@1.60" .
     - name: build
       run: cmake --build .
     - name: Upload object
