@@ -282,7 +282,6 @@ CPPJSLIB_EXPORT bool WebGUI::start(int port, const std::string &host, bool block
 
 CPPJSLIB_EXPORT bool WebGUI::start(int port, int websocketPort, const std::string &host, bool block) {
 #else
-
     CPPJSLIB_EXPORT bool WebGUI::start(int port, const std::string &host, bool block) {
 #endif //CPPJSLIB_ENABLE_WEBSOCKET
 
