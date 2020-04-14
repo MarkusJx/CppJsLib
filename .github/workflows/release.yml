@@ -25,6 +25,35 @@ jobs:
       with:
         files: src/libCppJsLib.so src/CppJsLib.hpp
         dest: rel.zip
+    
+    # Compile jni lib and jar
+    - name: Set up JDK
+      uses: actions/setup-java@v1
+      with:
+        java-version: '11.0.3'
+    - name: Create javadoc
+      working-directory: CppJsLibJava/src
+      run: |
+        rm Main.java
+        find -name "*.java" > sources.txt
+        mkdir javadoc
+        javadoc -html5 -private -d javadoc @sources.txt
+    - name: Build jar
+      working-directory: CppJsLibJava/src
+      run: |
+        javac @sources.txt
+        jar cvf CppJsLibJava.jar com/markusjx/cppjslib/*.class com/markusjx/cppjslib/nt/*.class com/markusjx/cppjslib/interfaces/*.class com/markusjx/cppjslib/functional/*.class com/markusjx/cppjslib/util/*.class
+    - name: Run cmake for jni
+      run: cmake -DCMAKE_BUILD_TYPE=Release -DENABLE_HTTPS=TRUE -DENABLE_WEBSOCKET=TRUE -DBUILDDLL=TRUE -DBUILD_JNI_DLL=TRUE .
+    - name: Build jni dll
+      run: cmake --build .
+    - name: zip files
+      uses: papeloto/action-zip@v1
+      with:
+        files: src/libCppJsLib.so CppJsLibJava/src/CppJsLibJava.jar
+        dest: linux-java-amd64.zip
+    
+    # Create Release and upload files
     - name: Create Release
       id: create_release
       uses: actions/create-release@v1
@@ -47,10 +76,26 @@ jobs:
         asset_path: ./rel.zip
         asset_name: linux-amd64.zip
         asset_content_type: application/zip
+    - name: Upload Release Asset
+      id: upload-release-asset-java
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}  
+        asset_path: ./linux-java-amd64.zip
+        asset_name: linux-java-amd64.zip
+        asset_content_type: application/zip
+    # Download windows artifacts
     - name: Download artifact win
       uses: actions/download-artifact@v1.0.0
       with:
         name: win-release
+    - name: Download artifact win-jni
+      uses: actions/download-artifact@v1.0.0
+      with:
+        name: win-java-release
+    # Upload windows artifacts
     - name: Upload Release Asset
       id: upload-release-asset-win
       uses: actions/upload-release-asset@v1
@@ -61,10 +106,26 @@ jobs:
         asset_path: ./win-release/win-amd64.zip
         asset_name: win-amd64.zip
         asset_content_type: application/zip
+    - name: Upload Release Asset
+      id: upload-release-asset-win-java
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}  
+        asset_path: ./win-java-release/win-java-amd64.zip
+        asset_name: win-java-amd64.zip
+        asset_content_type: application/zip
+    # Download macos artifacts
     - name: Download artifact macos
       uses: actions/download-artifact@v1.0.0
       with:
         name: macos-release
+    - name: Download artifact macos
+      uses: actions/download-artifact@v1.0.0
+      with:
+        name: macos-java-release
+    # Upload macos artifacts
     - name: Upload Release Asset
       id: upload-release-asset-macos
       uses: actions/upload-release-asset@v1
@@ -74,6 +135,16 @@ jobs:
         upload_url: ${{ steps.create_release.outputs.upload_url }}  
         asset_path: ./macos-release/macos-amd64.zip
         asset_name: macos-amd64.zip
+        asset_content_type: application/zip
+    - name: Upload Release Asset
+      id: upload-release-asset-macos-java
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}  
+        asset_path: ./macos-java-release/macos-java-amd64.zip
+        asset_name: macos-java-amd64.zip
         asset_content_type: application/zip
 
   build-windows-release:
@@ -114,10 +185,11 @@ jobs:
         with:
           name: win-release
           path: win-amd64.zip
+      # Compile jni dll and jar
       - name: Set up JDK
         uses: actions/setup-java@v1
         with:
-          java-version: 11.0.3
+          java-version: '11.0.3'
       - name: Create javadoc
         working-directory: CppJsLibJava/src
         run: |
@@ -168,4 +240,35 @@ jobs:
       with:
         name: macos-release
         path: macos-amd64.zip
+    # Compile jni lib and jar
+    - name: Set up JDK
+      uses: actions/setup-java@v1
+      with:
+        java-version: '11.0.3'
+    - name: Create javadoc
+      working-directory: CppJsLibJava/src
+      run: |
+        rm Main.java
+        find -name "*.java" > sources.txt
+        mkdir javadoc
+        javadoc -html5 -private -d javadoc @sources.txt
+    - name: Build jar
+      working-directory: CppJsLibJava/src
+      run: |
+        javac @sources.txt
+        jar cvf CppJsLibJava.jar com/markusjx/cppjslib/*.class com/markusjx/cppjslib/nt/*.class com/markusjx/cppjslib/interfaces/*.class com/markusjx/cppjslib/functional/*.class com/markusjx/cppjslib/util/*.class
+    - name: Run cmake for jni
+      run: cmake -DCMAKE_BUILD_TYPE=Release -DENABLE_HTTPS=TRUE -DENABLE_WEBSOCKET=TRUE -DBUILDDLL=TRUE -DBOOST_ROOT="/usr/local/opt/boost@1.60" -DBUILD_JNI_DLL=TRUE .
+    - name: Build jni dll
+      run: cmake --build .
+    - name: zip files
+      uses: papeloto/action-zip@v1
+      with:
+        files: src/libCppJsLib.dylib CppJsLibJava/src/CppJsLibJava.jar
+        dest: macos-java-amd64.zip
+    - name: Upload artifact
+      uses: actions/upload-artifact@v1.0.0
+      with:
+        name: macos-java-release
+        path: macos-java-amd64.zip
 
