@@ -9,6 +9,7 @@ on:
       - ".gitignore"
       - ".github/workflows/release.yml"
       - ".github/workflows/javabinding.yml"
+      - "CppJsLibJava/**"
 
 jobs:
   build-ubuntu:
