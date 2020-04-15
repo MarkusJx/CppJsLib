@@ -9,6 +9,42 @@ import com.markusjx.cppjslib.nt.CppJsLibNative;
 @SuppressWarnings("unused")
 public class CppJsLib {
     /**
+     * Init. Do not call.
+     */
+    public static void init() {
+        hasHttpsSupport = CppJsLibNative.hasHttpsSupport();
+        hasWebsocketSupport = CppJsLibNative.hasWebsocketSupport();
+    }
+
+    /**
+     * Is true if the C++ library was built with websocket protocol support
+     */
+    private static boolean hasWebsocketSupport;
+
+    /**
+     * Is true if the C++ library was built with HTTPS support
+     */
+    private static boolean hasHttpsSupport;
+
+    /**
+     * Get if the C++ library was built with websocket protocol support
+     *
+     * @return true, if the C++ library was built with websocket protocol support
+     */
+    public static boolean hasWebsocketSupport() {
+        return hasWebsocketSupport;
+    }
+
+    /**
+     * Get if the C++ library was built with HTTPS support
+     *
+     * @return true, if the C++ library was built with HTTPS support
+     */
+    public static boolean hasHttpsSupport() {
+        return hasHttpsSupport;
+    }
+
+    /**
      * Check if there was an error
      *
      * @return true, if there was no error

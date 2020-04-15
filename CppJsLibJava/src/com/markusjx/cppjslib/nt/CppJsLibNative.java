@@ -1,5 +1,6 @@
 package com.markusjx.cppjslib.nt;
 
+import com.markusjx.cppjslib.CppJsLib;
 import com.markusjx.cppjslib.interfaces.CExposedFunc;
 import com.markusjx.cppjslib.interfaces.CExposedVoidFunc;
 import com.markusjx.cppjslib.interfaces.Handler;
@@ -12,6 +13,8 @@ import com.markusjx.cppjslib.interfaces.LoggingFunction;
 public final class CppJsLibNative {
     static {
         System.loadLibrary("CppJsLib");
+
+        CppJsLib.init();
     }
 
     public static native int initWebGUI(String base_dir);
@@ -63,6 +66,10 @@ public final class CppJsLibNative {
     public static native String[] createStringArrayFromJSON(String json);
 
     public static native void deleteWebGUI(int id);
+
+    public static native boolean hasWebsocketSupport();
+
+    public static native boolean hasHttpsSupport();
 
     public static native boolean ok();
 
