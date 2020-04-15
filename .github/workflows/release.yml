@@ -47,7 +47,7 @@ jobs:
       working-directory: CppJsLibJava/src
       run: |
         javac @sources.txt
-        jar cvf CppJsLibJava.jar com/markusjx/cppjslib/*.class com/markusjx/cppjslib/nt/*.class com/markusjx/cppjslib/interfaces/*.class com/markusjx/cppjslib/functional/*.class com/markusjx/cppjslib/util/*.class
+        jar cvf CppJsLibJava.jar com/markusjx/cppjslib/*.class com/markusjx/cppjslib/nt/*.class com/markusjx/cppjslib/interfaces/*.class com/markusjx/cppjslib/functional/*.class com/markusjx/cppjslib/util/*.class com/markusjx/cppjslib/exception/*.class
     - name: Run cmake for jni
       run: cmake -DCMAKE_BUILD_TYPE=Release -DENABLE_HTTPS=TRUE -DENABLE_WEBSOCKET=TRUE -DBUILDDLL=TRUE -DBUILD_JNI_DLL=TRUE .
     - name: Build jni dll
