@@ -218,7 +218,7 @@ namespace CppJsLib {
         };
 
         template<class ...Args>
-        inline void initJsFunction(JsFunction<void(Args...)> **toInit, std::string name, WebGUI *_wGui) {
+        inline void initJsFunction(JsFunction<void(Args...)> **toInit, const std::string& name, WebGUI *_wGui) {
             auto *tmp = (JsFunction<void(Args...)> *) malloc(sizeof(JsFunction<void(Args...)>));
             if (tmp) {
                 strcpy(tmp->fnName, name.c_str());
@@ -230,7 +230,7 @@ namespace CppJsLib {
 
         template<class R, class... Args>
         inline void
-        initJsFunction(JsFunction<std::vector<R>(Args ...)> **toInit, std::string name, WebGUI *_wGui,
+        initJsFunction(JsFunction<std::vector<R>(Args ...)> **toInit, const std::string& name, WebGUI *_wGui,
                        int waitS) {
             auto *tmp = (JsFunction<std::vector<R>(Args ...)> *) malloc(sizeof(JsFunction<std::vector<R>(Args ...)>));
             if (tmp) {
