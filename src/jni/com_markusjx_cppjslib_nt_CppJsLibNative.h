@@ -209,6 +209,22 @@ JNIEXPORT void JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_deleteWebGUI
 
 /*
  * Class:     com_markusjx_cppjslib_nt_CppJsLibNative
+ * Method:    hasWebsocketSupport
+ * Signature: ()Z
+ */
+JNIEXPORT jboolean JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_hasWebsocketSupport
+  (JNIEnv *, jclass);
+
+/*
+ * Class:     com_markusjx_cppjslib_nt_CppJsLibNative
+ * Method:    hasHttpsSupport
+ * Signature: ()Z
+ */
+JNIEXPORT jboolean JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_hasHttpsSupport
+  (JNIEnv *, jclass);
+
+/*
+ * Class:     com_markusjx_cppjslib_nt_CppJsLibNative
  * Method:    ok
  * Signature: ()Z
  */

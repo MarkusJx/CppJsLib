@@ -74,10 +74,14 @@
 #   ifdef CPPJSLIB_ENABLE_HTTPS
 #       define getTLSWebServer() _getTLSWebServer<websocketpp::server<websocketpp::config::asio_tls>>()
 #   endif //CPPJSLIB_ENABLE_HTTPS
+#else
+#   undef CPPJSLIB_ENABLE_WEBSOCKET
 #endif //CPPJSLIB_ENABLE_WEBSOCKET
 
 #ifdef CPPJSLIB_ENABLE_HTTPS
 #   define getHttpsServer() _getHttpServer<httplib::SSLServer>()
+#else
+#   undef CPPJSLIB_ENABLE_HTTPS
 #endif //CPPJSLIB_ENABLE_HTTPS
 
 #define getHttpServer() _getHttpServer<httplib::Server>()
@@ -324,8 +328,8 @@ namespace CppJsLib {
 
         template<typename fun, size_t i>
         struct expose_helper {
-            static void __expose(std::string *types) {
-                expose_helper<fun, i - 1>::__expose(types);
+            static void get_types(std::string *types) {
+                expose_helper<fun, i - 1>::get_types(types);
                 typedef typename function_traits<fun>::template arg<i - 1>::type type;
 
                 types[i - 1] = getTypeName<type>();
@@ -334,7 +338,7 @@ namespace CppJsLib {
 
         template<typename fun>
         struct expose_helper<fun, 0> {
-            static void __expose(std::string *types) {}
+            static void get_types(std::string *types) {}
         };
 
         template<typename T>
@@ -485,7 +489,7 @@ namespace CppJsLib {
                     *toInit = nullptr;
                     return;
                 }
-                expose_helper<std::function<R(Args...)>, fn_traits::nargs>::__expose(types);
+                expose_helper<std::function<R(Args...)>, fn_traits::nargs>::get_types(types);
 
                 std::string fnString = getTypeName<R>();
                 fnString.append(" ").append(name).append("(");

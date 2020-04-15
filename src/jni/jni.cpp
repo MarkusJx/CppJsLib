@@ -47,6 +47,8 @@ errno_t getEnv(JNIEnv *&env) {
     }
 }
 
+#ifdef CPPJSLIB_ENABLE_WEBSOCKET
+
 class J_JsFunction_Template {
 public:
     J_JsFunction_Template(string _name, string *args, unsigned short nArgs, CppJsLib::WebGUI *wGui) {
@@ -126,6 +128,8 @@ public:
     vector<std::string> responseReturns;
 };
 
+#endif
+
 class WebGUIContainer {
 public:
     WebGUIContainer(int id, const char *base_dir) : v(), jv(), m() {
@@ -133,14 +137,25 @@ public:
         webGui = new CppJsLib::WebGUI(base_dir);
     }
 
+#ifdef CPPJSLIB_ENABLE_HTTPS
+
     WebGUIContainer(int id, const char *base_dir, const char *cert_path, const char *private_key_path,
                     unsigned short websocket_fallback) : v(), jv(), m() {
         this->id = id;
         webGui = new CppJsLib::WebGUI(base_dir, cert_path, private_key_path, websocket_fallback);
     }
 
+#endif
+
+#ifdef CPPJSLIB_ENABLE_WEBSOCKET
+
     int insertJsFunction(string name, string returnType, string *argTypes, int num_args, int wait) {
-        auto *fn = new J_JsFunction(std::move(name), std::move(returnType), argTypes, num_args, wait, webGui);
+        auto *fn = new(std::nothrow) J_JsFunction(std::move(name), std::move(returnType), argTypes, num_args, wait,
+                                                  webGui);
+
+        if (fn == nullptr) {
+            return -1;
+        }
 
         m.lock();
         v.push_back(fn);
@@ -151,7 +166,11 @@ public:
     }
 
     int insertVoidJsFunction(string name, string *argTypes, int num_args) {
-        auto *fn = new J_VoidJsFunction(std::move(name), argTypes, num_args, webGui);
+        auto *fn = new(std::nothrow) J_VoidJsFunction(std::move(name), argTypes, num_args, webGui);
+
+        if (fn == nullptr) {
+            return -1;
+        }
 
         m.lock();
         v.push_back(fn);
@@ -160,6 +179,8 @@ public:
 
         return res;
     }
+
+#endif
 
     ~WebGUIContainer() {
         if (jvm) {
@@ -173,9 +194,11 @@ public:
                 }
             }
         }
+#ifdef CPPJSLIB_ENABLE_WEBSOCKET
         for (J_JsFunction_Template *fn : v) {
             delete fn;
         }
+#endif
         delete webGui;
     }
 
@@ -183,7 +206,11 @@ public:
     CppJsLib::WebGUI *webGui;
     std::mutex m;
     vector<jobject> jv;
+#ifdef CPPJSLIB_ENABLE_WEBSOCKET
     vector<J_JsFunction_Template *> v;
+#else
+    vector<void *> v;
+#endif
 };
 
 vector<WebGUIContainer *> instances;
@@ -255,10 +282,10 @@ CppJsLib::WebGUI::exportJavaFunction(const std::string &name, std::string return
 
         if (size != numArgs) {
             err("[CppJsLib] Argument count from JS does not match");
-            return "";
+            return string("");
         }
 
-        return fn(argArr, size).c_str();
+        return fn(argArr, size);
     });
 }
 
@@ -272,7 +299,13 @@ JNIEXPORT jint JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_initWebGUI__
     SET_JVM();
     mtx.lock();
     const char *dir = env->GetStringUTFChars(base_dir, &isFalse);
-    instances.push_back(new WebGUIContainer(lastID, dir));
+    auto c = new(std::nothrow) WebGUIContainer(lastID, dir);
+    if (c == nullptr) {
+        mtx.unlock();
+        return -1;
+    }
+
+    instances.push_back(c);
     env->ReleaseStringUTFChars(base_dir, dir);
 
     int tmp = lastID;
@@ -292,13 +325,21 @@ JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_initWebGUI__Ljava_lang_Stri
         JNIEnv *env, jclass, jstring base_dir, jstring cert_path, jstring private_key_path,
         jint websocket_fallback_plain) {
     SET_JVM();
+#ifdef CPPJSLIB_ENABLE_HTTPS
     mtx.lock();
 
     auto dir = env->GetStringUTFChars(base_dir, &isFalse);
     auto c_path = env->GetStringUTFChars(cert_path, &isFalse);
     auto p_k_path = env->GetStringUTFChars(private_key_path, &isFalse);
 
-    instances.push_back(new WebGUIContainer(lastID, dir, c_path, p_k_path, (unsigned short) websocket_fallback_plain));
+    auto c = new(std::nothrow) WebGUIContainer(lastID, dir, c_path, p_k_path,
+                                               (unsigned short) websocket_fallback_plain);
+    if (c == nullptr) {
+        mtx.unlock();
+        return -1;
+    }
+
+    instances.push_back(c);
 
     env->ReleaseStringUTFChars(base_dir, dir);
     env->ReleaseStringUTFChars(cert_path, c_path);
@@ -309,6 +350,10 @@ JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_initWebGUI__Ljava_lang_Stri
     mtx.unlock();
 
     return id;
+#else
+    errorF("Starting with SSL support is not available since CppJsLib was built without HTTPS support");
+    return -1;
+#endif
 }
 
 /*
@@ -503,6 +548,7 @@ JNIEXPORT void
 JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_setWebSocketOpenHandler(JNIEnv *env, jclass, jint id,
                                                                              jobject handler) {
     SET_JVM();
+#ifdef CPPJSLIB_ENABLE_WEBSOCKET
     WebGUIContainer *c = findContainer(id);
     if (c) {
         jobject hdl = env->NewGlobalRef(handler);
@@ -523,6 +569,9 @@ JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_setWebSocketOpenHandler(JNI
             CHECK_JAVA_EXCEPTION();
         });
     }
+#else
+    errorF("setWebSocketOpenHandler is undefined since CppJsLib was built without websocket protocol support");
+#endif
 }
 
 /*
@@ -534,6 +583,7 @@ JNIEXPORT void
 JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_setWebSocketCloseHandler(JNIEnv *env, jclass, jint id,
                                                                               jobject handler) {
     SET_JVM();
+#ifdef CPPJSLIB_ENABLE_WEBSOCKET
     WebGUIContainer *c = findContainer(id);
     if (c) {
         jobject hdl = env->NewGlobalRef(handler);
@@ -554,6 +604,9 @@ JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_setWebSocketCloseHandler(JN
             CHECK_JAVA_EXCEPTION();
         });
     }
+#else
+    errorF("setWebSocketCloseHandler is undefined since CppJsLib was built without websocket protocol support");
+#endif
 }
 
 /*
@@ -568,7 +621,11 @@ JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_start(JNIEnv *env, jclass, 
     WebGUIContainer *c = findContainer(id);
     if (c) {
         auto _host = env->GetStringUTFChars(host, &isFalse);
+#ifdef CPPJSLIB_ENABLE_WEBSOCKET
         bool res = c->webGui->start(port, websocketPort, _host, block);
+#else
+        bool res = c->webGui->start(port, _host, block);
+#endif
         env->ReleaseStringUTFChars(host, _host);
         return res;
     } else {
@@ -585,12 +642,17 @@ JNIEXPORT jboolean
 JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_startNoWeb(JNIEnv *env, jclass, jint id, jint port,
                                                                 jboolean block) {
     SET_JVM();
+#ifdef CPPJSLIB_ENABLE_WEBSOCKET
     WebGUIContainer *c = findContainer(id);
     if (c) {
         return c->webGui->startNoWeb(port, block);
     } else {
         return false;
     }
+#else
+    errorF("startNoWeb is not defined since CppJsLib was built without websocket protocol support");
+    return false;
+#endif
 }
 
 /*
@@ -774,6 +836,7 @@ JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_importFunction(JNIEnv *env,
                                                                     jstring returnType, jobjectArray argTypes,
                                                                     jint wait) {
     SET_JVM();
+#ifdef CPPJSLIB_ENABLE_WEBSOCKET
     WebGUIContainer *c = findContainer(id);
     int res = -1;
     if (c) {
@@ -805,6 +868,10 @@ JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_importFunction(JNIEnv *env,
     }
 
     return res;
+#else
+    errorF("Could not import js function since CppJsLib was built without websocket protocol support");
+    return -1;
+#endif
 }
 
 /*
@@ -816,6 +883,7 @@ JNIEXPORT jobjectArray
 JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_callJSFunction(JNIEnv *env, jclass, jint clsID, jint id,
                                                                     jobjectArray args) {
     SET_JVM();
+#ifdef CPPJSLIB_ENABLE_WEBSOCKET
     jclass String = JAVA_STRING_CLS();
     WebGUIContainer *c = findContainer(id);
     if (c) {
@@ -845,6 +913,11 @@ JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_callJSFunction(JNIEnv *env,
     } else {
         return env->NewObjectArray(0, String, nullptr);
     }
+#else
+    errorF("Could not call js function since CppJsLib was built without websocket protocol support");
+    jclass String = JAVA_STRING_CLS();
+    return env->NewObjectArray(0, String, nullptr);
+#endif
 }
 
 /*
@@ -856,6 +929,7 @@ JNIEXPORT void
 JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_callVoidJsFunction(JNIEnv *env, jclass, jint clsID, jint id,
                                                                         jobjectArray args) {
     SET_JVM();
+#ifdef CPPJSLIB_ENABLE_WEBSOCKET
     WebGUIContainer *c = findContainer(id);
     if (c) {
         int len = env->GetArrayLength(args);
@@ -877,6 +951,9 @@ JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_callVoidJsFunction(JNIEnv *
             env->ReleaseStringUTFChars(p.second, p.first);
         }
     }
+#else
+    errorF("Could not call js function since CppJsLib was built without websocket protocol support");
+#endif
 }
 
 /*
@@ -945,6 +1022,34 @@ JNIEXPORT void JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_deleteWebGUI
             break;
         }
     }
+}
+
+/*
+ * Class:     com_markusjx_cppjslib_nt_CppJsLibNative
+ * Method:    hasWebsocketSupport
+ * Signature: ()Z
+ */
+JNIEXPORT jboolean JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_hasWebsocketSupport(JNIEnv *env, jclass) {
+    SET_JVM();
+#ifdef CPPJSLIB_ENABLE_WEBSOCKET
+    return true;
+#else
+    return false;
+#endif
+}
+
+/*
+ * Class:     com_markusjx_cppjslib_nt_CppJsLibNative
+ * Method:    hasHttpsSupport
+ * Signature: ()Z
+ */
+JNIEXPORT jboolean JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_hasHttpsSupport(JNIEnv *env, jclass) {
+    SET_JVM();
+#ifdef CPPJSLIB_ENABLE_HTTPS
+    return true;
+#else
+    return false;
+#endif
 }
 
 /*
