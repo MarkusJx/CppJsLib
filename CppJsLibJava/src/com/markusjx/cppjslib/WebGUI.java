@@ -649,19 +649,6 @@ public class WebGUI implements AutoCloseable {
     }
 
     /**
-     * Check if CppJsLib has websocket support
-     */
-    private void checkJsFuncSupport() {
-        if (!CppJsLib.hasWebsocketSupport()) {
-            try {
-                throw new OperationNotSupportedException("CppJsLib was built without websocket protocol support. This feature is required to import JavaScript functions");
-            } catch (OperationNotSupportedException e) {
-                throw new RuntimeException(e);
-            }
-        }
-    }
-
-    /**
      * Import a void function from JavaScript.
      * This will throw an {@link OperationNotSupportedException} if the C++ library was built without websocket protocol support
      *
@@ -672,7 +659,6 @@ public class WebGUI implements AutoCloseable {
      */
     public JavaScriptVoidFunc importVoidFunction(String name, Class<?>... types) throws CppOutOfMemoryException {
         checkDeleted();
-        checkJsFuncSupport();
 
         String[] argTypes = new String[types.length];
         for (int i = 0; i < argTypes.length; i++) {
@@ -707,7 +693,14 @@ public class WebGUI implements AutoCloseable {
      */
     public <R> JavaScriptFunc<R> importFunction(String name, int wait, Class<R> returnType, Class<?>... types) throws CppOutOfMemoryException {
         checkDeleted();
-        checkJsFuncSupport();
+
+        if (!CppJsLib.hasWebsocketSupport()) {
+            try {
+                throw new OperationNotSupportedException("CppJsLib was built without websocket protocol support. This feature is required to import non-void JavaScript functions");
+            } catch (OperationNotSupportedException e) {
+                throw new RuntimeException(e);
+            }
+        }
 
         String[] argTypes = new String[types.length];
         for (int i = 0; i < argTypes.length; i++) {
