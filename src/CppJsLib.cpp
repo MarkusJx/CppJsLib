@@ -101,102 +101,15 @@ CPPJSLIB_EXPORT std::string *CppJsLib::util::createStringArrayFromJSON(int *size
     return ret;
 }
 
-#ifdef CPPJSLIB_ENABLE_WEBSOCKET
-
 CPPJSLIB_EXPORT void CppJsLib::util::callJsFunc(WebGUI *wGui, std::vector<std::string> *argV, char *funcName,
                                                 std::vector<std::string> *results, int wait) {
     wGui->call_jsFn(argV, funcName, results, wait);
 }
 
-// Source: https://stackoverflow.com/a/440240
-std::string gen_random(const int len) {
-    std::string tmp;
-    tmp.resize(len);
-    static const char alphanum[] =
-            "0123456789"
-            "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-            "abcdefghijklmnopqrstuvwxyz";
+#ifndef CPPJSLIB_ENABLE_WEBSOCKET
 
-    // Seed with a real random value, if available
-    std::random_device r;
-
-    std::default_random_engine e1(r());
-    std::uniform_int_distribution<int> uniform_dist(0, sizeof(alphanum) - 2);
-
-    for (int i = 0; i < len; ++i) {
-        tmp[i] = alphanum[uniform_dist(e1)];
-    }
-
-    tmp[len] = 0;
-
-    return tmp;
-}
-
-CPPJSLIB_EXPORT void WebGUI::call_jsFn(std::vector<std::string> *argV, const char *funcName,
-                                       std::vector<std::string> *results, int wait) {
-    // Dump the list of arguments into a json string
-    nlohmann::json j;
-    if (!argV->empty()) {
-        for (std::string s: *argV) {
-            j[funcName].push_back(s);
-        }
-    } else {
-        j[funcName].push_back("");
-    }
-
-    std::shared_ptr<wspp::con_list> list = std::static_pointer_cast<wspp::con_list>(ws_connections);
-
-    // Set the message handlers if the function is non-void
-    std::string callback = gen_random(40);
-    if (results) {
-        while (jsFnCallbacks.count(callback) != 0) {
-            callback = gen_random(40);
-        }
-
-        j["callback"] = callback;
-        jsFnCallbacks.insert(std::make_pair(callback, results));
-    }
-
-    std::string str = j.dump();
-
-    // Send request to all clients
-    for (const auto &it : *list) {
-#   ifdef CPPJSLIB_ENABLE_HTTPS
-        if (ssl) {
-            std::static_pointer_cast<wspp::server_tls>(ws_server)->send(it, str,
-                                                                        websocketpp::frame::opcode::value::text);
-        } else {
-            std::static_pointer_cast<wspp::server>(ws_server)->send(it, str, websocketpp::frame::opcode::value::text);
-        }
-#   else
-        std::static_pointer_cast<wspp::server>(ws_server)->send(it, str, websocketpp::frame::opcode::value::text);
-#   endif //CPPJSLIB_ENABLE_HTTPS
-    }
-
-#   ifdef CPPJSLIB_ENABLE_HTTPS
-    if (fallback_plain) {
-        std::shared_ptr<wspp::con_list> plain_list = std::static_pointer_cast<wspp::con_list>(ws_plain_connections);
-        for (const auto &it : *plain_list) {
-            std::static_pointer_cast<wspp::server>(ws_plain_server)->send(it, str,
-                                                                          websocketpp::frame::opcode::value::text);
-        }
-    }
-#   endif //CPPJSLIB_ENABLE_HTTPS
-
-    if (results) {
-        // Wait for the results to come in
-        if (wait != -1) wait *= 100;
-        int counter = 0;
-        while (results->size() < list->size() && counter < wait) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(10));
-            if (wait != -1) counter++;
-        }
-
-        // Remove the message handler
-        if (jsFnCallbacks.find(callback) != jsFnCallbacks.end()) {
-            jsFnCallbacks.erase(jsFnCallbacks.find(callback));
-        }
-    }
+CPPJSLIB_EXPORT void CppJsLib::util::pushToSseVector(WebGUI *webGui, const std::string &s) {
+    webGui->pushToSseVec(s);
 }
 
 #endif //CPPJSLIB_ENABLE_WEBSOCKET

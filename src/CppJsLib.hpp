@@ -61,6 +61,8 @@
 #include <vector>
 #include <iostream>
 #include <memory>
+#include <atomic>
+#include <mutex>
 
 #ifdef CPPJSLIB_WINDOWS
 #   define strdup _strdup
@@ -107,6 +109,10 @@ namespace CppJsLib {
 
         CPPJSLIB_EXPORT void pushToVoidPtrVector(WebGUI *webGui, void *ptr);
 
+#ifndef CPPJSLIB_ENABLE_WEBSOCKET
+        CPPJSLIB_EXPORT void pushToSseVector(WebGUI *webGui, const std::string &s);
+#endif
+
         /**
          * Stop the web server
          * Do not use this. Or use it at your own risk
@@ -135,8 +141,6 @@ namespace CppJsLib {
 
         template<typename T>
         T ConvertString(const std::string &data);
-
-#ifdef CPPJSLIB_ENABLE_WEBSOCKET
 
         template<class>
         struct JsFunction;
@@ -177,6 +181,22 @@ namespace CppJsLib {
             char fnName[CPPJSLIB_MAX_FUNCNAME_LEN];
             WebGUI *wGui;
         };
+
+        template<class ...Args>
+        inline void initJsFunction(JsFunction<void(Args...)> **toInit, const std::string& name, WebGUI *_wGui) {
+            auto *tmp = (JsFunction<void(Args...)> *) malloc(sizeof(JsFunction<void(Args...)>));
+            if (tmp) {
+                strcpy(tmp->fnName, name.c_str());
+                tmp->wGui = _wGui;
+            }
+
+            *toInit = tmp;
+#ifndef CPPJSLIB_ENABLE_WEBSOCKET
+            pushToSseVector(_wGui, name);
+#endif //CPPJSLIB_ENABLE_WEBSOCKET
+        }
+
+#ifdef CPPJSLIB_ENABLE_WEBSOCKET
 
         template<class R>
         struct JsFunction<std::vector<R>()> {
@@ -220,17 +240,6 @@ namespace CppJsLib {
             WebGUI *wGui = nullptr;
             std::vector<std::string> *responseReturns = nullptr;
         };
-
-        template<class ...Args>
-        inline void initJsFunction(JsFunction<void(Args...)> **toInit, const std::string& name, WebGUI *_wGui) {
-            auto *tmp = (JsFunction<void(Args...)> *) malloc(sizeof(JsFunction<void(Args...)>));
-            if (tmp) {
-                strcpy(tmp->fnName, name.c_str());
-                tmp->wGui = _wGui;
-            }
-
-            *toInit = tmp;
-        }
 
         template<class R, class... Args>
         inline void
@@ -823,15 +832,6 @@ namespace CppJsLib {
             }
         }
 
-#ifdef CPPJSLIB_ENABLE_WEBSOCKET
-
-        /**
-         * Do not use this
-         */
-        CPPJSLIB_EXPORT void
-        call_jsFn(std::vector<std::string> *argV, const char *funcName,
-                  std::vector<std::string> *results = nullptr, int wait = -1);
-
         /**
          * Do not use this
          */
@@ -856,6 +856,14 @@ namespace CppJsLib {
             }
         }
 
+        /**
+         * Do not use this
+         */
+        CPPJSLIB_EXPORT void
+        call_jsFn(std::vector<std::string> *argV, const char *funcName,
+                  std::vector<std::string> *results = nullptr, int wait = -1);
+
+#ifdef CPPJSLIB_ENABLE_WEBSOCKET
         /**
          * Do not use this
          */
@@ -1024,6 +1032,8 @@ namespace CppJsLib {
 #   endif //CPPJSLIB_ENABLE_HTTPS
         }
 
+#else
+        CPPJSLIB_EXPORT void pushToSseVec(const std::string& s);
 #endif //CPPJSLIB_ENABLE_WEBSOCKET
 
 // Delete default destructor if the dll is used to prevent heap corruption
@@ -1058,6 +1068,8 @@ namespace CppJsLib {
 #   endif //CPPJSLIB_ENABLE_HTTPS
 #endif //CPPJSLIB_ENABLE_WEBSOCKET
         std::shared_ptr<void> server;
+        std::vector<std::string> sseVec;
+        std::map<std::string, void *> sseEventMap;
 
         std::map<char *, char *> initMap;
         std::vector<void *> voidPtrVector;

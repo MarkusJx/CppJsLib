@@ -47,8 +47,6 @@ errno_t getEnv(JNIEnv *&env) {
     }
 }
 
-#ifdef CPPJSLIB_ENABLE_WEBSOCKET
-
 class J_JsFunction_Template {
 public:
     J_JsFunction_Template(string _name, string *args, unsigned short nArgs, CppJsLib::WebGUI *wGui) {
@@ -88,6 +86,8 @@ public:
         free(fName);
     }
 };
+
+#ifdef CPPJSLIB_ENABLE_WEBSOCKET
 
 class J_JsFunction : public J_JsFunction_Template {
 public:
@@ -147,11 +147,8 @@ public:
 
 #endif
 
-#ifdef CPPJSLIB_ENABLE_WEBSOCKET
-
-    int insertJsFunction(string name, string returnType, string *argTypes, int num_args, int wait) {
-        auto *fn = new(std::nothrow) J_JsFunction(std::move(name), std::move(returnType), argTypes, num_args, wait,
-                                                  webGui);
+    int insertVoidJsFunction(string name, string *argTypes, int num_args) {
+        auto *fn = new(std::nothrow) J_VoidJsFunction(std::move(name), argTypes, num_args, webGui);
 
         if (fn == nullptr) {
             return -1;
@@ -165,8 +162,11 @@ public:
         return res;
     }
 
-    int insertVoidJsFunction(string name, string *argTypes, int num_args) {
-        auto *fn = new(std::nothrow) J_VoidJsFunction(std::move(name), argTypes, num_args, webGui);
+#ifdef CPPJSLIB_ENABLE_WEBSOCKET
+
+    int insertJsFunction(string name, string returnType, string *argTypes, int num_args, int wait) {
+        auto *fn = new(std::nothrow) J_JsFunction(std::move(name), std::move(returnType), argTypes, num_args, wait,
+                                                  webGui);
 
         if (fn == nullptr) {
             return -1;
@@ -194,11 +194,10 @@ public:
                 }
             }
         }
-#ifdef CPPJSLIB_ENABLE_WEBSOCKET
+
         for (J_JsFunction_Template *fn : v) {
             delete fn;
         }
-#endif
         delete webGui;
     }
 
@@ -206,11 +205,7 @@ public:
     CppJsLib::WebGUI *webGui;
     std::mutex m;
     vector<jobject> jv;
-#ifdef CPPJSLIB_ENABLE_WEBSOCKET
     vector<J_JsFunction_Template *> v;
-#else
-    vector<void *> v;
-#endif
 };
 
 vector<WebGUIContainer *> instances;
@@ -836,7 +831,6 @@ JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_importFunction(JNIEnv *env,
                                                                     jstring returnType, jobjectArray argTypes,
                                                                     jint wait) {
     SET_JVM();
-#ifdef CPPJSLIB_ENABLE_WEBSOCKET
     WebGUIContainer *c = findContainer(id);
     int res = -1;
     if (c) {
@@ -858,7 +852,12 @@ JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_importFunction(JNIEnv *env,
         if (rt == "void") {
             res = c->insertVoidJsFunction(n, args, len);
         } else {
+#ifdef CPPJSLIB_ENABLE_WEBSOCKET
             res = c->insertJsFunction(n, rt, args, len, wait);
+#else
+            errorF("Could not import js function since CppJsLib was built without websocket protocol support");
+            return -1;
+#endif //CPPJSLIB_ENABLE_WEBSOCKET
         }
         delete[] args;
 
@@ -868,10 +867,6 @@ JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_importFunction(JNIEnv *env,
     }
 
     return res;
-#else
-    errorF("Could not import js function since CppJsLib was built without websocket protocol support");
-    return -1;
-#endif
 }
 
 /*
@@ -898,7 +893,12 @@ JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_callJSFunction(JNIEnv *env,
             m.insert(std::make_pair(str, jStr));
         }
 
-        vector<string> res = (*(J_JsFunction *) c->v[clsID])(ar);
+        vector<string> res;
+        if (c->v.size() > clsID) {
+            res = (*(J_JsFunction *) c->v[clsID])(ar);
+        } else {
+            errorF("Could not call JavaScript function: A function with this id does not exist");
+        }
         delete[] ar;
         for (std::pair<const char *, jstring> p : m) {
             env->ReleaseStringUTFChars(p.second, p.first);
@@ -929,7 +929,6 @@ JNIEXPORT void
 JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_callVoidJsFunction(JNIEnv *env, jclass, jint clsID, jint id,
                                                                         jobjectArray args) {
     SET_JVM();
-#ifdef CPPJSLIB_ENABLE_WEBSOCKET
     WebGUIContainer *c = findContainer(id);
     if (c) {
         int len = env->GetArrayLength(args);
@@ -944,16 +943,17 @@ JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_callVoidJsFunction(JNIEnv *
             m.insert(std::make_pair(str, jStr));
         }
 
-        (*(J_VoidJsFunction *) c->v[clsID])(ar);
+        if (c->v.size() > clsID) {
+            (*(J_VoidJsFunction *) c->v[clsID])(ar);
+        } else {
+            errorF("Could not call JavaScript function: A function with this id does not exist");
+        }
         delete[] ar;
 
         for (std::pair<const char *, jstring> p : m) {
             env->ReleaseStringUTFChars(p.second, p.first);
         }
     }
-#else
-    errorF("Could not call js function since CppJsLib was built without websocket protocol support");
-#endif
 }
 
 /*

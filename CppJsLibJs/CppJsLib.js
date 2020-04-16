@@ -222,6 +222,25 @@ const cppJsLib = {
                             }
                         }
                     }
+                } else {
+                    for (let key in this.exposedFunctions) {
+                        let evtSource = new EventSource("/ev_" + key);
+                        evtSource.onmessage = (event) => {
+                            let data = JSON.parse(event.data);
+                            let key = Object.keys(data)[0];
+                            if (this.exposedFunctions.hasOwnProperty(key)) {
+                                if (data[key].length === 1) {
+                                    if (data[key][0] === "") {
+                                        this.exposedFunctions[key]();
+                                    } else {
+                                        this.exposedFunctions[key](JSON.parse(data[key]));
+                                    }
+                                } else {
+                                    this.exposedFunctions[key](...JSON.parse(data[key]));
+                                }
+                            }
+                        }
+                    }
                 }
             }, "", "GET");
         }
