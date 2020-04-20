@@ -154,9 +154,18 @@ namespace CppJsLib {
             return std::to_string(dt);
         }
 
+        template<typename T>
+        inline std::string getEl(std::vector<T> dt) {
+            std::vector<std::string> tmp;
+            for (T el : dt) {
+                tmp.push_back(getEl(el));
+            }
+            return stringArrayToJSON(&tmp);
+        }
+
         template<class ...Args>
         inline void ConvertToString(std::vector<std::string> *argV, Args...args) {
-            auto x = {(argV->push_back(args), 0)...};
+            volatile auto x = {(argV->push_back(args), 0)...};
         }
 
         template<>
@@ -183,7 +192,7 @@ namespace CppJsLib {
         };
 
         template<class ...Args>
-        inline void initJsFunction(JsFunction<void(Args...)> **toInit, const std::string& name, WebGUI *_wGui) {
+        inline void initJsFunction(JsFunction<void(Args...)> **toInit, const std::string &name, WebGUI *_wGui) {
             auto *tmp = (JsFunction<void(Args...)> *) malloc(sizeof(JsFunction<void(Args...)>));
             if (tmp) {
                 strcpy(tmp->fnName, name.c_str());
@@ -243,7 +252,7 @@ namespace CppJsLib {
 
         template<class R, class... Args>
         inline void
-        initJsFunction(JsFunction<std::vector<R>(Args ...)> **toInit, const std::string& name, WebGUI *_wGui,
+        initJsFunction(JsFunction<std::vector<R>(Args ...)> **toInit, const std::string &name, WebGUI *_wGui,
                        int waitS) {
             auto *tmp = (JsFunction<std::vector<R>(Args ...)> *) malloc(sizeof(JsFunction<std::vector<R>(Args ...)>));
             if (tmp) {
@@ -260,18 +269,12 @@ namespace CppJsLib {
 
 #endif
 
-        template<size_t SIZE, class T>
-        inline size_t array_size(T (&arr)[SIZE]) {
-            return SIZE;
-        }
-
         template<class R>
-        struct TypeConverter<R *> {
-            static std::string toString(R toConvert) {
-                size_t size = array_size(toConvert);
+        struct TypeConverter<std::vector<R>> {
+            static std::string toString(std::vector<R> toConvert) {
                 std::vector<std::string> stringVector;
-                for (int i = 0; i < size; i++) {
-                    stringVector.push_back(std::to_string(toConvert[i]));
+                for (R val : toConvert) {
+                    stringVector.push_back(std::to_string(val));
                 }
 
                 std::string res = stringArrayToJSON(&stringVector);
@@ -308,27 +311,27 @@ namespace CppJsLib {
         std::string getTypeName() {
             if (std::is_same<int, type>::value) {
                 return "int";
-            } else if (std::is_same<int *, type>::value) {
+            } else if (std::is_same<std::vector<int>, type>::value) {
                 return "int[]";
             } else if (std::is_same<char, type>::value) {
                 return "char";
-            } else if (std::is_same<char *, type>::value) {
+            } else if (std::is_same<std::vector<char>, type>::value) {
                 return "char[]";
             } else if (std::is_same<std::string, type>::value) {
                 return "string";
-            } else if (std::is_same<std::string *, type>::value) {
+            } else if (std::is_same<std::vector<std::string>, type>::value) {
                 return "string[]";
             } else if (std::is_same<bool, type>::value) {
                 return "bool";
-            } else if (std::is_same<bool *, type>::value) {
+            } else if (std::is_same<std::vector<bool>, type>::value) {
                 return "bool[]";
             } else if (std::is_same<float, type>::value) {
                 return "float";
-            } else if (std::is_same<float *, type>::value) {
+            } else if (std::is_same<std::vector<float>, type>::value) {
                 return "float[]";
             } else if (std::is_same<double, type>::value) {
                 return "double";
-            } else if (std::is_same<double *, type>::value) {
+            } else if (std::is_same<std::vector<double>, type>::value) {
                 return "double[]";
             } else {
                 return "void";
@@ -367,6 +370,20 @@ namespace CppJsLib {
             }
         };
 
+        template<typename T>
+        struct cString<std::vector<T>> {
+            static std::vector<T> convert(const std::string &data) {
+                int size = 0;
+                std::string *arr = createStringArrayFromJSON(&size, data);
+                std::vector<T> tmp(size);
+                for (int i = 0; i < size; i++) {
+                    tmp[i] = cString<T>::convert(arr[i]);
+                }
+
+                return tmp;
+            }
+        };
+
         template<class T>
         struct cString {
             static T convert(const std::string &data) {
@@ -397,7 +414,7 @@ namespace CppJsLib {
             }
         };
 
-        template<class T>
+        /*template<class T>
         struct cString<T *> {
             static T *convert(const std::string &data) {
                 typedef typename remove_pointer<T>::type type;
@@ -410,7 +427,7 @@ namespace CppJsLib {
 
                 return ret;
             }
-        };
+        };*/
 
         /**
          * Convert a String to a param T
@@ -864,6 +881,7 @@ namespace CppJsLib {
                   std::vector<std::string> *results = nullptr, int wait = -1);
 
 #ifdef CPPJSLIB_ENABLE_WEBSOCKET
+
         /**
          * Do not use this
          */

@@ -26,6 +26,7 @@ CPPJSLIB_EXPORT bool CppJsLib::util::stop(WebGUI *webGui, bool block, int waitMa
                 webGui->getWebServer()->stop();
             }
 #   else
+            webGui->getWebServer()->stop_listening();
             webGui->getWebServer()->stop();
 #   endif //CPPJSLIB_ENABLE_HTTPS
         } else {

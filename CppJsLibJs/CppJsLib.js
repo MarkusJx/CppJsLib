@@ -317,6 +317,8 @@ const cppJsLib = {
     }
 };
 
-if (!CPPJSLIB_NO_INIT) {
+if (typeof CPPJSLIB_NO_INIT === "undefined") {
     cppJsLib.init();
+} else if (!CPPJSLIB_NO_INIT) {
+
 }
