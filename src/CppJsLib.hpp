@@ -1043,6 +1043,8 @@ namespace CppJsLib {
 
         CPPJSLIB_EXPORT bool isRunning();
 
+        CPPJSLIB_EXPORT bool isWebsocketOnly();
+
         ~WebGUI();
 
 #endif //CPPJSLIB_STATIC_DEFINE

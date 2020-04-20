@@ -15,26 +15,39 @@ using namespace CppJsLib;
 
 CPPJSLIB_EXPORT bool CppJsLib::util::stop(WebGUI *webGui, bool block, int waitMaxSeconds) {
     if (webGui->isRunning()) {
-#ifdef CPPJSLIB_ENABLE_HTTPS
-        if (webGui->ssl)
-            webGui->getHttpsServer()->stop();
-        else
-            webGui->getHttpServer()->stop();
-#else
-        webGui->getHttpServer()->stop();
-#endif //CPPJSLIB_ENABLE_HTTPS
-
 #ifdef CPPJSLIB_ENABLE_WEBSOCKET
+        if (webGui->isWebsocketOnly()) {
 #   ifdef CPPJSLIB_ENABLE_HTTPS
-        if (webGui->ssl) {
-            webGui->getTLSWebServer()->stop();
-            if (webGui->fallback_plain)
+            if (webGui->ssl) {
+                webGui->getTLSWebServer()->stop_listening();
+                webGui->getTLSWebServer()->stop();
+            } else {
+                webGui->getWebServer()->stop_listening();
                 webGui->getWebServer()->stop();
-        } else {
+            }
+#   else
             webGui->getWebServer()->stop();
+#   endif //CPPJSLIB_ENABLE_HTTPS
+        } else {
+#   ifdef CPPJSLIB_ENABLE_HTTPS
+            if (webGui->ssl) {
+                webGui->getHttpsServer()->stop();
+            } else {
+                webGui->getHttpServer()->stop();
+            }
+#   else
+            webGui->getHttpServer()->stop();
+#   endif //CPPJSLIB_ENABLE_HTTPS
+        }
+#else
+#   ifdef CPPJSLIB_ENABLE_HTTPS
+        if (ssl) {
+            webGui->getHttpsServer()->stop();
+        } else {
+            webGui->getHttpServer()->stop();
         }
 #   else
-        webGui->getWebServer()->stop();
+        webGui->getHttpServer()->stop();
 #   endif //CPPJSLIB_ENABLE_HTTPS
 #endif //CPPJSLIB_ENABLE_WEBSOCKET
 

@@ -659,6 +659,7 @@ CPPJSLIB_EXPORT void WebGUI::setWebSocketCloseHandler(const std::function<void()
 #   endif //CPPJSLIB_ENABLE_HTTPS
 
 }
+
 #else
 
 CPPJSLIB_EXPORT void
@@ -749,7 +750,15 @@ CPPJSLIB_EXPORT bool WebGUI::isRunning() {
 #   endif //CPPJSLIB_ENABLE_HTTPS
     }
 #else
+#   ifdef CPPJSLIB_ENABLE_HTTPS
+    if (ssl) {
+        return std::static_pointer_cast<httplib::SSLServer>(server)->is_running();
+    } else {
+        return std::static_pointer_cast<httplib::Server>(server)->is_running();
+    }
+#   else
     return std::static_pointer_cast<httplib::Server>(server)->is_running();
+#   endif //CPPJSLIB_ENABLE_HTTPS
 #endif //CPPJSLIB_ENABLE_WEBSOCKET
 }
 
@@ -758,6 +767,10 @@ CPPJSLIB_EXPORT void WebGUI::pushToSseVec(const std::string &s) {
     sseVec.push_back(s);
 }
 #endif //CPPJSLIB_ENABLE_WEBSOCKET
+
+CPPJSLIB_EXPORT bool WebGUI::isWebsocketOnly() {
+    return websocket_only;
+}
 
 CPPJSLIB_EXPORT bool WebGUI::stop() {
     return CppJsLib::util::stop(this, true, -1);
