@@ -42,7 +42,7 @@ CPPJSLIB_EXPORT bool CppJsLib::util::stop(WebGUI *webGui, bool block, int waitMa
         }
 #else
 #   ifdef CPPJSLIB_ENABLE_HTTPS
-        if (ssl) {
+        if (webGui->ssl) {
             webGui->getHttpsServer()->stop();
         } else {
             webGui->getHttpServer()->stop();

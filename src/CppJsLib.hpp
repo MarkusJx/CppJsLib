@@ -414,21 +414,6 @@ namespace CppJsLib {
             }
         };
 
-        /*template<class T>
-        struct cString<T *> {
-            static T *convert(const std::string &data) {
-                typedef typename remove_pointer<T>::type type;
-                int size = 0;
-                std::string *arr = createStringArrayFromJSON(&size, data);
-                type *ret = new type[size];
-                for (int i = 0; i < size; i++) {
-                    ret[i] = cString<type>::convert(arr[i]);
-                }
-
-                return ret;
-            }
-        };*/
-
         /**
          * Convert a String to a param T
          * Source: https://gist.github.com/timofurrer/2725779
