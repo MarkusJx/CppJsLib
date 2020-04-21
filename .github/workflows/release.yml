@@ -142,6 +142,15 @@ jobs:
       uses: actions/download-artifact@v1.0.0
       with:
         name: macos-release
+    - name: Download artifact macos-jni
+      uses: actions/download-artifact@v1.0.0
+      with:
+        name: macos-java-release
+    - name: zip files
+      uses: papeloto/action-zip@v1
+      with:
+        files: macos-java-release/libCppJsLib.dylib CppJsLibJava/src/CppJsLibJava.jar
+        dest: macos-java-amd64.zip
     # Upload macos artifacts
     - name: Upload Release Asset
       id: upload-release-asset-macos
@@ -152,6 +161,16 @@ jobs:
         upload_url: ${{ steps.create_release.outputs.upload_url }}  
         asset_path: ./macos-release/macos-amd64.zip
         asset_name: macos-amd64.zip
+        asset_content_type: application/zip
+    - name: Upload Release Asset
+      id: upload-release-asset-macos-java
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}  
+        asset_path: ./macos-java-amd64.zip
+        asset_name: macos-java-amd64.zip
         asset_content_type: application/zip
 
   build-windows-release:
@@ -192,7 +211,7 @@ jobs:
         with:
           name: win-release
           path: win-amd64.zip
-      # Compile jni dll and jar
+      # Compile jni dll
       - name: Set up JDK
         uses: actions/setup-java@v1
         with:
@@ -217,9 +236,10 @@ jobs:
     - name: create include
       run: mkdir include
     - name: install boost
-      run: brew install boost@1.60
+      run: brew install boost
+    # Compile standard lib
     - name: cmake
-      run: cmake -DCMAKE_BUILD_TYPE=Release -DENABLE_WEBSOCKET=TRUE -DBUILDDLL=TRUE -DBOOST_ROOT="/usr/local/opt/boost@1.60" .
+      run: cmake -DCMAKE_BUILD_TYPE=Release -DENABLE_WEBSOCKET=TRUE -DBUILDDLL=TRUE -DENABLE_HTTPS=TRUE -DOPENSSL_ROOT_DIR="/usr/local/opt/openssl@1.1" .
     - name: build
       run: cmake --build .
     - name: zip files
@@ -232,4 +252,17 @@ jobs:
       with:
         name: macos-release
         path: macos-amd64.zip
-
+    # Compile jni lib
+    - name: Set up JDK
+      uses: actions/setup-java@v1
+      with:
+        java-version: '11.0.3'
+    - name: Run cmake for jni
+      run: cmake -DCMAKE_BUILD_TYPE=Release -DENABLE_HTTPS=TRUE -DENABLE_WEBSOCKET=TRUE -DBUILDDLL=TRUE -DBUILD_JNI_DLL=TRUE -DOPENSSL_ROOT_DIR="/usr/local/opt/openssl@1.1" .
+    - name: Build jni dll
+      run: cmake --build .
+    - name: Upload artifact
+      uses: actions/upload-artifact@v1.0.0
+      with:
+        name: macos-java-release
+        path: src/libCppJsLib.dylib
