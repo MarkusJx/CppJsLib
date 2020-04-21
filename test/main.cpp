@@ -40,11 +40,11 @@ void f(int a) {
     func(a);
 }
 
-int d(std::vector<int> v) {
+std::string d(const std::vector<int>& v) {
     for (int i : v) {
         std::cout << i << std::endl;
     }
-    return 0;
+    return "abc";
 }
 
 int main() {

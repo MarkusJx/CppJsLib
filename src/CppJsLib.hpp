@@ -269,12 +269,12 @@ namespace CppJsLib {
 
 #endif
 
-        template<class R>
-        struct TypeConverter<std::vector<R>> {
-            static std::string toString(std::vector<R> toConvert) {
+        template<class T>
+        struct TypeConverter<std::vector<T>> {
+            static std::string toString(std::vector<T> toConvert) {
                 std::vector<std::string> stringVector;
-                for (R val : toConvert) {
-                    stringVector.push_back(std::to_string(val));
+                for (T val : toConvert) {
+                    stringVector.push_back(TypeConverter<T>::toString(val));
                 }
 
                 std::string res = stringArrayToJSON(&stringVector);
@@ -290,10 +290,10 @@ namespace CppJsLib {
             }
         };
 
-        template<class R>
+        template<class T>
         struct TypeConverter {
-            static std::string toString(R toConvert) {
-                return stringToJSON(std::to_string(toConvert));
+            static std::string toString(T toConvert) {
+                return std::to_string(toConvert);
             }
         };
 
@@ -467,7 +467,7 @@ namespace CppJsLib {
             R operator()(int argc, std::string *args) {
                 // This should be a precondition
                 if (argc != sizeof...(Args)) {
-                    return 0;
+                    return R();
                 }
 
                 auto sequence = std::index_sequence_for<Args...>{};
