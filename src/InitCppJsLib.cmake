@@ -178,26 +178,7 @@ function(initCppJsLib target source_dir include_dir)
 
         if (USE_BOOST)
             # Search for appropriate Boost version
-            #set(BOOT_VERSION_LIST "1.69;1.68;1.67;1.66;1.65.1;1.65;1.64;1.63;1.62;1.61;1.60")
             message(STATUS "Searching suitable Boost version")
-            #foreach (BOOST_VERSION ${BOOT_VERSION_LIST})
-            #    if (NOT WIN32)
-            #        # Search for component 'system' on non-windows machines
-            #        find_package(Boost ${BOOST_VERSION} EXACT COMPONENTS system)
-            #    else ()
-            #        find_package(Boost ${BOOST_VERSION} EXACT)
-            #    endif ()
-            #    if (Boost_FOUND)
-            #        message(STATUS "Found suitable Boost version: ${BOOST_VERSION}")
-                    # Disable BOOST_AUTO_PTR if Boost version equals 1.60, build will fail otherwise
-                    # Dunno if other versions of Boost have the same problem
-            #        if (${BOOST_VERSION} STREQUAL "1.60")
-            #            message(STATUS "BOOST_VERSION equals 1.60, disabling BOOST_AUTO_PTR")
-            #            add_compile_definitions(BOOST_NO_AUTO_PTR)
-            #        endif ()
-            #        break()
-            #    endif ()
-            #endforeach ()
 
             if (NOT WIN32)
                 # Search for component 'system' on non-windows machines
