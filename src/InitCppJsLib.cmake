@@ -184,7 +184,12 @@ function(initCppJsLib target source_dir include_dir)
                 # Search for component 'system' on non-windows machines
                 find_package(Boost 1.65 COMPONENTS system)
             else ()
-                find_package(Boost 1.65)
+                if (DEFINED ENV{GITHUB_ACTIONS})
+                    # Use Boost version 1.67 on gh actions
+                    find_package(Boost 1.67 EXACT)
+                else()
+                    find_package(Boost 1.65)
+                endif ()
             endif ()
 
             if (Boost_FOUND)
