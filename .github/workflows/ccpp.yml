@@ -193,9 +193,9 @@ jobs:
     - name: unzip boost
       run: unzip -q boost_1_69_0.zip
     - name: cmake
-      run: cmake -DCMAKE_BUILD_TYPE=Release -DENABLE_HTTPS=TRUE -DENABLE_WEBSOCKET=TRUE -DBUILDDLL=TRUE .
-      env:
-        BOOST_ROOT: $GITHUB_WORKSPACE/boost_1_69_0
+      run: cmake -DCMAKE_BUILD_TYPE=Release -DENABLE_HTTPS=TRUE -DENABLE_WEBSOCKET=TRUE -DBUILDDLL=TRUE -DBOOST_ROOT="boost_1_69_0" -DOPENSSL_ROOT_DIR="/usr/local/opt/openssl@1.1" .
+      #env:
+      #  BOOST_ROOT: $GITHUB_WORKSPACE/boost_1_69_0
     - name: build
       run: cmake --build .
     - name: Upload object
