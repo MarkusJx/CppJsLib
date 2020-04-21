@@ -188,16 +188,10 @@ jobs:
       run: mkdir include
     - name: install openssl
       run: brew install openssl
-    - name: download boost
-      run: wget -q http://download1507.mediafire.com/667lzkf9ckkg/7so1bpo49e37m8g/boost_1_69_0.zip
-    - name: unzip boost
-      run: unzip -q boost_1_69_0.zip
-    - name: delete boost zip
-      run: rm boost_1_69_0.zip
+    - name: install boost
+      run: brew install boost
     - name: cmake
-      run: cmake -DCMAKE_BUILD_TYPE=Release -DENABLE_HTTPS=TRUE -DENABLE_WEBSOCKET=TRUE -DBUILDDLL=TRUE -DBOOST_ROOT="/Users/runner/runners/2.169.0/work/CppJsLib/boost_1_69_0" -DOPENSSL_ROOT_DIR="/usr/local/opt/openssl@1.1" .
-      #env:
-      #  BOOST_ROOT: $GITHUB_WORKSPACE/boost_1_69_0
+      run: cmake -DCMAKE_BUILD_TYPE=Release -DENABLE_HTTPS=TRUE -DENABLE_WEBSOCKET=TRUE -DBUILDDLL=TRUE -DOPENSSL_ROOT_DIR="/usr/local/opt/openssl@1.1" .
     - name: build
       run: cmake --build .
     - name: Upload object
