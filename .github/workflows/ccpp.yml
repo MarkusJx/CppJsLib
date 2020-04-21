@@ -191,7 +191,7 @@ jobs:
     - name: download boost
       run: wget -q http://download1507.mediafire.com/667lzkf9ckkg/7so1bpo49e37m8g/boost_1_69_0.zip
     - name: unzip boost
-      run: unzip -q boost_1_69_0.zip
+      run: unzip boost_1_69_0.zip
     - name: cmake
       run: cmake -DCMAKE_BUILD_TYPE=Release -DENABLE_HTTPS=TRUE -DENABLE_WEBSOCKET=TRUE -DBUILDDLL=TRUE -DBOOST_ROOT="boost_1_69_0" -DOPENSSL_ROOT_DIR="/usr/local/opt/openssl@1.1" .
       #env:
