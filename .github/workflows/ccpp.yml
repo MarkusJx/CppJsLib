@@ -186,12 +186,16 @@ jobs:
     - uses: actions/checkout@v1
     - name: create include
       run: mkdir include
+    - name: install openssl
+      run: brew install openssl
     - name: download boost
       run: wget -q http://download1507.mediafire.com/667lzkf9ckkg/7so1bpo49e37m8g/boost_1_69_0.zip
     - name: unzip boost
       run: unzip -q boost_1_69_0.zip
     - name: cmake
-      run: cmake -DCMAKE_BUILD_TYPE=Release -DENABLE_HTTPS=TRUE -DENABLE_WEBSOCKET=TRUE -DBUILDDLL=TRUE -DBOOST_ROOT="boost_1_69_0" .
+      run: cmake -DCMAKE_BUILD_TYPE=Release -DENABLE_HTTPS=TRUE -DENABLE_WEBSOCKET=TRUE -DBUILDDLL=TRUE .
+      env:
+        BOOST_ROOT: $GITHUB_WORKSPACE/boost_1_69_0
     - name: build
       run: cmake --build .
     - name: Upload object
