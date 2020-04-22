@@ -25,7 +25,7 @@ const cppJsLib = {
     },
     'sendRequest': function(request, callback = false, body = "", type = "POST") {
         if (this.webSocket_only) {
-            let req = [];
+            let req = {};
             req["header"] = request;
             req["data"] = body;
             if (callback) {
@@ -38,6 +38,7 @@ const cppJsLib = {
                 req["callback"] = rnd;
             }
 
+            console.debug("Sending request: " + JSON.stringify(req));
             try {
                 this.webSocket.send(JSON.stringify(req));
             } catch (error) {
@@ -49,7 +50,7 @@ const cppJsLib = {
             if (callback) {
                 xhttp.onreadystatechange = function() {
                     if (this.readyState === 4 && this.status === 200) {
-                        callback(xhttp.responseText);
+                        callback(JSON.parse(xhttp.responseText));
                     }
                 };
             }
@@ -80,15 +81,25 @@ const cppJsLib = {
                 wsProtocol = "ws://";
             }
 
-            console.log("Connecting to websocket on: " + wsProtocol + host + ":" + port);
+            console.debug("Connecting to websocket on: " + wsProtocol + host + ":" + port);
             this.webSocket = new WebSocket(wsProtocol + host + ":" + port);
+
+            this.webSocket.onerror = () => {
+                console.warn("Error in websocket. Closing connection.");
+                this.webSocket.close();
+            }
+
             this.connected = true;
             this.webSocket.onclose = () => {
                 this.connected = false;
-                console.log("WebSocket connection closed");
+                console.debug("WebSocket connection closed. Trying to reconnect in 5 seconds");
+                setTimeout(() => {
+                    this.init(websocket_only, tls, host, port);
+                }, 5000);
             };
 
             this.webSocket.onmessage = (event) => {
+                console.debug("Received websocket message");
                 let data = JSON.parse(event.data);
                 if (data.hasOwnProperty("callback") && data.hasOwnProperty("data")) {
                     if (this.callbacks.hasOwnProperty(data["callback"])) {
@@ -111,8 +122,9 @@ const cppJsLib = {
             };
 
             this.webSocket.onopen = () => {
+                console.debug("Connected to websocket");
                 this.sendRequest("init", (response) => {
-                    console.log("Initializing with sequence: " + response);
+                    console.debug("Initializing with sequence: " + response);
                     let obj = JSON.parse(response);
                     for (let fnName in obj) {
                         if (obj.hasOwnProperty(fnName)) {
@@ -135,8 +147,8 @@ const cppJsLib = {
             };
         } else {
             this.sendRequest("init", (response) => {
-                console.log("Initializing with sequence: " + response);
-                let obj = JSON.parse(response);
+                console.debug("Initializing with sequence: " + response);
+                let obj = response;
                 for (let fnName in obj) {
                     if (obj.hasOwnProperty(fnName)) {
                         let args = obj[fnName].toString().split("(");
@@ -157,7 +169,7 @@ const cppJsLib = {
             }, "", "GET");
 
             this.sendRequest("init_ws", (response) => {
-                let obj = JSON.parse(response);
+                let obj = response;
                 if (obj["ws"] === "true") {
                     let wsProtocol;
                     if (obj["tls"] === "true") {
@@ -166,13 +178,24 @@ const cppJsLib = {
                         wsProtocol = "ws://";
                     }
 
-                    console.log("Connecting to websocket on: " + wsProtocol + obj["host"] + ":" + obj["port"]);
+                    console.debug("Connecting to websocket on: " + wsProtocol + obj["host"] + ":" + obj["port"]);
                     this.webSocket = new WebSocket(wsProtocol + obj["host"] + ":" + obj["port"]);
+
+                    this.connected = true;
+                    this.webSocket.onerror = () => {
+                        console.warn("Error in websocket. Closing connection.");
+                        this.webSocket.close();
+                    }
+
                     this.connected = true;
                     this.webSocket.onclose = () => {
                         this.connected = false;
-                        console.log("WebSocket connection closed");
+                        console.debug("WebSocket connection closed. Trying to reconnect in 5 seconds");
+                        setTimeout(() => {
+                            this.init(websocket_only, tls, host, port);
+                        }, 5000);
                     };
+
                     this.webSocket.onmessage = (event) => {
                         let data = JSON.parse(event.data);
                         let key = Object.keys(data)[0];
@@ -246,7 +269,7 @@ const cppJsLib = {
         }
     },
     'addFn': function(returnType, name, args) {
-        console.log("Initializing function " + name + " with " + args.length + " argument(s) " + args);
+        console.debug("Initializing function " + name + " with " + args.length + " argument(s): " + args);
         this[name] = function() {
             if (args.length !== arguments.length) {
                 console.error("Argument count does not match!");
@@ -273,9 +296,14 @@ const cppJsLib = {
                             res = (res === "1");
                         }
 
-                        if (typeof res === "string" && res.startsWith("\"")) {
+                        /*if (typeof res === "string" && res.startsWith("\"")) {
                             resolve(JSON.parse(res));
                         } else {
+                            resolve(res);
+                        }*/
+                        try {
+                            resolve(JSON.parse(res));
+                        } catch (error) {
                             resolve(res);
                         }
                     }, JSON.stringify(obj));
@@ -320,5 +348,5 @@ const cppJsLib = {
 if (typeof CPPJSLIB_NO_INIT === "undefined") {
     cppJsLib.init();
 } else if (!CPPJSLIB_NO_INIT) {
-
+    cppJsLib.init();
 }

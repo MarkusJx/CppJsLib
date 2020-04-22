@@ -103,17 +103,17 @@ int main() {
     ASSERT_MEM_OK();
 
 #ifdef TEST_USE_DLL
-    /*{
+    {
         CppJsLib::WebGUI::WebGUI_unique ptr = CppJsLib::WebGUI::create_unique("web");
         ptr->start(8026, TEST_WS_PORT "localhost", false);
         std::this_thread::sleep_for(std::chrono::milliseconds(20));
         ptr->stop();
-    }*/
+    }
 #endif //TEST_USE_DLL
 
     ASSERT_MEM_OK();
 
-    //DifferentWebServerTest();
+    DifferentWebServerTest();
 
     wGui->start(8028, TEST_WS_PORT CppJsLib::localhost, block);
 

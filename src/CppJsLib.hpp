@@ -165,6 +165,7 @@ namespace CppJsLib {
 
         template<class ...Args>
         inline void ConvertToString(std::vector<std::string> *argV, Args...args) {
+            // Use volatile to disable optimization
             volatile auto x = {(argV->push_back(args), 0)...};
         }
 
@@ -183,7 +184,7 @@ namespace CppJsLib {
         struct JsFunction<void(Args ...)> {
             void operator()(Args ... args) {
                 std::vector<std::string> argV;
-                auto x = {(ConvertToString(&argV, getEl(args)), 0)...};
+                volatile auto x = {(ConvertToString(&argV, getEl(args)), 0)...};
                 callJsFunc(wGui, &argV, fnName);
             }
 
@@ -232,7 +233,7 @@ namespace CppJsLib {
         struct JsFunction<std::vector<R>(Args ...)> {
             std::vector<R> operator()(Args ... args) {
                 std::vector<std::string> argV;
-                auto x = {(ConvertToString(&argV, getEl(args)), 0)...};
+                volatile auto x = {(ConvertToString(&argV, getEl(args)), 0)...};
                 callJsFunc(wGui, &argV, fnName, responseReturns, wait);
 
                 std::vector<R> tmp;
@@ -271,7 +272,7 @@ namespace CppJsLib {
 
         template<class T>
         struct TypeConverter<std::vector<T>> {
-            static std::string toString(std::vector<T> toConvert) {
+            static std::string toJsonString(std::vector<T> toConvert) {
                 std::vector<std::string> stringVector;
                 for (T val : toConvert) {
                     stringVector.push_back(TypeConverter<T>::toString(val));
@@ -281,10 +282,18 @@ namespace CppJsLib {
                 std::vector<std::string>().swap(stringVector);
                 return res;
             }
+
+            static std::string toString(std::vector<T> toConvert) {
+                return toJsonString(toConvert);
+            }
         };
 
         template<>
         struct TypeConverter<std::string> {
+            static std::string toJsonString(std::string toConvert) {
+                return stringToJSON(std::move(toConvert));
+            }
+
             static std::string toString(std::string toConvert) {
                 return toConvert;
             }
@@ -292,6 +301,10 @@ namespace CppJsLib {
 
         template<class T>
         struct TypeConverter {
+            static std::string toJsonString(T toConvert) {
+                return stringToJSON(std::to_string(toConvert));
+            }
+
             static std::string toString(T toConvert) {
                 return std::to_string(toConvert);
             }
@@ -308,7 +321,18 @@ namespace CppJsLib {
         };
 
         template<typename type>
-        std::string getTypeName() {
+        std::string _getTypeName() {
+            using namespace std;
+            // Check if the type is supported
+            static_assert(
+                    is_same<int, type>::value || is_same<std::vector<int>, type>::value || is_same<char, type>::value ||
+                    is_same<std::vector<char>, type>::value || is_same<string, type>::value ||
+                    is_same<std::vector<string>, type>::value || is_same<bool, type>::value ||
+                    is_same<std::vector<bool>, type>::value || is_same<float, type>::value ||
+                    is_same<std::vector<float>, type>::value || is_same<double, type>::value ||
+                    is_same<std::vector<double>, type>::value || std::is_same<void, type>::value,
+                    "Unsupported type used");
+
             if (std::is_same<int, type>::value) {
                 return "int";
             } else if (std::is_same<std::vector<int>, type>::value) {
@@ -333,9 +357,18 @@ namespace CppJsLib {
                 return "double";
             } else if (std::is_same<std::vector<double>, type>::value) {
                 return "double[]";
-            } else {
+            } else if (std::is_same<void, type>::value) {
                 return "void";
+            } else {
+                std::cerr << "Found unsupported type. This should not happen" << std::endl;
+                return "";
             }
+        }
+
+        template<typename type>
+        std::string getTypeName() {
+            // Get type name without const or reference qualifier
+            return _getTypeName<typename std::decay_t<type>>();
         }
 
         template<typename fun, size_t i>
@@ -366,7 +399,13 @@ namespace CppJsLib {
         template<>
         struct cString<std::string> {
             static std::string convert(const std::string &data) {
-                return data;
+                if (data[0] == '\"' && data[data.size() - 1] == '\"' && data.size() >= 2) {
+                    std::string dt = data;
+                    dt = dt.substr(1, dt.size() - 2);
+                    return dt;
+                } else {
+                    return data;
+                }
             }
         };
 
@@ -384,20 +423,24 @@ namespace CppJsLib {
             }
         };
 
+        template<>
+        struct cString<bool> {
+            static bool convert(const std::string &data) {
+                if (data == "false") {
+                    return false;
+                } else if (data == "true") {
+                    return true;
+                } else {
+                    std::cerr << "Convert error: cannot convert string '" << data << "' to bool" << std::endl;
+                    return false;
+                }
+            }
+        };
+
         template<class T>
         struct cString {
             static T convert(const std::string &data) {
                 T ret;
-                if (std::is_same<T, bool>::value) {
-                    if (data == "false") {
-                        return false;
-                    } else if (data == "true") {
-                        return true;
-                    } else {
-                        std::cerr << "Convert error: cannot convert string '" << data << "' to bool" << std::endl;
-                        return T();
-                    }
-                }
 
                 std::istringstream iss(data);
                 if (data.find("0x") != std::string::npos) {
@@ -426,13 +469,9 @@ namespace CppJsLib {
         T ConvertString(const std::string &data) {
             if (!data.empty()) {
                 return cString<T>::convert(data);
+            } else {
+                return T();
             }
-            return T();
-        }
-
-        template<typename T>
-        T *ConvertString(std::string *data) {
-            return cString<T>::convert(data);
         }
 
         template<class... Args>
@@ -450,7 +489,7 @@ namespace CppJsLib {
 
             template<std::size_t... S>
             void handleImpl(std::index_sequence<S...>, std::string *args) {
-                f(ConvertString<Args>(args[S])...);
+                f(ConvertString<typename std::decay_t<Args>>(args[S])...);
             }
 
             std::string toString() {
@@ -476,7 +515,7 @@ namespace CppJsLib {
 
             template<std::size_t... S>
             R handleImpl(std::index_sequence<S...>, std::string *args) {
-                return f(ConvertString<Args>(args[S])...);
+                return f(ConvertString<typename std::decay_t<Args>>(args[S])...);
             }
 
             std::string toString() {
@@ -528,7 +567,7 @@ namespace CppJsLib {
 
                 R result = eF->operator()(size, argArr);
 
-                return TypeConverter<R>::toString(result);
+                return TypeConverter<R>::toJsonString(result);
             }
 
             template<class...Args>
@@ -788,6 +827,7 @@ namespace CppJsLib {
                 this->err("[CppJsLib] Cannot expose function " + name + " since the web server is already running");
                 return;
             }
+
             util::ExposedFunction<void(Args...)> *exposedF = nullptr;
             util::initExposedFunction(&exposedF, f, name, this);
 
@@ -1041,7 +1081,9 @@ namespace CppJsLib {
 
 // Delete default destructor if the dll is used to prevent heap corruption
 #ifndef CPPJSLIB_STATIC_DEFINE
+
         ~WebGUI() = delete;
+
 #else
 
         CPPJSLIB_EXPORT bool isRunning();
