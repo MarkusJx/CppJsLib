@@ -50,7 +50,8 @@ const cppJsLib = {
             if (callback) {
                 xhttp.onreadystatechange = function() {
                     if (this.readyState === 4 && this.status === 200) {
-                        callback(JSON.parse(xhttp.responseText));
+                        //callback(JSON.parse(xhttp.responseText));
+                        callback(xhttp.responseText);
                     }
                 };
             }
@@ -109,6 +110,12 @@ const cppJsLib = {
                     }
                 } else {
                     let key = Object.keys(data)[0];
+
+                    if (!this.exposedFunctions.hasOwnProperty(key)) {
+                        console.warn("C++ tried to call js function " + key + " which does not exist");
+                        return;
+                    }
+
                     if (data[key].length === 1) {
                         if (data[key][0] === "") {
                             this.exposedFunctions[key]();
@@ -148,7 +155,7 @@ const cppJsLib = {
         } else {
             this.sendRequest("init", (response) => {
                 console.debug("Initializing with sequence: " + response);
-                let obj = response;
+                let obj = JSON.parse(response);
                 for (let fnName in obj) {
                     if (obj.hasOwnProperty(fnName)) {
                         let args = obj[fnName].toString().split("(");
@@ -169,7 +176,8 @@ const cppJsLib = {
             }, "", "GET");
 
             this.sendRequest("init_ws", (response) => {
-                let obj = response;
+                let obj = JSON.parse(response);
+                console.debug("Initializing webSocket with message: " + response);
                 if (obj["ws"] === "true") {
                     let wsProtocol;
                     if (obj["tls"] === "true") {
@@ -199,6 +207,12 @@ const cppJsLib = {
                     this.webSocket.onmessage = (event) => {
                         let data = JSON.parse(event.data);
                         let key = Object.keys(data)[0];
+
+                        if (!this.exposedFunctions.hasOwnProperty(key)) {
+                            console.warn("C++ tried to call js function " + key + " which does not exist");
+                            return;
+                        }
+
                         if (data[key].length === 1) {
                             if (data[key][0] === "") {
                                 if (data.hasOwnProperty("callback")) {
@@ -296,14 +310,10 @@ const cppJsLib = {
                             res = (res === "1");
                         }
 
-                        /*if (typeof res === "string" && res.startsWith("\"")) {
-                            resolve(JSON.parse(res));
-                        } else {
-                            resolve(res);
-                        }*/
                         try {
                             resolve(JSON.parse(res));
                         } catch (error) {
+                            console.warn("Could not parse JSON, passing string");
                             resolve(res);
                         }
                     }, JSON.stringify(obj));
