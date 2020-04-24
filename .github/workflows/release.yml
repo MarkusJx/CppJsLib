@@ -20,10 +20,14 @@ jobs:
       run: cmake -DCMAKE_BUILD_TYPE=Release -DENABLE_HTTPS=TRUE -DENABLE_WEBSOCKET=TRUE -DBUILDDLL=TRUE .
     - name: build
       run: cmake --build . 
+    - name: create tmp folder
+      run: mkdir tmp
+    - name: copy CppJsLibJs folder
+      run: cp CppJsLibJs tmp
     - name: zip files
       uses: papeloto/action-zip@v1
       with:
-        files: src/libCppJsLib.so src/CppJsLib.hpp
+        files: src/libCppJsLib.so src/CppJsLib.hpp tmp
         dest: rel.zip
     
     # Compile jni lib and jar
@@ -55,7 +59,7 @@ jobs:
     - name: zip files
       uses: papeloto/action-zip@v1
       with:
-        files: src/libCppJsLib.so CppJsLibJava/src/CppJsLibJava.jar
+        files: src/libCppJsLib.so CppJsLibJava/src/CppJsLibJava.jar tmp
         dest: linux-java-amd64.zip
     
     # Create Release and upload files
@@ -113,7 +117,7 @@ jobs:
     - name: zip files
       uses: papeloto/action-zip@v1
       with:
-        files: win-java-release/CppJsLib.dll CppJsLibJava/src/CppJsLibJava.jar
+        files: win-java-release/CppJsLib.dll CppJsLibJava/src/CppJsLibJava.jar tmp
         dest: win-java-amd64.zip
       
     # Upload windows artifacts
@@ -149,7 +153,7 @@ jobs:
     - name: zip files
       uses: papeloto/action-zip@v1
       with:
-        files: macos-java-release/libCppJsLib.dylib CppJsLibJava/src/CppJsLibJava.jar
+        files: macos-java-release/libCppJsLib.dylib CppJsLibJava/src/CppJsLibJava.jar tmp
         dest: macos-java-amd64.zip
     # Upload macos artifacts
     - name: Upload Release Asset
@@ -201,10 +205,14 @@ jobs:
           BOOST_ROOT: C:/local/boost_1_67_0
       - name: build
         run: cmake --build . --config Release
+      - name: create tmp folder
+        run: mkdir tmp
+      - name: copy CppJsLibJs folder
+        run: cp CppJsLibJs tmp
       - name: zip files
         uses: papeloto/action-zip@v1
         with:
-          files: src/Release/CppJsLib.dll src/Release/CppJsLib.lib src/CppJsLib.hpp
+          files: src/Release/CppJsLib.dll src/Release/CppJsLib.lib src/CppJsLib.hpp tmp
           dest: win-amd64.zip
       - name: Upload artifact
         uses: actions/upload-artifact@v1.0.0
@@ -242,10 +250,14 @@ jobs:
       run: cmake -DCMAKE_BUILD_TYPE=Release -DENABLE_WEBSOCKET=TRUE -DBUILDDLL=TRUE -DENABLE_HTTPS=TRUE -DOPENSSL_ROOT_DIR="/usr/local/opt/openssl@1.1" .
     - name: build
       run: cmake --build .
+    - name: create tmp folder
+      run: mkdir tmp
+    - name: copy CppJsLibJs folder
+      run: cp CppJsLibJs tmp
     - name: zip files
       uses: papeloto/action-zip@v1
       with:
-        files: src/libCppJsLib.dylib src/CppJsLib.hpp
+        files: src/libCppJsLib.dylib src/CppJsLib.hpp tmp
         dest: macos-amd64.zip
     - name: Upload artifact
       uses: actions/upload-artifact@v1.0.0
