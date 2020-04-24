@@ -209,6 +209,7 @@ auto wssrv = gui->getTLSWebServer();
 
 #include <CppJsLib.hpp>
 ```
+* Put the ``CppJsLibJs`` folder with the ``CppJsLib.js`` file inside of it into your Application's folder
 
 ### Not using prebuilt binaries
 Also known as 'building yourself' or 'the not fun way'
@@ -229,6 +230,7 @@ ENABLE_HTTPS: Enable HTTPS support (OpenSSL required)
 USE_JUTILS: Use a dll built with GraalVM to use Java to check if a port is in use
 BUILD_JNI_DLL: Build a dll to be called with JNI
 ```
+* Put the ``CppJsLibJs`` folder with the ``CppJsLib.js`` file inside of it into your Application's folder
 
 ## Java binding
 ### Basic example
