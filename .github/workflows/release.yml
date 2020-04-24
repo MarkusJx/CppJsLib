@@ -23,7 +23,7 @@ jobs:
     - name: create tmp folder
       run: mkdir tmp
     - name: copy CppJsLibJs folder
-      run: cp CppJsLibJs tmp
+      run: cp -R CppJsLibJs tmp
     - name: zip files
       uses: papeloto/action-zip@v1
       with:
@@ -208,7 +208,7 @@ jobs:
       - name: create tmp folder
         run: mkdir tmp
       - name: copy CppJsLibJs folder
-        run: cp CppJsLibJs tmp
+        run: cp -R CppJsLibJs tmp
       - name: zip files
         uses: papeloto/action-zip@v1
         with:
@@ -253,7 +253,7 @@ jobs:
     - name: create tmp folder
       run: mkdir tmp
     - name: copy CppJsLibJs folder
-      run: cp CppJsLibJs tmp
+      run: cp -R CppJsLibJs tmp
     - name: zip files
       uses: papeloto/action-zip@v1
       with:
