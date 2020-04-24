@@ -40,7 +40,7 @@ void f(int a) {
     func(a);
 }
 
-std::string d(const std::vector<int>& v) {
+std::string d(const std::vector<int> &v) {
     for (int i : v) {
         std::cout << i << std::endl;
     }
