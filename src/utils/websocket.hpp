@@ -41,6 +41,8 @@ namespace wspp {
     typedef std::set<websocketpp::connection_hdl, std::owner_less<websocketpp::connection_hdl>> con_list;
 }
 
+using websocketpp::lib::bind;
+
 #ifdef CPPJSLIB_ENABLE_HTTPS
 void setPassword();
 #endif
