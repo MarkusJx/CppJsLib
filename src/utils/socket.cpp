@@ -36,14 +36,14 @@ bool port_is_in_use(const char *addr, unsigned short port, int &err) {
     graal_isolatethread_t *thread = nullptr;
 
     if (graal_create_isolate(nullptr, &isolate, &thread) != 0) {
-        errorF("[CppJsLib] graal_create_isolate error");
+        errorF("graal_create_isolate error");
         return false;
     }
 
     bool res = portInUse(thread, (size_t) addr, port);
 
     if (graal_detach_thread(thread) != 0) {
-        errorF("[CppJsLib] graal_detach_thread error");
+        errorF("graal_detach_thread error");
     }
 
     return res;
@@ -58,7 +58,7 @@ bool port_is_in_use(const char *addr, unsigned short port, int &err) {
     // Initialize Winsock
     err = WSAStartup(MAKEWORD(2, 2), &wsaData);
     if (err != 0) {
-        errorF("[CppJsLib] WSAStartup failed with error: " + std::to_string(err));
+        errorF("WSAStartup failed with error: " + std::to_string(err));
         return false;
     }
 
@@ -70,7 +70,7 @@ bool port_is_in_use(const char *addr, unsigned short port, int &err) {
     // Resolve the server address and port
     err = getaddrinfo(addr, std::to_string(port).c_str(), &hints, &result);
     if (err != 0) {
-        errorF("[CppJsLib] getaddrinfo failed with error: " + std::to_string(err));
+        errorF("getaddrinfo failed with error: " + std::to_string(err));
         WSACleanup();
         return false;
     }
@@ -82,7 +82,7 @@ bool port_is_in_use(const char *addr, unsigned short port, int &err) {
                                ptr->ai_protocol);
         if (ConnectSocket == INVALID_SOCKET) {
             err = WSAGetLastError();
-            errorF("[CppJsLib] Socket failed with error: " + std::to_string(err));
+            errorF("Socket failed with error: " + std::to_string(err));
             WSACleanup();
             return false;
         }
@@ -101,7 +101,7 @@ bool port_is_in_use(const char *addr, unsigned short port, int &err) {
     err = 0;
 
     if (ConnectSocket == INVALID_SOCKET) {
-        loggingF("[CppJsLib] Unable to connect to server. Port is not in use");
+        loggingF("Unable to connect to server. Port is not in use");
         WSACleanup();
         return false;
     }
@@ -110,7 +110,7 @@ bool port_is_in_use(const char *addr, unsigned short port, int &err) {
     err = shutdown(ConnectSocket, SD_SEND);
     if (err == SOCKET_ERROR) {
         err = WSAGetLastError();
-        errorF("[CppJsLib] Shutdown failed with error: " + std::to_string(err));
+        errorF("Shutdown failed with error: " + std::to_string(err));
         closesocket(ConnectSocket);
         WSACleanup();
         return false;
@@ -122,10 +122,10 @@ bool port_is_in_use(const char *addr, unsigned short port, int &err) {
 
     return true;
 #   else
-    int sock = 0;
+    int sock;
     struct sockaddr_in serv_addr{};
     if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-        errorF("[CppJsLib] Socket creation error");
+        errorF("Socket creation error");
         err = -1;
         return false;
     }
@@ -135,14 +135,14 @@ bool port_is_in_use(const char *addr, unsigned short port, int &err) {
 
     // Convert IPv4 and IPv6 addresses from text to binary form
     if (inet_pton(AF_INET, addr, &serv_addr.sin_addr) <= 0) {
-        errorF("[CppJsLib] Invalid address/ Address not supported");
+        errorF("Invalid address/ Address not supported");
         err = -1;
         return false;
     }
 
     err = connect(sock, (struct sockaddr *) &serv_addr, sizeof(serv_addr));
     if (err < 0) {
-        errorF("[CppJsLib] Connection failed. Port is not in use");
+        errorF("Connection failed. Port is not in use");
         err = 0;
         return false;
     }

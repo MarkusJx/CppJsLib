@@ -50,6 +50,7 @@ void setPassword();
 template<typename EndpointType>
 inline void initWebsocketServer(std::shared_ptr<EndpointType> s, const std::shared_ptr<wspp::con_list> &list) {
     try {
+        loggingF("Initializing boost::asio");
         s->set_open_handler(bind([list](const websocketpp::connection_hdl &hdl) {
             list->insert(hdl);
         }, std::placeholders::_1));
@@ -62,7 +63,7 @@ inline void initWebsocketServer(std::shared_ptr<EndpointType> s, const std::shar
 
         s->init_asio();
     } catch (websocketpp::exception const &e) {
-        errorF(e.what());
+        errorF("Could not initialize websocket server. Error: " + std::string(e.what()));
     } catch (...) {
         errorF("An unknown exception occurred");
     }
@@ -70,10 +71,17 @@ inline void initWebsocketServer(std::shared_ptr<EndpointType> s, const std::shar
 
 template<typename EndpointType>
 inline void startWebsocketServer(std::shared_ptr<EndpointType> s, int port) {
-    s->listen(port);
-    s->start_accept();
+    loggingF("Starting websocket to listen on port " + std::to_string(port));
+    try {
+        s->listen(port);
+        s->start_accept();
 
-    s->run();
+        s->run();
+    } catch (websocketpp::exception const &e) {
+        errorF("Could not start listening. Error: " + std::string(e.what()));
+    } catch (...) {
+        errorF("An unknown exception occurred");
+    }
 }
 
 #endif

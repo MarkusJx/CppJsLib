@@ -7,14 +7,14 @@
 
 #include <utility>
 
-std::function<void(const std::string &)> _loggingF = nullptr;
-std::function<void(const std::string &)> _errorF = nullptr;
+std::function<void(const std::string &)> logging_f = nullptr;
+std::function<void(const std::string &)> error_f = nullptr;
 
-bool _ok = true;
+bool ok_t = true;
 std::string lastError;
 
 CPPJSLIB_EXPORT bool CppJsLib::ok() {
-    return _ok;
+    return ok_t;
 }
 
 CPPJSLIB_EXPORT std::string CppJsLib::getLastError() {
@@ -22,26 +22,35 @@ CPPJSLIB_EXPORT std::string CppJsLib::getLastError() {
 }
 
 CPPJSLIB_EXPORT void CppJsLib::resetLastError() {
-    _ok = true;
+    ok_t = true;
     lastError = "";
 }
 
 void loggingF(const std::string &s) {
-    if (_loggingF)
-        _loggingF(s);
+    if (logging_f)
+        logging_f(s);
 }
 
 void errorF(const std::string &s) {
-    if (_errorF)
-        _errorF(s);
-    _ok = false;
+    if (error_f)
+        error_f(s);
+    ok_t = false;
     lastError = s;
 }
 
 void setLoggingF(std::function<void(const std::string &)> f) {
-    _loggingF = std::move(f);
+    logging_f = std::move(f);
 }
 
 void setErrorF(std::function<void(const std::string &)> f) {
-    _errorF = std::move(f);
+    error_f = std::move(f);
+}
+
+
+CPPJSLIB_EXPORT void CppJsLib::util::logging::log(const std::string &message) {
+    loggingF(message);
+}
+
+CPPJSLIB_EXPORT void CppJsLib::util::logging::err(const std::string &message) {
+    errorF(message);
 }

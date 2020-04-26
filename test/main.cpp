@@ -69,7 +69,8 @@ int main() {
     wGui = CppJsLib::WebGUI::create("web");
 #       endif
 #   else
-    wGui = new CppJsLib::WebGUI("web", "cert.pem", "server.pem");
+    wGui = new CppJsLib::WebGUI("web");
+    //wGui = new CppJsLib::WebGUI("web", "cert.pem", "server.pem");
 #   endif
 #else
 #   ifdef TEST_USE_DLL
@@ -116,7 +117,7 @@ int main() {
 
     ASSERT_MEM_OK();
 
-    DifferentWebServerTest();
+    //DifferentWebServerTest();
 
     std::cout << "Starting web server..." << std::endl;
     wGui->start(8028, TEST_WS_PORT CppJsLib::localhost, block);

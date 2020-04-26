@@ -2,9 +2,9 @@
 // Created by markus on 16/04/2020.
 //
 
-#include "EventDispatcher.hpp"
-
 #ifndef CPPJSLIB_ENABLE_WEBSOCKET
+
+#include "EventDispatcher.hpp"
 
 EventDispatcher::EventDispatcher() {
     id_ = 0;

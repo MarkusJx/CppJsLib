@@ -15,20 +15,8 @@ using namespace CppJsLib;
 CPPJSLIB_EXPORT bool CppJsLib::util::stop(WebGUI *webGui, bool block, int waitMaxSeconds) {
     if (webGui->isRunning()) {
 #ifdef CPPJSLIB_ENABLE_WEBSOCKET
-        if (webGui->isWebsocketOnly()) {
-#   ifdef CPPJSLIB_ENABLE_HTTPS
-            if (webGui->ssl) {
-                webGui->getTLSWebServer()->stop_listening();
-                webGui->getTLSWebServer()->stop();
-            } else {
-                webGui->getWebServer()->stop_listening();
-                webGui->getWebServer()->stop();
-            }
-#   else
-            webGui->getWebServer()->stop_listening();
-            webGui->getWebServer()->stop();
-#   endif //CPPJSLIB_ENABLE_HTTPS
-        } else {
+        if (!webGui->isWebsocketOnly()) {
+            loggingF("Stopping web server");
 #   ifdef CPPJSLIB_ENABLE_HTTPS
             if (webGui->ssl) {
                 webGui->getHttpsServer()->stop();
@@ -38,6 +26,30 @@ CPPJSLIB_EXPORT bool CppJsLib::util::stop(WebGUI *webGui, bool block, int waitMa
 #   else
             webGui->getHttpServer()->stop();
 #   endif //CPPJSLIB_ENABLE_HTTPS
+        }
+
+        loggingF("Stopping websocket server");
+        try {
+#   ifdef CPPJSLIB_ENABLE_HTTPS
+            if (webGui->ssl) {
+                webGui->getTLSWebServer()->stop_listening();
+                webGui->getTLSWebServer()->stop();
+            } else {
+                webGui->getWebServer()->stop_listening();
+                webGui->getWebServer()->stop();
+            }
+
+            if (webGui->fallback_plain) {
+                loggingF("Stopping websocket plain fallback server");
+                webGui->getWebServer()->stop_listening();
+                webGui->getWebServer()->stop();
+            }
+#   else
+            webGui->getWebServer()->stop_listening();
+            webGui->getWebServer()->stop();
+#   endif //CPPJSLIB_ENABLE_HTTPS
+        } catch (...) {
+            errorF("Could not close websocket server(s)");
         }
 #else
 #   ifdef CPPJSLIB_ENABLE_HTTPS
@@ -67,8 +79,16 @@ CPPJSLIB_EXPORT bool CppJsLib::util::stop(WebGUI *webGui, bool block, int waitMa
                 std::this_thread::sleep_for(std::chrono::milliseconds(10));
             }
         }
+    } else {
+        loggingF("Servers are already stopped");
     }
+
     webGui->running = webGui->isRunning();
+    if (webGui->running) {
+        errorF("Could not close all sockets");
+    } else {
+        loggingF("Successfully closed all sockets");
+    }
 
     return !webGui->isRunning();
 }

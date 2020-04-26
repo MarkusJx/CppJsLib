@@ -105,6 +105,12 @@ namespace CppJsLib {
     class WebGUI;
 
     namespace util {
+        namespace logging {
+            CPPJSLIB_EXPORT void log(const std::string &message);
+
+            CPPJSLIB_EXPORT void err(const std::string &message);
+        }
+
         CPPJSLIB_EXPORT std::vector<std::string> parseJSONInput(const std::string &args);
 
         CPPJSLIB_EXPORT std::string stringArrayToJSON(const std::vector<std::string> &v);
@@ -296,7 +302,7 @@ namespace CppJsLib {
                 return res;
             }
 
-            CPPJSLIB_MAYBE_UNUSED static std::string toString(const std::map<std::string, std::string>& toConvert) {
+            CPPJSLIB_MAYBE_UNUSED static std::string toString(const std::map<std::string, std::string> &toConvert) {
                 return toJsonString(toConvert);
             }
         };
@@ -321,7 +327,7 @@ namespace CppJsLib {
 
         template<>
         struct TypeConverter<std::string> {
-            CPPJSLIB_MAYBE_UNUSED static std::string toJsonString(const std::string& toConvert) {
+            CPPJSLIB_MAYBE_UNUSED static std::string toJsonString(const std::string &toConvert) {
                 return stringToJSON(toConvert);
             }
 
@@ -351,7 +357,8 @@ namespace CppJsLib {
             };
         };
 
-        template<typename> struct CPPJSLIB_MAYBE_UNUSED Types;
+        template<typename>
+        struct CPPJSLIB_MAYBE_UNUSED Types;
 
         template<typename type>
         struct Types {
@@ -395,7 +402,7 @@ namespace CppJsLib {
                 } else if (std::is_same<void, type>::value) {
                     return "void";
                 } else {
-                    std::cerr << "Found unsupported type. This should not happen" << std::endl;
+                    logging::err("Found unsupported type. This should not happen");
                     return "";
                 }
             }
@@ -483,7 +490,7 @@ namespace CppJsLib {
                 } else if (data == "true") {
                     return true;
                 } else {
-                    std::cerr << "Convert error: cannot convert string '" << data << "' to bool" << std::endl;
+                    logging::err("Convert error: cannot convert string '" + data + "' to bool");
                     return false;
                 }
             }
@@ -502,7 +509,7 @@ namespace CppJsLib {
                 }
 
                 if (iss.fail()) {
-                    std::cerr << "Convert error: cannot convert string '" << data << "' to value" << std::endl;
+                    logging::err("Convert error: cannot convert string '" + data + "' to value");
                     return T();
                 }
                 return ret;
@@ -531,7 +538,8 @@ namespace CppJsLib {
             void operator()(size_t argc, std::string *args) {
                 // This should be a precondition
                 if (argc != sizeof...(Args)) {
-                    std::cerr << "Argument count does not match!" << std::endl;
+                    logging::err("Argument count does not match: " + std::to_string(argc) + " vs. " +
+                                 std::to_string(sizeof...(Args)));
                     return;
                 }
 
@@ -558,7 +566,8 @@ namespace CppJsLib {
             R operator()(size_t argc, std::string *args) {
                 // This should be a precondition
                 if (argc != sizeof...(Args)) {
-                    std::cerr << "Argument count does not match!" << std::endl;
+                    logging::err("Argument count does not match: " + std::to_string(argc) + " vs. " +
+                                 std::to_string(sizeof...(Args)));
                     return R();
                 }
 
@@ -602,6 +611,8 @@ namespace CppJsLib {
                     fnString.append(types[i]);
                 }
                 fnString.append(")");
+
+                logging::log("ExposedFunction function string: " + fnString);
 
                 delete[] types;
 
@@ -701,7 +712,7 @@ namespace CppJsLib {
         /**
          * A WebGUI_shared_ptr to handle the deallocation
          */
-        using WebGUI_shared_ptr = std::shared_ptr<CppJsLib::WebGUI>;
+        using WebGUI_shared = std::shared_ptr<CppJsLib::WebGUI>;
 
         /**
          * Create a WebGUI instance
@@ -709,8 +720,8 @@ namespace CppJsLib {
          * @param base_dir the base directory
          * @return a WebGUI_shared_ptr object, which will handle the deallocation
          */
-        static inline WebGUI_shared_ptr create_shared(const std::string &base_dir = "") {
-            return WebGUI_shared_ptr(create(base_dir), deleteInstance);
+        static inline WebGUI_shared create_shared(const std::string &base_dir = "") {
+            return WebGUI_shared(create(base_dir), deleteInstance);
         }
 
         /**
@@ -734,11 +745,11 @@ namespace CppJsLib {
          * @param websocket_plain_fallback_port a websocket fallback port, if encryption did fail
          * @return a WebGUI_shared_ptr object, which will handle the deallocation
          */
-        static inline WebGUI_shared_ptr
+        static inline WebGUI_shared
         create_shared(const std::string &base_dir, const std::string &cert_path, const std::string &private_key_path,
                       unsigned short websocket_plain_fallback_port = 0) {
-            return WebGUI_shared_ptr(create(base_dir, cert_path, private_key_path, websocket_plain_fallback_port),
-                                     deleteInstance);
+            return WebGUI_shared(create(base_dir, cert_path, private_key_path, websocket_plain_fallback_port),
+                                 deleteInstance);
         }
 
         /**
@@ -769,7 +780,7 @@ namespace CppJsLib {
         /**
          * A WebGUI_shared_ptr to handle the deallocation
          */
-        using WebGUI_shared_ptr = std::shared_ptr<CppJsLib::WebGUI>;
+        using WebGUI_shared = std::shared_ptr<CppJsLib::WebGUI>;
 
         /**
          * Create a WebGUI instance
@@ -777,7 +788,7 @@ namespace CppJsLib {
          * @param base_dir the base directory
          * @return a WebGUI_shared_ptr object, which will handle the deallocation
          */
-        static inline WebGUI_shared_ptr create_shared(const std::string &base_dir = "") {
+        static inline WebGUI_shared create_shared(const std::string &base_dir = "") {
             return std::make_shared<WebGUI>(base_dir);
         }
 
@@ -802,7 +813,7 @@ namespace CppJsLib {
          * @param websocket_plain_fallback_port a websocket fallback port, if encryption did fail
          * @return a WebGUI_shared_ptr object, which will handle the deallocation
          */
-        static inline WebGUI_shared_ptr
+        static inline WebGUI_shared
         create_shared(const std::string &base_dir, const std::string &cert_path, const std::string &private_key_path,
                             unsigned short websocket_plain_fallback_port = 0) {
             return std::make_shared<WebGUI>(base_dir, cert_path, private_key_path, websocket_plain_fallback_port);
@@ -875,9 +886,9 @@ namespace CppJsLib {
          */
         template<class...Args>
         inline void _exportFunction(void(*f)(Args...), std::string name) {
-            this->log("[CppJsLib] Exposing void function with name " + name);
+            this->log("Exposing void function with name " + name);
             if (running) {
-                this->err("[CppJsLib] Cannot expose function " + name + " since the web server is already running");
+                this->err("Cannot expose function " + name + " since the web server is already running");
                 return;
             }
 
@@ -891,11 +902,12 @@ namespace CppJsLib {
                 std::string r = "/callfunc_";
                 r.append(name);
 
-                callFromPost(r.c_str(), [exposedF](std::string req_body) {
+                callFromPost(r.c_str(), [exposedF, this, name](std::string req_body) {
+                    log("Calling C++ function: " + name);
                     return util::Caller::call(exposedF, req_body);
                 });
             } else {
-                this->err("[CppJsLib] Cannot expose function " + name + ": Unable to allocate memory");
+                this->err("Cannot expose function " + name + ": Unable to allocate memory");
             }
         }
 
@@ -904,9 +916,9 @@ namespace CppJsLib {
          */
         template<class R, class...Args>
         inline void _exportFunction(R(*f)(Args...), std::string name) {
-            this->log("[CppJsLib] Exposing function with name " + name);
+            this->log("Exposing function with name " + name);
             if (running) {
-                this->err("[CppJsLib] Cannot expose function " + name + " since the web server is already running");
+                this->err("Cannot expose function " + name + " since the web server is already running");
                 return;
             }
             util::ExposedFunction<R(Args...)> *exposedF;
@@ -919,11 +931,12 @@ namespace CppJsLib {
                 std::string r = "/callfunc_";
                 r.append(name);
 
-                callFromPost(r.c_str(), [exposedF](std::string req_body) {
+                callFromPost(r.c_str(), [exposedF, this, name](std::string req_body) {
+                    log("Calling C++ function: " + name);
                     return util::Caller::call(exposedF, req_body);
                 });
             } else {
-                this->err("[CppJsLib] Cannot expose function " + name + ": Unable to allocate memory");
+                this->err("Cannot expose function " + name + ": Unable to allocate memory");
             }
         }
 
@@ -936,18 +949,19 @@ namespace CppJsLib {
                 fName.erase(0, 1); // Delete first character as it is a *
             }
 
-            this->log("[CppJsLib] Importing js function with name " + fName);
+            this->log("Importing js function with name " + fName);
             util::JsFunction<void(Args...)> *f = nullptr;
             util::initJsFunction(&f, fName, this);
 
             if (f != nullptr) {
-                auto *a = static_cast<void *>(&(*f));
+                auto *a = static_cast<void *>(f);
                 this->pushToVoidPtrVector(a);
-                function = [f](Args...args) {
+                function = [f, this, fName](Args...args) {
+                    log("Calling js function: " + fName);
                     f->operator()(args...);
                 };
             } else {
-                this->err("[CppJsLib] Could not import function " + fName + ": Unable to allocate memory");
+                this->err("Could not import function " + fName + ": Unable to allocate memory");
             }
         }
 
@@ -970,17 +984,18 @@ namespace CppJsLib {
                 fName.erase(0, 1); // Delete first character as it is a &
             }
 
-            this->log("[CppJsLib] Importing js function with name " + fName);
+            this->log("Importing js function with name " + fName);
             util::JsFunction<std::vector<R>(Args...)> *f = nullptr;
             util::initJsFunction(&f, fName, this, waitS);
 
             if (f != nullptr) {
                 this->pushToVoidPtrVector(static_cast<void *>(f));
-                function = [f](Args...args) {
+                function = [f, this, fName](Args...args) {
+                    log("Calling js function: " + fName);
                     return f->operator()(args...);
                 };
             } else {
-                _errorF("[CppJsLib] Could not import function " + fName + ": Unable to allocate memory");
+                err("Could not import function " + fName + ": Unable to allocate memory");
             }
         }
 
@@ -1028,14 +1043,14 @@ namespace CppJsLib {
         template<class...Args>
         inline void import(std::function<void(Args...)> &function) {
             function = [this] (Args... args) {
-                _errorF("Javascript function called but CppJsLib was built without websocket support");
+                err("Javascript function called but CppJsLib was built without websocket support");
             };
         }
 
         template<class R, class...Args>
         inline void import(std::function<std::vector<R>(Args...)> &function, int waitS = -1) {
             function = [this] (Args... args) {
-                _errorF("Javascript function called but CppJsLib was built without websocket support");
+                err("Javascript function called but CppJsLib was built without websocket support");
                 return std::vector<R>();
             };
         }
@@ -1195,19 +1210,19 @@ namespace CppJsLib {
      *
      * @return false, if there was an error
      */
-    CPPJSLIB_EXPORT bool ok();
+    CPPJSLIB_EXPORT CPPJSLIB_MAYBE_UNUSED bool ok();
 
     /**
      * Get the last error
      *
      * @return the last error string
      */
-    CPPJSLIB_EXPORT std::string getLastError();
+    CPPJSLIB_EXPORT CPPJSLIB_MAYBE_UNUSED std::string getLastError();
 
     /**
      * Reset the last error
      */
-    CPPJSLIB_EXPORT void resetLastError();
+    CPPJSLIB_EXPORT CPPJSLIB_MAYBE_UNUSED void resetLastError();
 }
 
 #endif //CPPJSLIB_WEBGUI_HPP
