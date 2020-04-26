@@ -9,9 +9,11 @@
 #include <utility>
 
 #include "websocket.hpp"
-#include "loggingfunc.hpp"
 #include "socket.hpp"
+
+#ifndef CPPJSLIB_ENABLE_WEBSOCKET
 #include "EventDispatcher.hpp"
+#endif
 
 using namespace CppJsLib;
 
@@ -136,7 +138,7 @@ WebGUI::WebGUI(const std::string &base_dir, const std::string &cert_path,
 
 template<typename Endpoint>
 void onMessage(std::shared_ptr<Endpoint> s, std::string initString,
-               const std::map<std::string, std::function<std::string(std::string req_body)>> &websocketTargets,
+               const std::map<std::string, std::function<std::string(std::string)>> &websocketTargets,
                const std::function<void(const std::string &)> &_errorF, bool websocket_only,
                const std::map<std::string, std::vector<std::string> *> &jsFnCallbacks,
                websocketpp::connection_hdl hdl, const wspp::server::message_ptr &msg) {
@@ -214,12 +216,12 @@ void onMessage(std::shared_ptr<Endpoint> s, std::string initString,
 template<typename Endpoint>
 bool
 _startNoWeb(std::shared_ptr<Endpoint> ws_server, int port, bool block, std::string initString,
-            const std::map<std::string, std::function<std::string(std::string req_body)>> &websocketTargets,
+            const std::map<std::string, std::function<std::string(std::string)>> &websocketTargets,
             const std::function<void(const std::string &)> &_errorF, bool websocket_only,
             std::map<std::string, std::vector<std::string> *> jsFnCallbacks) {
     ws_server->set_message_handler(
-            bind(&onMessage<Endpoint>, ws_server, initString,
-                 websocketTargets, _errorF, websocket_only, jsFnCallbacks, ::_1, ::_2));
+            bind(&onMessage<Endpoint>, ws_server, initString, websocketTargets, _errorF, websocket_only, jsFnCallbacks,
+                 std::placeholders::_1, std::placeholders::_2));
 
     if (block) {
         startWebsocketServer(ws_server, port);
@@ -278,12 +280,13 @@ CPPJSLIB_EXPORT bool WebGUI::startNoWeb(int port, bool block) {
 #   endif
 }
 
-CPPJSLIB_EXPORT bool WebGUI::start(int port, const std::string &host, bool block) {
+CPPJSLIB_EXPORT CPPJSLIB_MAYBE_UNUSED bool WebGUI::start(int port, const std::string &host, bool block) {
     _errorF("Can not start servers without websocketPort set, when built with websocket protocol support. Please define macro 'CPPJSLIB_ENABLE_WEBSOCKET' before including CppJsLib.hpp");
     return false;
 }
 
-CPPJSLIB_EXPORT bool WebGUI::start(int port, int websocketPort, const std::string &host, bool block)
+CPPJSLIB_EXPORT CPPJSLIB_MAYBE_UNUSED bool
+WebGUI::start(int port, int websocketPort, const std::string &host, bool block)
 #else
 
 CPPJSLIB_EXPORT bool WebGUI::start(int port, const std::string &host, bool block)
@@ -450,7 +453,7 @@ CPPJSLIB_EXPORT bool WebGUI::start(int port, const std::string &host, bool block
 #   endif //CPPJSLIB_ENABLE_HTTPS
 #endif //CPPJSLIB_ENABLE_WEBSOCKET
 
-    std::function < void() > func;
+    std::function<void()> func;
 #ifdef CPPJSLIB_ENABLE_HTTPS
     if (ssl) {
         std::shared_ptr<httplib::SSLServer> svr = std::static_pointer_cast<httplib::SSLServer>(server);
@@ -768,7 +771,7 @@ CPPJSLIB_EXPORT void WebGUI::pushToSseVec(const std::string &s) {
 }
 #endif //CPPJSLIB_ENABLE_WEBSOCKET
 
-CPPJSLIB_EXPORT bool WebGUI::isWebsocketOnly() {
+CPPJSLIB_EXPORT bool WebGUI::isWebsocketOnly() const {
     return websocket_only;
 }
 

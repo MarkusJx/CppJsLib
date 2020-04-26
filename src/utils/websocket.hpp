@@ -41,10 +41,6 @@ namespace wspp {
     typedef std::set<websocketpp::connection_hdl, std::owner_less<websocketpp::connection_hdl>> con_list;
 }
 
-using websocketpp::lib::placeholders::_1;
-using websocketpp::lib::placeholders::_2;
-using websocketpp::lib::bind;
-
 #ifdef CPPJSLIB_ENABLE_HTTPS
 void setPassword();
 #endif
@@ -54,10 +50,10 @@ inline void initWebsocketServer(std::shared_ptr<EndpointType> s, const std::shar
     try {
         s->set_open_handler(bind([list](const websocketpp::connection_hdl &hdl) {
             list->insert(hdl);
-        }, ::_1));
+        }, std::placeholders::_1));
         s->set_close_handler(bind([list](const websocketpp::connection_hdl &hdl) {
             list->erase(hdl);
-        }, ::_1));
+        }, std::placeholders::_1));
 
         s->set_access_channels(websocketpp::log::alevel::all);
         s->clear_access_channels(websocketpp::log::alevel::frame_payload);

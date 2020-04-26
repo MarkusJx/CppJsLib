@@ -9,7 +9,6 @@
 #include <thread>
 
 #include "utils/websocket.hpp"
-#include "utils/loggingfunc.hpp"
 
 using namespace CppJsLib;
 
@@ -74,45 +73,82 @@ CPPJSLIB_EXPORT bool CppJsLib::util::stop(WebGUI *webGui, bool block, int waitMa
     return !webGui->isRunning();
 }
 
-CPPJSLIB_EXPORT std::string *CppJsLib::util::parseJSONInput(int *size, const std::string &args) {
-    using json = nlohmann::json;
-    json j = json::parse(json::parse(args)["args"].dump());
-    int s = 0;
-    for (auto &it : j) s++;
-    *size = s;
-    auto *argArr = new std::string[s];
-    int i = 0;
-    for (auto &it : j) {
-        argArr[i] = it.dump();
-        i++;
+CPPJSLIB_EXPORT std::vector<std::string> CppJsLib::util::parseJSONInput(const std::string &args) {
+    loggingF("Parsing JSON: " + args);
+    try {
+        using json = nlohmann::json;
+        json j = json::parse(json::parse(args)["args"].dump());
+
+        std::vector<std::string> argArr;
+        for (auto &it : j) {
+            argArr.push_back(it.dump());
+        }
+
+        return argArr;
+    } catch (...) {
+        errorF("Could not parse JSON");
+    }
+    return std::vector<std::string>();
+}
+
+CPPJSLIB_EXPORT std::string CppJsLib::util::stringArrayToJSON(const std::vector<std::string> &v) {
+    loggingF("Converting vector to JSON string");
+    try {
+        nlohmann::json json(v);
+        return json.dump();
+    } catch (...) {
+        errorF("Could not parse JSON");
+    }
+    return "";
+}
+
+CPPJSLIB_EXPORT std::string CppJsLib::util::stringMapToJSON(const std::map<std::string, std::string> &m) {
+    loggingF("Converting map to JSON string");
+    try {
+        nlohmann::json json(m);
+        return json.dump();
+    } catch (...) {
+        errorF("Could not convert map");
+    }
+    return "";
+}
+
+CPPJSLIB_EXPORT std::string CppJsLib::util::stringToJSON(const std::string &s) {
+    loggingF("Converting string to JSON: " + s);
+    try {
+        nlohmann::json json(s);
+        return json.dump();
+    } catch (...) {
+        errorF("Could not convert string");
+    }
+    return "";
+}
+
+CPPJSLIB_EXPORT std::vector<std::string> CppJsLib::util::createStringArrayFromJSON(const std::string &data) {
+    std::vector<std::string> tmp;
+    loggingF("Creating string array from JSON");
+
+    try {
+        nlohmann::json j = nlohmann::json::parse(data);
+        for (auto &it : j) {
+            tmp.push_back(it.dump());
+        }
+    } catch (...) {
+        errorF("Could not parse JSON");
     }
 
-    return argArr;
+    return tmp;
 }
 
-CPPJSLIB_EXPORT std::string CppJsLib::util::stringArrayToJSON(std::vector<std::string> *v) {
-    nlohmann::json json(*v);
-    return json.dump();
-}
-
-CPPJSLIB_EXPORT std::string CppJsLib::util::stringToJSON(std::string s) {
-    nlohmann::json json(s);
-    return json.dump();
-}
-
-CPPJSLIB_EXPORT std::string *CppJsLib::util::createStringArrayFromJSON(int *size, const std::string &data) {
-    nlohmann::json j = nlohmann::json::parse(data);
-    int s = 0;
-    for (auto &it : j) s++;
-    *size = s;
-    auto *ret = new std::string[s];
-    int i = 0;
-    for (auto &it : j) {
-        ret[i] = it.dump();
-        i++;
+CPPJSLIB_EXPORT std::map<std::string, std::string> CppJsLib::util::createStringMapFromJSON(const std::string &data) {
+    loggingF("Creating string map from JSON object");
+    try {
+        nlohmann::json j = nlohmann::json::parse(data);
+        return j.get<std::map<std::string, std::string>>();
+    } catch (...) {
+        errorF("Could not parse JSON");
     }
-
-    return ret;
+    return std::map<std::string, std::string>();
 }
 
 CPPJSLIB_EXPORT void CppJsLib::util::callJsFunc(WebGUI *wGui, std::vector<std::string> *argV, char *funcName,

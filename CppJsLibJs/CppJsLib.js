@@ -8,6 +8,11 @@ const cppJsLib = {
     'connected': false,
     'webSocket_only': false,
     'callbacks': [],
+    'websocket_only': false,
+    'tls': false,
+    'host': "",
+    'port': 0,
+    'disconnectTimeoutRunning': false,
     /**
      * @type WebSocket
      */
@@ -22,6 +27,42 @@ const cppJsLib = {
         } else {
             fn();
         }
+    },
+    /**
+     * Check if the server is reachable
+     * Source: https://gist.github.com/gitawego/4250714
+     *
+     * @returns {Promise<Boolean>} if the server is reachable
+     */
+    'serverReachable': function() {
+        // IE vs. standard XHR creation
+        let x = new(window.ActiveXObject || XMLHttpRequest)("Microsoft.XMLHTTP"),
+            s;
+        let port = "";
+        if (location.port.length > 0) {
+            port = ":" + location.port;
+        }
+        return new Promise(resolve => {
+            x.open(
+                // requesting the headers is faster, and just enough
+                "HEAD",
+                // append a random string to the current hostname,
+                // to make sure we're not hitting the cache
+                "//" + window.location.hostname + port + "/?rand=" + Math.random(),
+                // make a synchronous request
+                true
+            );
+            try {
+                x.send();
+                x.onreadystatechange = () => {
+                    s = x.status;
+                    resolve(s >= 200 && s < 300 || s === 304);
+                }
+                // catch network & other problems
+            } catch (e) {
+                resolve(false);
+            }
+        });
     },
     'sendRequest': function(request, callback = false, body = "", type = "POST") {
         if (this.webSocket_only) {
@@ -42,24 +83,33 @@ const cppJsLib = {
             try {
                 this.webSocket.send(JSON.stringify(req));
             } catch (error) {
+                console.debug("Disconnected");
                 this.connected = false;
             }
         } else {
-            let xhttp = new XMLHttpRequest();
-            xhttp.open(type, request, true);
-            if (callback) {
-                xhttp.onreadystatechange = function() {
-                    if (this.readyState === 4 && this.status === 200) {
-                        //callback(JSON.parse(xhttp.responseText));
-                        callback(xhttp.responseText);
+            this.serverReachable().then(res => {
+                if (!res) {
+                    console.debug("Disconnected");
+                    this.onClose();
+                    return;
+                }
+
+                let xhttp = new(window.ActiveXObject || XMLHttpRequest)("Microsoft.XMLHTTP");
+                try {
+                    xhttp.open(type, request, true);
+                    if (callback) {
+                        xhttp.onreadystatechange = function() {
+                            if (this.readyState === 4 && this.status === 200) {
+                                callback(xhttp.responseText);
+                            }
+                        };
                     }
-                };
-            }
-            try {
-                xhttp.send(body);
-            } catch (error) {
-                this.connected = false;
-            }
+                    xhttp.send(body);
+                } catch (error) {
+                    console.debug("Disconnected");
+                    this.connected = false;
+                }
+            });
         }
     },
     /**
@@ -72,7 +122,22 @@ const cppJsLib = {
     'initWebsocketOnly': function(host, port, tls = false) {
         this.init(true, tls, host, port);
     },
+    'onClose': function () {
+        if (!this.disconnectTimeoutRunning) {
+            this.disconnectTimeoutRunning = true;
+            this.connected = false;
+            console.debug("Connection closed. Trying to reconnect in 5 seconds");
+            setTimeout(() => {
+                cppJsLib.disconnectTimeoutRunning = false;
+                cppJsLib.init(this.websocket_only, this.tls, this.host, this.port);
+            }, 5000);
+        }
+    },
     'init': function(websocket_only = false, tls = false, host = "", port = 0) {
+        this.webSocket_only = websocket_only;
+        this.tls = tls;
+        this.host = host;
+        this.port = port;
         if (websocket_only) {
             this.webSocket_only = true;
             let wsProtocol;
@@ -91,13 +156,7 @@ const cppJsLib = {
             }
 
             this.connected = true;
-            this.webSocket.onclose = () => {
-                this.connected = false;
-                console.debug("WebSocket connection closed. Trying to reconnect in 5 seconds");
-                setTimeout(() => {
-                    this.init(websocket_only, tls, host, port);
-                }, 5000);
-            };
+            this.webSocket.onclose = this.onClose;
 
             this.webSocket.onmessage = (event) => {
                 console.debug("Received websocket message");
@@ -196,13 +255,7 @@ const cppJsLib = {
                     }
 
                     this.connected = true;
-                    this.webSocket.onclose = () => {
-                        this.connected = false;
-                        console.debug("WebSocket connection closed. Trying to reconnect in 5 seconds");
-                        setTimeout(() => {
-                            this.init(websocket_only, tls, host, port);
-                        }, 5000);
-                    };
+                    this.webSocket.onclose = this.onClose;
 
                     this.webSocket.onmessage = (event) => {
                         let data = JSON.parse(event.data);
@@ -291,7 +344,7 @@ const cppJsLib = {
             }
 
             for (let i = 0; i < args.length; i++) {
-                if (!this.argMatches(arguments[i], args[i])) {
+                if (!this.argMatches(arguments[i], args[i]) && !args[i].startsWith("map<")) {
                     console.error("Arguments do not match!\n Expected: " + args[i] + " but got: " +
                         ((Array.isArray(arguments[i]) && arguments[i].length > 0) ? typeof(arguments[i][0]) + "[]" : typeof(arguments[i])));
                     return;

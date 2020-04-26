@@ -16,15 +16,18 @@
 #include <iostream>
 #include <thread>
 
-#include <cassert>
-
 #ifdef CPPJSLIB_WINDOWS
 
+#   define _CRTDBG_MAP_ALLOC
+#   include <cstdlib>
 #   include <crtdbg.h>
+#   include <cassert>
 
+#   define DUMP_MEM_LEAKS() _CrtDumpMemoryLeaks()
 #   define ASSERT_MEM_OK() assert(_CrtCheckMemory())
 #else
 #   define ASSERT_MEM_OK()
+#   define DUMP_MEM_LEAKS()
 #endif
 
 #include "DifferentWebServer.hpp"
@@ -40,11 +43,11 @@ void f(int a) {
     func(a);
 }
 
-std::string d(const std::vector<int> &v) {
-    for (int i : v) {
-        std::cout << i << std::endl;
+std::map<int, std::string> d(const std::map<int, std::string> &v) {
+    for (const auto& i : v) {
+        std::cout << i.first << ", " << i.second << std::endl;
     }
-    return "abc";
+    return std::map<int, std::string>();
 }
 
 int main() {
@@ -86,12 +89,12 @@ int main() {
     wGui->expose(d);
 
     ASSERT_MEM_OK();
-
-    std::cout << "Starting web server..." << std::endl;
 #ifdef CPPJSLIB_ENABLE_WEBSOCKET
 #   define TEST_WS_PORT 8026,
+#   define UNIQUE_WS_PORT 8037,
 #else
 #   define TEST_WS_PORT
+#   define UNIQUE_WS_PORT
 #endif
 
 #ifdef TEST_GHBUILD
@@ -105,7 +108,7 @@ int main() {
 #ifdef TEST_USE_DLL
     {
         CppJsLib::WebGUI::WebGUI_unique ptr = CppJsLib::WebGUI::create_unique("web");
-        ptr->start(8026, TEST_WS_PORT "localhost", false);
+        ptr->start(8026, UNIQUE_WS_PORT "localhost", false);
         std::this_thread::sleep_for(std::chrono::milliseconds(20));
         ptr->stop();
     }
@@ -115,7 +118,9 @@ int main() {
 
     DifferentWebServerTest();
 
+    std::cout << "Starting web server..." << std::endl;
     wGui->start(8028, TEST_WS_PORT CppJsLib::localhost, block);
+    std::this_thread::sleep_for(std::chrono::seconds(20));
 
 #ifdef CPPJSLIB_ENABLE_WEBSOCKET
     func(5);
@@ -133,6 +138,6 @@ int main() {
 #endif
 
     ASSERT_MEM_OK();
-
+    DUMP_MEM_LEAKS();
     return 0;
 }

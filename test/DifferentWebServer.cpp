@@ -39,7 +39,7 @@ void DifferentWebServerTest() {
 
     ptr->check_ports = false;
     ptr->startNoWeb(8025, false);
-    std::this_thread::sleep_for(std::chrono::minutes(1));
+    std::this_thread::sleep_for(std::chrono::minutes(0));
 
     std::cout << "Stopping servers" << std::endl;
     srv->stop();

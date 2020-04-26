@@ -1,6 +1,14 @@
 #ifndef CPPJSLIB_WEBGUI_HPP
 #define CPPJSLIB_WEBGUI_HPP
 
+#if __cplusplus >= 201603L
+#   define CPPJSLIB_MAYBE_UNUSED [[maybe_unused]]
+#   define CPPJSLIB_NODISCARD [[nodiscard]]
+#else
+#   define CPPJSLIB_MAYBE_UNUSED
+#   define CPPJSLIB_NODISCARD
+#endif
+
 #ifdef CPPJSLIB_ENABLE_HTTPS
 #   define CPPHTTPLIB_OPENSSL_SUPPORT
 #else
@@ -97,13 +105,17 @@ namespace CppJsLib {
     class WebGUI;
 
     namespace util {
-        CPPJSLIB_EXPORT std::string *parseJSONInput(int *size, const std::string &args);
+        CPPJSLIB_EXPORT std::vector<std::string> parseJSONInput(const std::string &args);
 
-        CPPJSLIB_EXPORT std::string stringArrayToJSON(std::vector<std::string> *v);
+        CPPJSLIB_EXPORT std::string stringArrayToJSON(const std::vector<std::string> &v);
 
-        CPPJSLIB_EXPORT std::string stringToJSON(std::string s);
+        CPPJSLIB_EXPORT std::string stringMapToJSON(const std::map<std::string, std::string> &m);
 
-        CPPJSLIB_EXPORT std::string *createStringArrayFromJSON(int *size, const std::string &data);
+        CPPJSLIB_EXPORT std::string stringToJSON(const std::string &s);
+
+        CPPJSLIB_EXPORT std::vector<std::string> createStringArrayFromJSON(const std::string &data);
+
+        CPPJSLIB_EXPORT std::map<std::string, std::string> createStringMapFromJSON(const std::string &data);
 
         CPPJSLIB_EXPORT void pushToStrVecVector(WebGUI *webGui, std::vector<std::string> *v);
 
@@ -125,10 +137,10 @@ namespace CppJsLib {
         CPPJSLIB_EXPORT bool stop(WebGUI *webGui, bool block = true, int maxWaitSeconds = CPPJSLIB_DURATION_INFINITE);
 
         template<class>
-        struct TypeConverter;
+        struct CPPJSLIB_MAYBE_UNUSED TypeConverter;
 
         template<class>
-        struct cString;
+        struct CPPJSLIB_MAYBE_UNUSED cString;
 
         template<class>
         struct ExposedFunction;
@@ -160,13 +172,13 @@ namespace CppJsLib {
             for (T el : dt) {
                 tmp.push_back(getEl(el));
             }
-            return stringArrayToJSON(&tmp);
+            return stringArrayToJSON(tmp);
         }
 
         template<class ...Args>
         inline void ConvertToString(std::vector<std::string> *argV, Args...args) {
             // Use volatile to disable optimization
-            volatile auto x = {(argV->push_back(args), 0)...};
+            CPPJSLIB_MAYBE_UNUSED volatile auto x = {(argV->push_back(args), 0)...};
         }
 
         template<>
@@ -184,7 +196,7 @@ namespace CppJsLib {
         struct JsFunction<void(Args ...)> {
             void operator()(Args ... args) {
                 std::vector<std::string> argV;
-                volatile auto x = {(ConvertToString(&argV, getEl(args)), 0)...};
+                CPPJSLIB_MAYBE_UNUSED volatile auto x = {(ConvertToString(&argV, getEl(args)), 0)...};
                 callJsFunc(wGui, &argV, fnName);
             }
 
@@ -233,7 +245,7 @@ namespace CppJsLib {
         struct JsFunction<std::vector<R>(Args ...)> {
             std::vector<R> operator()(Args ... args) {
                 std::vector<std::string> argV;
-                volatile auto x = {(ConvertToString(&argV, getEl(args)), 0)...};
+                CPPJSLIB_MAYBE_UNUSED volatile auto x = {(ConvertToString(&argV, getEl(args)), 0)...};
                 callJsFunc(wGui, &argV, fnName, responseReturns, wait);
 
                 std::vector<R> tmp;
@@ -270,42 +282,61 @@ namespace CppJsLib {
 
 #endif
 
+        template<class K, class T>
+        struct TypeConverter<std::map<K, T>> {
+            CPPJSLIB_MAYBE_UNUSED static std::string toJsonString(std::map<K, T> toConvert) {
+                std::map<std::string, std::string> stringMap;
+                for (std::pair<K, T> p : toConvert) {
+                    stringMap.insert(std::pair<std::string, std::string>(TypeConverter<K>::toString(p.first),
+                                                                         TypeConverter<T>::toString(p.second)));
+                }
+
+                std::string res = stringMapToJSON(stringMap);
+                std::map<std::string, std::string>().swap(stringMap);
+                return res;
+            }
+
+            CPPJSLIB_MAYBE_UNUSED static std::string toString(const std::map<std::string, std::string>& toConvert) {
+                return toJsonString(toConvert);
+            }
+        };
+
         template<class T>
         struct TypeConverter<std::vector<T>> {
-            static std::string toJsonString(std::vector<T> toConvert) {
-                std::vector<std::string> stringVector;
+            CPPJSLIB_MAYBE_UNUSED static std::string toJsonString(std::vector<T> toConvert) {
+                std::vector<std::string> stringVector(toConvert.size());
                 for (T val : toConvert) {
                     stringVector.push_back(TypeConverter<T>::toString(val));
                 }
 
-                std::string res = stringArrayToJSON(&stringVector);
+                std::string res = stringArrayToJSON(stringVector);
                 std::vector<std::string>().swap(stringVector);
                 return res;
             }
 
-            static std::string toString(std::vector<T> toConvert) {
+            CPPJSLIB_MAYBE_UNUSED static std::string toString(std::vector<T> toConvert) {
                 return toJsonString(toConvert);
             }
         };
 
         template<>
         struct TypeConverter<std::string> {
-            static std::string toJsonString(std::string toConvert) {
-                return stringToJSON(std::move(toConvert));
+            CPPJSLIB_MAYBE_UNUSED static std::string toJsonString(const std::string& toConvert) {
+                return stringToJSON(toConvert);
             }
 
-            static std::string toString(std::string toConvert) {
+            CPPJSLIB_MAYBE_UNUSED static std::string toString(std::string toConvert) {
                 return toConvert;
             }
         };
 
         template<class T>
         struct TypeConverter {
-            static std::string toJsonString(T toConvert) {
+            CPPJSLIB_MAYBE_UNUSED static std::string toJsonString(T toConvert) {
                 return stringToJSON(std::to_string(toConvert));
             }
 
-            static std::string toString(T toConvert) {
+            CPPJSLIB_MAYBE_UNUSED static std::string toString(T toConvert) {
                 return std::to_string(toConvert);
             }
         };
@@ -320,55 +351,73 @@ namespace CppJsLib {
             };
         };
 
-        template<typename type>
-        std::string _getTypeName() {
-            using namespace std;
-            // Check if the type is supported
-            static_assert(
-                    is_same<int, type>::value || is_same<std::vector<int>, type>::value || is_same<char, type>::value ||
-                    is_same<std::vector<char>, type>::value || is_same<string, type>::value ||
-                    is_same<std::vector<string>, type>::value || is_same<bool, type>::value ||
-                    is_same<std::vector<bool>, type>::value || is_same<float, type>::value ||
-                    is_same<std::vector<float>, type>::value || is_same<double, type>::value ||
-                    is_same<std::vector<double>, type>::value || std::is_same<void, type>::value,
-                    "Unsupported type used");
+        template<typename> struct CPPJSLIB_MAYBE_UNUSED Types;
 
-            if (std::is_same<int, type>::value) {
-                return "int";
-            } else if (std::is_same<std::vector<int>, type>::value) {
-                return "int[]";
-            } else if (std::is_same<char, type>::value) {
-                return "char";
-            } else if (std::is_same<std::vector<char>, type>::value) {
-                return "char[]";
-            } else if (std::is_same<std::string, type>::value) {
-                return "string";
-            } else if (std::is_same<std::vector<std::string>, type>::value) {
-                return "string[]";
-            } else if (std::is_same<bool, type>::value) {
-                return "bool";
-            } else if (std::is_same<std::vector<bool>, type>::value) {
-                return "bool[]";
-            } else if (std::is_same<float, type>::value) {
-                return "float";
-            } else if (std::is_same<std::vector<float>, type>::value) {
-                return "float[]";
-            } else if (std::is_same<double, type>::value) {
-                return "double";
-            } else if (std::is_same<std::vector<double>, type>::value) {
-                return "double[]";
-            } else if (std::is_same<void, type>::value) {
-                return "void";
-            } else {
-                std::cerr << "Found unsupported type. This should not happen" << std::endl;
-                return "";
+        template<typename type>
+        struct Types {
+            CPPJSLIB_MAYBE_UNUSED static std::string _getTypeName() {
+                using namespace std;
+                // Check if the type is supported
+                static_assert(
+                        is_same<int, type>::value || is_same<std::vector<int>, type>::value ||
+                        is_same<char, type>::value ||
+                        is_same<std::vector<char>, type>::value || is_same<string, type>::value ||
+                        is_same<std::vector<string>, type>::value || is_same<bool, type>::value ||
+                        is_same<std::vector<bool>, type>::value || is_same<float, type>::value ||
+                        is_same<std::vector<float>, type>::value || is_same<double, type>::value ||
+                        is_same<std::vector<double>, type>::value || std::is_same<void, type>::value,
+                        "Unsupported type used");
+
+                if (std::is_same<int, type>::value) {
+                    return "int";
+                } else if (std::is_same<std::vector<int>, type>::value) {
+                    return "int[]";
+                } else if (std::is_same<char, type>::value) {
+                    return "char";
+                } else if (std::is_same<std::vector<char>, type>::value) {
+                    return "char[]";
+                } else if (std::is_same<std::string, type>::value) {
+                    return "string";
+                } else if (std::is_same<std::vector<std::string>, type>::value) {
+                    return "string[]";
+                } else if (std::is_same<bool, type>::value) {
+                    return "bool";
+                } else if (std::is_same<std::vector<bool>, type>::value) {
+                    return "bool[]";
+                } else if (std::is_same<float, type>::value) {
+                    return "float";
+                } else if (std::is_same<std::vector<float>, type>::value) {
+                    return "float[]";
+                } else if (std::is_same<double, type>::value) {
+                    return "double";
+                } else if (std::is_same<std::vector<double>, type>::value) {
+                    return "double[]";
+                } else if (std::is_same<void, type>::value) {
+                    return "void";
+                } else {
+                    std::cerr << "Found unsupported type. This should not happen" << std::endl;
+                    return "";
+                }
             }
-        }
+        };
+
+        template<typename K, typename T>
+        struct CPPJSLIB_MAYBE_UNUSED Types<std::map<K, T>> {
+            CPPJSLIB_MAYBE_UNUSED static std::string _getTypeName() {
+                static_assert(!std::is_pointer_v<K> && !std::is_pointer_v<T>, "Pointers are not supported");
+                std::string tmp = "map<";
+                tmp.append(Types<typename std::decay_t<K>>::_getTypeName()).append(",");
+                tmp.append(Types<typename std::decay_t<T>>::_getTypeName()).append(">");
+
+                return tmp;
+            }
+        };
 
         template<typename type>
         std::string getTypeName() {
             // Get type name without const or reference qualifier
-            return _getTypeName<typename std::decay_t<type>>();
+            static_assert(!std::is_pointer_v<type>, "Pointers are not supported");
+            return Types<typename std::decay_t<type>>::_getTypeName();
         }
 
         template<typename fun, size_t i>
@@ -383,22 +432,13 @@ namespace CppJsLib {
 
         template<typename fun>
         struct expose_helper<fun, 0> {
-            static void get_types(std::string *types) {}
-        };
-
-        template<typename T>
-        struct remove_pointer {
-            typedef T type;
-        };
-
-        template<typename T>
-        struct remove_pointer<T *> {
-            typedef typename remove_pointer<T>::type type;
+            static void get_types(std::string *) {}
         };
 
         template<>
         struct cString<std::string> {
             static std::string convert(const std::string &data) {
+                // Remove leading or trailing quotation marks if exist
                 if (data[0] == '\"' && data[data.size() - 1] == '\"' && data.size() >= 2) {
                     std::string dt = data;
                     dt = dt.substr(1, dt.size() - 2);
@@ -412,11 +452,23 @@ namespace CppJsLib {
         template<typename T>
         struct cString<std::vector<T>> {
             static std::vector<T> convert(const std::string &data) {
-                int size = 0;
-                std::string *arr = createStringArrayFromJSON(&size, data);
-                std::vector<T> tmp(size);
-                for (int i = 0; i < size; i++) {
+                std::vector<std::string> arr = createStringArrayFromJSON(data);
+                std::vector<T> tmp(arr.size());
+                for (int i = 0; i < arr.size(); i++) {
                     tmp[i] = cString<T>::convert(arr[i]);
+                }
+
+                return tmp;
+            }
+        };
+
+        template<typename K, typename T>
+        struct cString<std::map<K, T>> {
+            static std::map<K, T> convert(const std::string &data) {
+                std::map<std::string, std::string> m = createStringMapFromJSON(data);
+                std::map<K, T> tmp;
+                for (const auto &p : m) {
+                    tmp.insert(std::pair<K, T>(cString<K>::convert(p.first), cString<T>::convert(p.second)));
                 }
 
                 return tmp;
@@ -476,10 +528,10 @@ namespace CppJsLib {
 
         template<class... Args>
         struct ExposedFunction<void(Args...)> {
-            void operator()(int argc, std::string *args) {
+            void operator()(size_t argc, std::string *args) {
                 // This should be a precondition
                 if (argc != sizeof...(Args)) {
-                    std::cerr << "Argument sizes do not match!" << std::endl;
+                    std::cerr << "Argument count does not match!" << std::endl;
                     return;
                 }
 
@@ -503,9 +555,10 @@ namespace CppJsLib {
 
         template<class R, class... Args>
         struct ExposedFunction<R(Args...)> {
-            R operator()(int argc, std::string *args) {
+            R operator()(size_t argc, std::string *args) {
                 // This should be a precondition
                 if (argc != sizeof...(Args)) {
+                    std::cerr << "Argument count does not match!" << std::endl;
                     return R();
                 }
 
@@ -541,6 +594,7 @@ namespace CppJsLib {
                 }
                 expose_helper<std::function<R(Args...)>, fn_traits::nargs>::get_types(types);
 
+                // Create a string to match the function definition
                 std::string fnString = getTypeName<R>();
                 fnString.append(" ").append(name).append("(");
                 for (int i = 0; i < fn_traits::nargs; i++) {
@@ -562,20 +616,20 @@ namespace CppJsLib {
         struct Caller {
             template<class R, class...Args>
             static std::string call(ExposedFunction<R(Args...)> *eF, const std::string &args) {
-                int size = 0;
-                auto *argArr = parseJSONInput(&size, args);
+                std::vector<std::string> argArr = parseJSONInput(args);
 
-                R result = eF->operator()(size, argArr);
+                R result = eF->operator()(argArr.size(), argArr.data());
+                std::vector<std::string>().swap(argArr);
 
                 return TypeConverter<R>::toJsonString(result);
             }
 
             template<class...Args>
             static std::string call(ExposedFunction<void(Args...)> *eF, const std::string &args) {
-                int size = 0;
-                auto *argArr = parseJSONInput(&size, args);
+                std::vector<std::string> argArr = parseJSONInput(args);
 
-                eF->operator()(size, argArr);
+                eF->operator()(argArr.size(), argArr.data());
+                std::vector<std::string>().swap(argArr);
                 return "";
             }
         };
@@ -599,7 +653,6 @@ namespace CppJsLib {
     public:
         // Delete any constructor not allowed to initialize everything correctly
         // and to prevent heap corruptions to occur
-        //WebGUI() = delete;
 
         WebGUI(const WebGUI &) = delete;
 
@@ -1088,7 +1141,7 @@ namespace CppJsLib {
 
         CPPJSLIB_EXPORT bool isRunning();
 
-        CPPJSLIB_EXPORT bool isWebsocketOnly();
+        CPPJSLIB_EXPORT CPPJSLIB_NODISCARD bool isWebsocketOnly() const;
 
         ~WebGUI();
 

@@ -93,8 +93,8 @@ void initWebsocketTLS(const std::shared_ptr<wspp::server_tls> &s CPPJSLIB_CERTS)
             return on_tls_init(mode, hdl, cert_path, private_key_path);
         };
 
-        s->set_http_handler(bind(&on_http, s.get(), ::_1));
-        s->set_tls_init_handler(bind(on_tls, MOZILLA_INTERMEDIATE, ::_1));
+        s->set_http_handler(bind(&on_http, s.get(), std::placeholders::_1));
+        s->set_tls_init_handler(bind(on_tls, MOZILLA_INTERMEDIATE, std::placeholders::_1));
     } catch (websocketpp::exception const &e) {
         errorF(e.what());
     } catch (...) {
