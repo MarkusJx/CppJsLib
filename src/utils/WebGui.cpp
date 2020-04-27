@@ -47,7 +47,7 @@ CPPJSLIB_EXPORT void WebGUI::deleteInstance(WebGUI *webGui) {
 
 WebGUI::WebGUI(const std::string &base_dir)
         : initMap(), voidPtrVector(), strVecVector(), websocketTargets(), jsFnCallbacks(), sseVec(), sseEventMap()
-CPPJSLIB_DISABLE_SSL_MACRO {
+          CPPJSLIB_DISABLE_SSL_MACRO {
     std::shared_ptr<httplib::Server> svr = std::make_shared<httplib::Server>();
     server = std::static_pointer_cast<void>(svr);
 
@@ -141,7 +141,7 @@ WebGUI::WebGUI(const std::string &base_dir, const std::string &cert_path,
 
 template<typename Endpoint>
 void onMessage(std::shared_ptr<Endpoint> s, std::string initString,
-               const std::map<std::string, std::function<std::string(std::string)>> &websocketTargets,
+               const std::map<std::string, WebGUI::PostHandler> &websocketTargets,
                const std::function<void(const std::string &)> &_errorF,
                const std::function<void(const std::string &)> &_loggingF, bool websocket_only,
                const std::map<std::string, std::vector<std::string> *> &jsFnCallbacks,
@@ -198,14 +198,15 @@ void onMessage(std::shared_ptr<Endpoint> s, std::string initString,
 
                 for (const auto &p : websocketTargets) {
                     if (p.first == header) {
+                        bool res;
                         if (json.find("callback") != json.end()) {
                             // Send a callback with the result of the function in the format [CALLBACK] [DATA]
                             nlohmann::json callback;
                             callback["callback"] = json["callback"];
-                            callback["data"] = p.second(json["data"]);
+                            callback["data"] = p.second(json["data"], res);
                             s->send(hdl, callback.dump(), websocketpp::frame::opcode::text);
                         } else {
-                            p.second(json["data"]);
+                            p.second(json["data"], res);
                         }
                         return;
                     }
@@ -220,7 +221,7 @@ void onMessage(std::shared_ptr<Endpoint> s, std::string initString,
 template<typename Endpoint>
 bool
 startNoWeb_f(std::shared_ptr<Endpoint> ws_server, int port, bool block, std::string initString,
-             const std::map<std::string, std::function<std::string(std::string)>> &websocketTargets,
+             const std::map<std::string, WebGUI::PostHandler> &websocketTargets,
              const std::function<void(const std::string &)> &_errorF,
              const std::function<void(const std::string &)> &_loggingF, bool websocket_only,
              std::map<std::string, std::vector<std::string> *> jsFnCallbacks) {
@@ -237,6 +238,8 @@ startNoWeb_f(std::shared_ptr<Endpoint> ws_server, int port, bool block, std::str
             startWebsocketServer(ws_server, port);
         });
         websocketThread.detach();
+
+        std::this_thread::sleep_for(std::chrono::seconds(1));
     }
 
     if (ws_server->is_listening()) {
@@ -454,32 +457,34 @@ CPPJSLIB_EXPORT bool WebGUI::start(int port, const std::string &host, bool block
 #endif //CPPJSLIB_ENABLE_WEBSOCKET
 
     running = true;
+    bool wsRunning = true;
     bool *runningPtr = &running;
     bool *stoppedPtr = &stopped;
 
 #ifdef CPPJSLIB_ENABLE_WEBSOCKET
 #   ifdef CPPJSLIB_ENABLE_HTTPS
     if (ssl) {
-        log("Starting tsl websocket server");
-        startNoWeb_f(std::static_pointer_cast<wspp::server_tls>(ws_server), websocketPort, false, "",
-                     std::map<std::string, std::function<std::string(std::string)>>(), _errorF, _loggingF, false,
-                     jsFnCallbacks);
+        log("Starting tls websocket server");
+        wsRunning = startNoWeb_f(std::static_pointer_cast<wspp::server_tls>(ws_server), websocketPort, false, "",
+                                 std::map<std::string, PostHandler>(), _errorF, _loggingF,
+                                 false, jsFnCallbacks);
     } else {
         log("Starting websocket server");
-        startNoWeb_f(std::static_pointer_cast<wspp::server>(ws_server), websocketPort, false, "",
-                     std::map<std::string, std::function<std::string(std::string)>>(), _errorF, _loggingF, false,
-                     jsFnCallbacks);
+        wsRunning = startNoWeb_f(std::static_pointer_cast<wspp::server>(ws_server), websocketPort, false, "",
+                                 std::map<std::string, PostHandler>(), _errorF, _loggingF,
+                                 false, jsFnCallbacks);
     }
 
     if (fallback_plain) {
         log("Starting websocket plain fallback server");
-        startNoWeb_f(std::static_pointer_cast<wspp::server>(ws_plain_server), websocketPort, false, "",
-                     std::map<std::string, std::function<std::string(std::string)>>(), _errorF, _loggingF, false,
-                     jsFnCallbacks);
+        wsRunning = wsRunning &&
+                    startNoWeb_f(std::static_pointer_cast<wspp::server>(ws_plain_server), websocketPort, false, "",
+                                 std::map<std::string, PostHandler>(), _errorF, _loggingF,
+                                 false, jsFnCallbacks);
     }
 #   else
     log("Starting websocket server");
-    startNoWeb_f(std::static_pointer_cast<wspp::server>(ws_server), websocketPort, false, "",
+    wsRunning = startNoWeb_f(std::static_pointer_cast<wspp::server>(ws_server), websocketPort, false, "",
                  std::map<std::string, std::function<std::string(std::string)>>(), _errorF, _loggingF, false,
                  jsFnCallbacks);
 #   endif //CPPJSLIB_ENABLE_HTTPS
@@ -490,8 +495,9 @@ CPPJSLIB_EXPORT bool WebGUI::start(int port, const std::string &host, bool block
     if (ssl) {
         log("Starting ssl web server");
         std::shared_ptr<httplib::SSLServer> svr = std::static_pointer_cast<httplib::SSLServer>(server);
-        func = [svr, host, port, runningPtr, stoppedPtr]() {
+        func = [svr, host, port, runningPtr, stoppedPtr, this]() {
             if (!svr->listen(host.c_str(), port)) {
+                err("Could not start ssl web server");
                 (*runningPtr) = false;
             }
 
@@ -500,8 +506,9 @@ CPPJSLIB_EXPORT bool WebGUI::start(int port, const std::string &host, bool block
     } else {
         log("Starting web server");
         std::shared_ptr<httplib::Server> svr = std::static_pointer_cast<httplib::Server>(server);
-        func = [svr, host, port, runningPtr, stoppedPtr]() {
+        func = [svr, host, port, runningPtr, stoppedPtr, this]() {
             if (!svr->listen(host.c_str(), port)) {
+                err("Could not start web server");
                 (*runningPtr) = false;
             }
 
@@ -510,8 +517,9 @@ CPPJSLIB_EXPORT bool WebGUI::start(int port, const std::string &host, bool block
     }
 #else
     std::shared_ptr<httplib::Server> svr = std::static_pointer_cast<httplib::Server>(server);
-    func = [svr, host, port, runningPtr, stoppedPtr]() {
+    func = [svr, host, port, runningPtr, stoppedPtr, this]() {
         if (!svr->listen(host.c_str(), port)) {
+            err("Could not start web server");
             (*runningPtr) = false;
         }
 
@@ -523,12 +531,16 @@ CPPJSLIB_EXPORT bool WebGUI::start(int port, const std::string &host, bool block
         log("Starting web server in non-blocking mode");
         std::thread t(func);
         t.detach();
+
+        // Sleep for one second, so the servers can fail
+        log("Sleeping for a short while");
+        std::this_thread::sleep_for(std::chrono::seconds(1));
     } else {
         log("Starting web server in blocking mode");
         func();
     }
 
-    return running;
+    return running && wsRunning;
 }
 
 CPPJSLIB_EXPORT void WebGUI::callFromPost(const char *target, const PostHandler &handler) {
@@ -537,8 +549,9 @@ CPPJSLIB_EXPORT void WebGUI::callFromPost(const char *target, const PostHandler 
 #endif //CPPJSLIB_ENABLE_WEBSOCKET
 
     auto f = [handler](const httplib::Request &req, httplib::Response &res) {
-        std::string result = handler(req.body);
-        if (!result.empty()) {
+        bool hasResult;
+        std::string result = handler(req.body, hasResult);
+        if (hasResult) {
             res.set_content(result, "text/plain");
         }
     };

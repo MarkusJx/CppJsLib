@@ -78,8 +78,9 @@
 #endif //CPPJSLIB_WINDOWS
 
 #define expose(func) _exportFunction(func, #func)
+#define import(func, ...) _importJsFunction(func, #func, ##__VA_ARGS__)
+
 #ifdef CPPJSLIB_ENABLE_WEBSOCKET
-#   define import(func, ...) _importJsFunction(func, #func, ##__VA_ARGS__)
 #   define getWebServer() _getWebServer<websocketpp::server<websocketpp::config::asio>>()
 #   ifdef CPPJSLIB_ENABLE_HTTPS
 #       define getTLSWebServer() _getTLSWebServer<websocketpp::server<websocketpp::config::asio_tls>>()
@@ -99,16 +100,71 @@
 #define CPPJSLIB_DURATION_INFINITE -1
 #define CPPJSLIB_MAX_FUNCNAME_LEN 250
 
+/**
+ * Main CppJsLib namespace
+ */
 namespace CppJsLib {
+    /**
+     * @brief Localhost IP
+     */
     const char localhost[] = "127.0.0.1";
 
     class WebGUI;
 
+    /**
+     * Utility namespace. Containing dependencies for WebGUI
+     */
     namespace util {
         namespace logging {
             CPPJSLIB_EXPORT void log(const std::string &message);
 
             CPPJSLIB_EXPORT void err(const std::string &message);
+        }
+
+        /**
+         * Exception namespace
+         */
+        namespace exception {
+            /**
+             * Thrown when the given argument count does not match
+             */
+            class ArgumentCountDoesNotMatchException : std::exception {
+            public:
+                /**
+                 * Thrown when the given argument count does not match
+                 */
+                ArgumentCountDoesNotMatchException() : std::exception() {}
+            };
+
+            /**
+             * Thrown when a value cannot be converted
+             */
+            class ConversionException : std::exception {
+            public:
+                /**
+                 * No default constructor
+                 */
+                ConversionException() = delete;
+
+                /**
+                * Thrown when a value cannot be converted
+                */
+                explicit ConversionException(std::string _err) : std::exception() {
+                    err = std::move(_err);
+                }
+
+                /**
+                 * Get the exception message
+                 *
+                 * @return the exception message
+                 */
+                const char *what() {
+                    return err.c_str();
+                }
+
+            private:
+                std::string err;
+            };
         }
 
         CPPJSLIB_EXPORT std::vector<std::string> parseJSONInput(const std::string &args);
@@ -131,6 +187,137 @@ namespace CppJsLib {
         CPPJSLIB_EXPORT void pushToSseVector(WebGUI *webGui, const std::string &s);
 #endif
 
+        template<class>
+        struct CPPJSLIB_MAYBE_UNUSED TypeConverter;
+
+        /**
+         * A struct to convert a std::map to a string or JSON string
+         *
+         * @tparam K the map key type
+         * @tparam T the map type type
+         */
+        template<class K, class T>
+        struct TypeConverter<std::map<K, T>> {
+            /**
+             * Convert a map to a JSON string
+             *
+             * @param toConvert the map to convert
+             * @return the JSON string
+             */
+            CPPJSLIB_MAYBE_UNUSED static std::string toJsonString(std::map<K, T> toConvert) {
+                std::map<std::string, std::string> stringMap;
+                for (std::pair<K, T> p : toConvert) {
+                    stringMap.insert(std::pair<std::string, std::string>(TypeConverter<K>::toString(p.first),
+                                                                         TypeConverter<T>::toString(p.second)));
+                }
+
+                std::string res = stringMapToJSON(stringMap);
+                std::map<std::string, std::string>().swap(stringMap);
+                return res;
+            }
+
+            /**
+             * Convert a map to a JSON string
+             *
+             * @warning returns a JSON string
+             * @param toConvert the map to convert
+             * @return the JSON string
+             */
+            CPPJSLIB_MAYBE_UNUSED static std::string toString(const std::map<K, T> &toConvert) {
+                return toJsonString(toConvert);
+            }
+        };
+
+        /**
+         * A struct to convert a std::vector to a string or JSON string
+         *
+         * @tparam T the vector type
+         */
+        template<class T>
+        struct TypeConverter<std::vector<T>> {
+            /**
+             * Convert a vector to a JSON string
+             *
+             * @param toConvert the vector
+             * @return the resulting JSON string
+             */
+            CPPJSLIB_MAYBE_UNUSED static std::string toJsonString(std::vector<T> toConvert) {
+                std::vector<std::string> stringVector(toConvert.size());
+                for (T val : toConvert) {
+                    stringVector.push_back(TypeConverter<T>::toString(val));
+                }
+
+                std::string res = stringArrayToJSON(stringVector);
+                std::vector<std::string>().swap(stringVector);
+                return res;
+            }
+
+            /**
+             * Convert a vector to a JSON string
+             *
+             * @warning returns a JSON string
+             * @param toConvert the vector
+             * @return the resulting JSON string
+             */
+            CPPJSLIB_MAYBE_UNUSED static std::string toString(const std::vector<T> &toConvert) {
+                return toJsonString(toConvert);
+            }
+        };
+
+        /**
+         * A struct to convert types to a string or JSON string
+         */
+        template<>
+        struct TypeConverter<std::string> {
+            /**
+             * Convert a string to a JSON string
+             *
+             * @param toConvert the string to convert
+             * @return the resulting JSON string
+             */
+            CPPJSLIB_MAYBE_UNUSED static std::string toJsonString(const std::string &toConvert) {
+                return stringToJSON(toConvert);
+            }
+
+            /**
+             * Convert a string to a string
+             *
+             * @param toConvert the input string
+             * @return the same as the input string
+             */
+            CPPJSLIB_MAYBE_UNUSED static std::string toString(std::string toConvert) {
+                return toConvert;
+            }
+        };
+
+        /**
+         * A struct to convert types to a string or JSON string
+         *
+         * @tparam T the type
+         */
+        template<class T>
+        struct TypeConverter {
+            /**
+             * Convert type to JSON string
+             *
+             * @param toConvert the value to convert
+             * @return the resulting JSON string
+             */
+            CPPJSLIB_MAYBE_UNUSED static std::string toJsonString(T toConvert) {
+                return stringToJSON(std::to_string(toConvert));
+            }
+
+            /**
+             * Convert type to string
+             *
+             * @param toConvert the value to convert
+             * @return the resulting string
+             */
+            CPPJSLIB_MAYBE_UNUSED static std::string toString(T toConvert) {
+                return std::to_string(toConvert);
+            }
+        };
+
         /**
          * Stop the web server
          * Do not use this. Or use it at your own risk
@@ -141,9 +328,6 @@ namespace CppJsLib {
          * @return if the operation was successful
          */
         CPPJSLIB_EXPORT bool stop(WebGUI *webGui, bool block = true, int maxWaitSeconds = CPPJSLIB_DURATION_INFINITE);
-
-        template<class>
-        struct CPPJSLIB_MAYBE_UNUSED TypeConverter;
 
         template<class>
         struct CPPJSLIB_MAYBE_UNUSED cString;
@@ -167,28 +351,39 @@ namespace CppJsLib {
         callJsFunc(WebGUI *wGui, std::vector<std::string> *argV, char *funcName,
                    std::vector<std::string> *results = nullptr, int wait = -1);
 
-        template<class T>
-        inline std::string getEl(T dt) {
-            return std::to_string(dt);
-        }
-
+        /**
+         * Convert a type to string, accepts basic types, std::vector and std::map
+         *
+         * @tparam T the type
+         * @param data the data to convert
+         * @return the resulting string
+         */
         template<typename T>
-        inline std::string getEl(std::vector<T> dt) {
-            std::vector<std::string> tmp;
-            for (T el : dt) {
-                tmp.push_back(getEl(el));
-            }
-            return stringArrayToJSON(tmp);
+        inline std::string convertToString(T data) {
+            return TypeConverter<T>::toString(data);
         }
 
+        /**
+         * Convert a vararg list to a string vector
+         *
+         * @tparam Args the argument types
+         * @param argV the string vector to populate
+         * @param args the arguments to convert
+         */
         template<class ...Args>
-        inline void ConvertToString(std::vector<std::string> *argV, Args...args) {
+        inline void ConvertToStringVector(std::vector<std::string> argV, Args...args) {
             // Use volatile to disable optimization
-            CPPJSLIB_MAYBE_UNUSED volatile auto x = {(argV->push_back(args), 0)...};
+            CPPJSLIB_MAYBE_UNUSED volatile auto x = {(argV.push_back(args), 0)...};
         }
 
+        /**
+         * A struct for js function
+         */
         template<>
         struct JsFunction<void()> {
+            /**
+             * The operator() to call the js function
+             */
             void operator()() {
                 std::vector<std::string> argV;
                 callJsFunc(wGui, &argV, fnName);
@@ -198,11 +393,21 @@ namespace CppJsLib {
             WebGUI *wGui;
         };
 
+        /**
+         * A struct for js function
+         *
+         * @tparam Args the function arguments
+         */
         template<class... Args>
         struct JsFunction<void(Args ...)> {
+            /**
+             * The operator() to call the function
+             *
+             * @param args the arguments
+             */
             void operator()(Args ... args) {
                 std::vector<std::string> argV;
-                CPPJSLIB_MAYBE_UNUSED volatile auto x = {(ConvertToString(&argV, getEl(args)), 0)...};
+                CPPJSLIB_MAYBE_UNUSED volatile auto x = {(ConvertToStringVector(argV, convertToString(args)), 0)...};
                 callJsFunc(wGui, &argV, fnName);
             }
 
@@ -210,6 +415,14 @@ namespace CppJsLib {
             WebGUI *wGui;
         };
 
+        /**
+         * Initialize a imported void js function
+         *
+         * @tparam Args the arg types
+         * @param toInit the JsFunction struct to init
+         * @param name the function name
+         * @param _wGui a WebGUI instance
+         */
         template<class ...Args>
         inline void initJsFunction(JsFunction<void(Args...)> **toInit, const std::string &name, WebGUI *_wGui) {
             auto *tmp = (JsFunction<void(Args...)> *) malloc(sizeof(JsFunction<void(Args...)>));
@@ -226,8 +439,18 @@ namespace CppJsLib {
 
 #ifdef CPPJSLIB_ENABLE_WEBSOCKET
 
+/**
+         * A struct for js function
+         *
+         * @tparam R the function return type
+         */
         template<class R>
         struct JsFunction<std::vector<R>()> {
+            /**
+             * The operator() to call the js function
+             *
+             * @return the returns as all clients as a vector
+             */
             std::vector<R> operator()() {
                 std::vector<std::string> argV;
                 callJsFunc(wGui, &argV, fnName, responseReturns, wait);
@@ -247,11 +470,23 @@ namespace CppJsLib {
             std::vector<std::string> *responseReturns = nullptr;
         };
 
+        /**
+         * A struct for js function
+         *
+         * @tparam R the function return type
+         * @tparam Args the function arguments
+         */
         template<class R, class... Args>
         struct JsFunction<std::vector<R>(Args ...)> {
+            /**
+             * The operator() to call the function
+             *
+             * @param args the function arguments
+             * @return the returns of all clients as a vector
+             */
             std::vector<R> operator()(Args ... args) {
                 std::vector<std::string> argV;
-                CPPJSLIB_MAYBE_UNUSED volatile auto x = {(ConvertToString(&argV, getEl(args)), 0)...};
+                CPPJSLIB_MAYBE_UNUSED volatile auto x = {(ConvertToStringVector(argV, convertToString(args)), 0)...};
                 callJsFunc(wGui, &argV, fnName, responseReturns, wait);
 
                 std::vector<R> tmp;
@@ -269,10 +504,21 @@ namespace CppJsLib {
             std::vector<std::string> *responseReturns = nullptr;
         };
 
+        /**
+         * Initialize a imported js function
+         *
+         * @tparam R the function return type
+         * @tparam Args the argument types
+         * @param toInit the struct to init
+         * @param name the function name
+         * @param _wGui a WebGUI instance
+         * @param waitS a timout in seconds
+         */
         template<class R, class... Args>
         inline void
         initJsFunction(JsFunction<std::vector<R>(Args ...)> **toInit, const std::string &name, WebGUI *_wGui,
                        int waitS) {
+            // Allocate the JsFunction struct
             auto *tmp = (JsFunction<std::vector<R>(Args ...)> *) malloc(sizeof(JsFunction<std::vector<R>(Args ...)>));
             if (tmp) {
                 strcpy(tmp->fnName, name.c_str());
@@ -288,65 +534,6 @@ namespace CppJsLib {
 
 #endif
 
-        template<class K, class T>
-        struct TypeConverter<std::map<K, T>> {
-            CPPJSLIB_MAYBE_UNUSED static std::string toJsonString(std::map<K, T> toConvert) {
-                std::map<std::string, std::string> stringMap;
-                for (std::pair<K, T> p : toConvert) {
-                    stringMap.insert(std::pair<std::string, std::string>(TypeConverter<K>::toString(p.first),
-                                                                         TypeConverter<T>::toString(p.second)));
-                }
-
-                std::string res = stringMapToJSON(stringMap);
-                std::map<std::string, std::string>().swap(stringMap);
-                return res;
-            }
-
-            CPPJSLIB_MAYBE_UNUSED static std::string toString(const std::map<std::string, std::string> &toConvert) {
-                return toJsonString(toConvert);
-            }
-        };
-
-        template<class T>
-        struct TypeConverter<std::vector<T>> {
-            CPPJSLIB_MAYBE_UNUSED static std::string toJsonString(std::vector<T> toConvert) {
-                std::vector<std::string> stringVector(toConvert.size());
-                for (T val : toConvert) {
-                    stringVector.push_back(TypeConverter<T>::toString(val));
-                }
-
-                std::string res = stringArrayToJSON(stringVector);
-                std::vector<std::string>().swap(stringVector);
-                return res;
-            }
-
-            CPPJSLIB_MAYBE_UNUSED static std::string toString(std::vector<T> toConvert) {
-                return toJsonString(toConvert);
-            }
-        };
-
-        template<>
-        struct TypeConverter<std::string> {
-            CPPJSLIB_MAYBE_UNUSED static std::string toJsonString(const std::string &toConvert) {
-                return stringToJSON(toConvert);
-            }
-
-            CPPJSLIB_MAYBE_UNUSED static std::string toString(std::string toConvert) {
-                return toConvert;
-            }
-        };
-
-        template<class T>
-        struct TypeConverter {
-            CPPJSLIB_MAYBE_UNUSED static std::string toJsonString(T toConvert) {
-                return stringToJSON(std::to_string(toConvert));
-            }
-
-            CPPJSLIB_MAYBE_UNUSED static std::string toString(T toConvert) {
-                return std::to_string(toConvert);
-            }
-        };
-
         template<typename R, typename ...Args>
         struct function_traits<std::function<R(Args...)>> {
             static const size_t nargs = sizeof...(Args);
@@ -357,11 +544,24 @@ namespace CppJsLib {
             };
         };
 
+        /**
+         * A struct to convert a type name to a string, accepts basic types, std::map and std::vector
+         */
         template<typename>
         struct CPPJSLIB_MAYBE_UNUSED Types;
 
+        /**
+         * A struct to get the type name as string from a type
+         *
+         * @tparam type the type
+         */
         template<typename type>
         struct Types {
+            /**
+             * get the type name as string
+             *
+             * @return the type name string
+             */
             CPPJSLIB_MAYBE_UNUSED static std::string _getTypeName() {
                 using namespace std;
                 // Check if the type is supported
@@ -408,8 +608,19 @@ namespace CppJsLib {
             }
         };
 
+        /**
+         * A struct to get the type name from a map as string
+         *
+         * @tparam K the map key type
+         * @tparam T the map type type
+         */
         template<typename K, typename T>
         struct CPPJSLIB_MAYBE_UNUSED Types<std::map<K, T>> {
+            /**
+             * Get the type name as string
+             *
+             * @return the type string
+             */
             CPPJSLIB_MAYBE_UNUSED static std::string _getTypeName() {
                 static_assert(!std::is_pointer_v<K> && !std::is_pointer_v<T>, "Pointers are not supported");
                 std::string tmp = "map<";
@@ -420,6 +631,12 @@ namespace CppJsLib {
             }
         };
 
+        /**
+         * Get a type name as string from a type
+         *
+         * @tparam type the type
+         * @return the type string
+         */
         template<typename type>
         std::string getTypeName() {
             // Get type name without const or reference qualifier
@@ -427,6 +644,12 @@ namespace CppJsLib {
             return Types<typename std::decay_t<type>>::_getTypeName();
         }
 
+        /**
+         * A struct to get the type names of a function
+         *
+         * @tparam fun the type
+         * @tparam i the argument position (recursive call)
+         */
         template<typename fun, size_t i>
         struct expose_helper {
             static void get_types(std::string *types) {
@@ -437,13 +660,27 @@ namespace CppJsLib {
             }
         };
 
+        /**
+         * A struct to get the type names of a function
+         *
+         * @tparam fun the type
+         */
         template<typename fun>
         struct expose_helper<fun, 0> {
             static void get_types(std::string *) {}
         };
 
+        /**
+         * A struct to return a string from a string
+         */
         template<>
         struct cString<std::string> {
+            /**
+             * Get the input string
+             *
+             * @param data the input
+             * @return same as the output, removes leading or trailing quotation marks if exist
+             */
             static std::string convert(const std::string &data) {
                 // Remove leading or trailing quotation marks if exist
                 if (data[0] == '\"' && data[data.size() - 1] == '\"' && data.size() >= 2) {
@@ -456,8 +693,19 @@ namespace CppJsLib {
             }
         };
 
+        /**
+         * A struct to convert a JSON string to a vector
+         *
+         * @tparam T the vector type
+         */
         template<typename T>
         struct cString<std::vector<T>> {
+            /**
+             * Convert a JSON string to a vector
+             *
+             * @param data the JSON string
+             * @return the resulting vector
+             */
             static std::vector<T> convert(const std::string &data) {
                 std::vector<std::string> arr = createStringArrayFromJSON(data);
                 std::vector<T> tmp(arr.size());
@@ -469,8 +717,20 @@ namespace CppJsLib {
             }
         };
 
+        /**
+         * A struct to convert a JSON string to a map
+         *
+         * @tparam K the map key type
+         * @tparam T the map type type
+         */
         template<typename K, typename T>
         struct cString<std::map<K, T>> {
+            /**
+             * Convert a JSON string to a map
+             *
+             * @param data the JSON string
+             * @return the resulting map
+             */
             static std::map<K, T> convert(const std::string &data) {
                 std::map<std::string, std::string> m = createStringMapFromJSON(data);
                 std::map<K, T> tmp;
@@ -482,8 +742,17 @@ namespace CppJsLib {
             }
         };
 
+        /**
+         * A struct to convert a string to a bool
+         */
         template<>
         struct cString<bool> {
+            /**
+             * Convert a string to a bool
+             *
+             * @param data the string to convert, must be 'true' or 'false', otherwise, a ConversionException will be thrown
+             * @return the resulting bool
+             */
             static bool convert(const std::string &data) {
                 if (data == "false") {
                     return false;
@@ -491,13 +760,25 @@ namespace CppJsLib {
                     return true;
                 } else {
                     logging::err("Convert error: cannot convert string '" + data + "' to bool");
-                    return false;
+                    throw exception::ConversionException("Cannot convert string '" + data + "' to bool");
                 }
             }
         };
 
+        /**
+         * A struct to convert a string to a type
+         *
+         * @tparam T the type to convert to
+         */
         template<class T>
         struct cString {
+            /**
+             * Convert data to type T
+             * If the string cannot be converted a ConversionException will be thrown
+             *
+             * @param data the data to convert to
+             * @return the resulting data as type T
+             */
             static T convert(const std::string &data) {
                 T ret;
 
@@ -510,7 +791,8 @@ namespace CppJsLib {
 
                 if (iss.fail()) {
                     logging::err("Convert error: cannot convert string '" + data + "' to value");
-                    return T();
+                    throw exception::ConversionException(
+                            "Cannot convert string '" + data + "' to type '" + getTypeName<T>() + "'");
                 }
                 return ret;
             }
@@ -533,10 +815,21 @@ namespace CppJsLib {
             }
         }
 
+        /**
+         * A ExposedFunction struct for void functions
+         *
+         * @tparam Args the argument types
+         */
         template<class... Args>
         struct ExposedFunction<void(Args...)> {
+            /**
+             * the operator() to call the function with a JSON string array
+             *
+             * @param argc the number of arguments
+             * @param args the JSON string array
+             */
             void operator()(size_t argc, std::string *args) {
-                // This should be a precondition
+                // Check if the argument count does match
                 if (argc != sizeof...(Args)) {
                     logging::err("Argument count does not match: " + std::to_string(argc) + " vs. " +
                                  std::to_string(sizeof...(Args)));
@@ -547,11 +840,22 @@ namespace CppJsLib {
                 return handleImpl(sequence, args);
             }
 
+            /**
+             * Actually call the function
+             *
+             * @tparam S a index_sequence
+             * @param args the argument array
+             */
             template<std::size_t... S>
             void handleImpl(std::index_sequence<S...>, std::string *args) {
                 f(ConvertString<typename std::decay_t<Args>>(args[S])...);
             }
 
+            /**
+             * Get the function as a string
+             *
+             * @return the function string
+             */
             std::string toString() {
                 return fnString;
             }
@@ -561,25 +865,50 @@ namespace CppJsLib {
             void (*f)(Args...) = nullptr;
         };
 
+        /**
+         * A ExposedFunction struct for non-void functions
+         *
+         * @tparam R the return type
+         * @tparam Args the argument types
+         */
         template<class R, class... Args>
         struct ExposedFunction<R(Args...)> {
+            /**
+             * the operator() to call the function with a JSON string array
+             *
+             * @param argc the number of arguments
+             * @param args the JSON string array
+             * @return the return value
+             */
             R operator()(size_t argc, std::string *args) {
-                // This should be a precondition
+                // Check if the argument count does match
                 if (argc != sizeof...(Args)) {
                     logging::err("Argument count does not match: " + std::to_string(argc) + " vs. " +
                                  std::to_string(sizeof...(Args)));
-                    return R();
+                    throw exception::ArgumentCountDoesNotMatchException();
                 }
 
                 auto sequence = std::index_sequence_for<Args...>{};
                 return handleImpl(sequence, args);
             }
 
+            /**
+             * Actually call the function
+             *
+             * @tparam S a index_sequence
+             * @param args the argument array
+             * @return the resulting value
+             */
             template<std::size_t... S>
             R handleImpl(std::index_sequence<S...>, std::string *args) {
                 return f(ConvertString<typename std::decay_t<Args>>(args[S])...);
             }
 
+            /**
+             * Get the function as a string
+             *
+             * @return the function string
+             */
             std::string toString() {
                 return fnString;
             }
@@ -589,11 +918,23 @@ namespace CppJsLib {
             R (*f)(Args...) = nullptr;
         };
 
+        /**
+         * Initialize the exposedFunction struct
+         *
+         * @tparam R the function return type
+         * @tparam Args the function argument types
+         * @param toInit the exposedFunction struct to init
+         * @param f the C++ function
+         * @param name the function name
+         * @param wGui a WebGUI instance
+         */
         template<class R, class ...Args>
         void initExposedFunction(ExposedFunction<R(Args...)> **toInit, R (*f)(Args...), const std::string &name,
                                  WebGUI *wGui) {
+            // Allocate the struct
             auto *tmp = (ExposedFunction<R(Args...)> *) malloc(sizeof(ExposedFunction<R(Args...)>));
             if (tmp) {
+                // Use function_traits to convert the arguments to strings
                 typedef function_traits<std::function<R(Args...)>> fn_traits;
                 auto *types = new(std::nothrow) std::string[fn_traits::nargs];
                 if (!types) {
@@ -617,6 +958,7 @@ namespace CppJsLib {
                 delete[] types;
 
                 tmp->fnString = strdup(fnString.c_str());
+                // Push to a vector to be freed when the WebGUI instance is deleted
                 pushToVoidPtrVector(wGui, static_cast<void *>(tmp->fnString));
                 tmp->f = f;
             }
@@ -624,23 +966,70 @@ namespace CppJsLib {
             *toInit = tmp;
         }
 
+        /**
+         * A struct to call C++ functions with a JSON string
+         */
         struct Caller {
+            /**
+             * Call a non-void C++ function
+             *
+             * @tparam R the function return type
+             * @tparam Args the function argument types
+             * @param eF the exposed function struct to call
+             * @param args the JSON string containing the arguments
+             * @param res if this function returns a result
+             * @return a result string, to be sent back to js
+             */
             template<class R, class...Args>
-            static std::string call(ExposedFunction<R(Args...)> *eF, const std::string &args) {
+            static std::string call(ExposedFunction<R(Args...)> *eF, const std::string &args, bool &res) {
+                // Convert the JSON string to a string vector (Split it by its arguments)
                 std::vector<std::string> argArr = parseJSONInput(args);
 
-                R result = eF->operator()(argArr.size(), argArr.data());
+                // Call the function and get the result, catch an ArgumentCountDoesNotMatchException
+                // if the argument count does not match
+                R result;
+                try {
+                    result = eF->operator()(argArr.size(), argArr.data());
+                    res = true;
+                } catch (exception::ArgumentCountDoesNotMatchException &) {
+                    result = R();
+                    res = false;
+                } catch (exception::ConversionException &e) {
+                    logging::err("ConversionException thrown: " + std::string(e.what()));
+                    result = R();
+                    res = false;
+                }
                 std::vector<std::string>().swap(argArr);
 
+                // Return the result as a string
                 return TypeConverter<R>::toJsonString(result);
             }
 
+            /**
+             * Call a void C++ function
+             *
+             * @tparam Args the function argument types
+             * @param eF the exposed function struct to call
+             * @param args the JSON string containing the arguments
+             * @param res if this function returns a result
+             * @return a empty result string
+             */
             template<class...Args>
-            static std::string call(ExposedFunction<void(Args...)> *eF, const std::string &args) {
+            static std::string call(ExposedFunction<void(Args...)> *eF, const std::string &args, bool &res) {
+                // Convert the JSON string to a string vector (Split it by its arguments)
                 std::vector<std::string> argArr = parseJSONInput(args);
 
-                eF->operator()(argArr.size(), argArr.data());
+                // Call the function
+                try {
+                    eF->operator()(argArr.size(), argArr.data());
+                } catch (exception::ConversionException &e) {
+                    logging::err("ConversionException thrown: " + std::string(e.what()));
+                }
                 std::vector<std::string>().swap(argArr);
+
+                // This function does not return anything
+                res = false;
+                // Return absolutely nothing
                 return "";
             }
         };
@@ -660,6 +1049,9 @@ namespace CppJsLib {
      */
     CPPJSLIB_EXPORT void setError(const std::function<void(const std::string &)> &errorFunction);
 
+    /**
+     * The WebGUI class
+     */
     class WebGUI {
     public:
         // Delete any constructor not allowed to initialize everything correctly
@@ -691,7 +1083,6 @@ namespace CppJsLib {
          * Create a WebGUI instance
          * It is actually recommended to use WebGUI_ptr
          *
-
          * @param base_dir the base directory
          */
         CPPJSLIB_EXPORT static WebGUI *create(const std::string &base_dir = "");
@@ -705,12 +1096,12 @@ namespace CppJsLib {
         CPPJSLIB_EXPORT static void deleteInstance(WebGUI *webGui);
 
         /**
-         * A WebGUI_ptr to handle the deallocation
+         * A unique_ptr to handle the deallocation
          */
         using WebGUI_unique = std::unique_ptr<CppJsLib::WebGUI, decltype(&CppJsLib::WebGUI::deleteInstance)>;
 
         /**
-         * A WebGUI_shared_ptr to handle the deallocation
+         * A shared_ptr to handle the deallocation
          */
         using WebGUI_shared = std::shared_ptr<CppJsLib::WebGUI>;
 
@@ -718,7 +1109,7 @@ namespace CppJsLib {
          * Create a WebGUI instance
          *
          * @param base_dir the base directory
-         * @return a WebGUI_shared_ptr object, which will handle the deallocation
+         * @return a WebGUI_shared object, which will handle the deallocation
          */
         static inline WebGUI_shared create_shared(const std::string &base_dir = "") {
             return WebGUI_shared(create(base_dir), deleteInstance);
@@ -728,7 +1119,7 @@ namespace CppJsLib {
          * Create a WebGUI instance
          *
          * @param base_dir the base directory
-         * @return a WebGUI_ptr object, which will handle the deallocation
+         * @return a WebGUI_unique object, which will handle the deallocation
          */
         static inline WebGUI_unique create_unique(const std::string &base_dir = "") {
             return WebGUI_unique(create(base_dir), deleteInstance);
@@ -743,7 +1134,7 @@ namespace CppJsLib {
          * @param cert_path the certificate path
          * @param private_key_path the private key path
          * @param websocket_plain_fallback_port a websocket fallback port, if encryption did fail
-         * @return a WebGUI_shared_ptr object, which will handle the deallocation
+         * @return a WebGUI_shared object, which will handle the deallocation
          */
         static inline WebGUI_shared
         create_shared(const std::string &base_dir, const std::string &cert_path, const std::string &private_key_path,
@@ -759,7 +1150,7 @@ namespace CppJsLib {
          * @param cert_path the certificate path
          * @param private_key_path the private key path
          * @param websocket_plain_fallback_port a websocket fallback port, if encryption did fail
-         * @return a WebGUI_ptr object, which will handle the deallocation
+         * @return a WebGUI_unique object, which will handle the deallocation
          */
         static inline WebGUI_unique
         create_ptr(const std::string &base_dir, const std::string &cert_path, const std::string &private_key_path,
@@ -773,12 +1164,12 @@ namespace CppJsLib {
 #else
 
         /**
-         * A WebGUI_ptr to handle the deallocation
+         * A unique_ptr to handle the deallocation
          */
         using WebGUI_unique = std::unique_ptr<CppJsLib::WebGUI>;
 
         /**
-         * A WebGUI_shared_ptr to handle the deallocation
+         * A shared_ptr to handle the deallocation
          */
         using WebGUI_shared = std::shared_ptr<CppJsLib::WebGUI>;
 
@@ -786,7 +1177,7 @@ namespace CppJsLib {
          * Create a WebGUI instance
          *
          * @param base_dir the base directory
-         * @return a WebGUI_shared_ptr object, which will handle the deallocation
+         * @return a WebGUI_shared object, which will handle the deallocation
          */
         static inline WebGUI_shared create_shared(const std::string &base_dir = "") {
             return std::make_shared<WebGUI>(base_dir);
@@ -796,7 +1187,7 @@ namespace CppJsLib {
          * Create a WebGUI instance
          *
          * @param base_dir the base directory
-         * @return a WebGUI_ptr object, which will handle the deallocation
+         * @return a WebGUI_unique object, which will handle the deallocation
          */
         static inline WebGUI_unique create_unique(const std::string &base_dir = "") {
             return std::make_unique<WebGUI>(base_dir);
@@ -811,7 +1202,7 @@ namespace CppJsLib {
          * @param cert_path the certificate path
          * @param private_key_path the private key path
          * @param websocket_plain_fallback_port a websocket fallback port, if encryption did fail
-         * @return a WebGUI_shared_ptr object, which will handle the deallocation
+         * @return a WebGUI_shared object, which will handle the deallocation
          */
         static inline WebGUI_shared
         create_shared(const std::string &base_dir, const std::string &cert_path, const std::string &private_key_path,
@@ -826,7 +1217,7 @@ namespace CppJsLib {
          * @param cert_path the certificate path
          * @param private_key_path the private key path
          * @param websocket_plain_fallback_port a websocket fallback port, if encryption did fail
-         * @return a WebGUI_ptr object, which will handle the deallocation
+         * @return a WebGUI_unique object, which will handle the deallocation
          */
         static inline WebGUI_unique
         create_ptr(const std::string &base_dir, const std::string &cert_path, const std::string &private_key_path,
@@ -843,6 +1234,7 @@ namespace CppJsLib {
 
         /**
          * A WebGUI constructor
+         * Defined if a dynamic library is not used
          *
          * @param base_dir the base directory
          * @param cert_path the certificate path
@@ -856,33 +1248,38 @@ namespace CppJsLib {
 
         /**
          * A WebGUI constructor
+         * Defined if a dynamic library is not used
          *
          * @param base_dir the base directory
          */
         explicit WebGUI(const std::string &base_dir);
 
         /**
-        * Create a WebGUI instance without a base directory
-        * May only be used to start without a http(s) server
-        */
+         * Create a WebGUI instance without a base directory
+         * May only be used to start without a http(s) server
+         * Defined if a dynamic library is not used
+         */
         WebGUI() : WebGUI("") {}
 
 #else
 
+        /**
+         * @warning The default constructor will be deleted if a dynamic library is used
+         */
         WebGUI() = delete;
 
 #endif //CPPJSLIB_STATIC_DEFINE
 
 #ifdef CPPJSLIB_BUILD_JNI_DLL
         /**
-         * Do not use this
+         * @warning Do not use this. This function is just required for the jni lib
          */
         void exportJavaFunction(const std::string& name, std::string returnType, std::string *argTypes, int numArgs,
                                 const std::function<std::string(std::string *, int)> &fn);
 #endif //CPPJSLIB_BUILD_JNI_DLL
 
         /**
-         * Do not use this
+         * @warning Do not use this. Use the export macro instead
          */
         template<class...Args>
         inline void _exportFunction(void(*f)(Args...), std::string name) {
@@ -902,9 +1299,9 @@ namespace CppJsLib {
                 std::string r = "/callfunc_";
                 r.append(name);
 
-                callFromPost(r.c_str(), [exposedF, this, name](std::string req_body) {
+                callFromPost(r.c_str(), [exposedF, this, name](std::string req_body, bool &res) {
                     log("Calling C++ function: " + name);
-                    return util::Caller::call(exposedF, req_body);
+                    return util::Caller::call(exposedF, req_body, res);
                 });
             } else {
                 this->err("Cannot expose function " + name + ": Unable to allocate memory");
@@ -912,7 +1309,7 @@ namespace CppJsLib {
         }
 
         /**
-         * Do not use this
+         * @warning Do not use this. Use the export macro instead
          */
         template<class R, class...Args>
         inline void _exportFunction(R(*f)(Args...), std::string name) {
@@ -931,9 +1328,9 @@ namespace CppJsLib {
                 std::string r = "/callfunc_";
                 r.append(name);
 
-                callFromPost(r.c_str(), [exposedF, this, name](std::string req_body) {
+                callFromPost(r.c_str(), [exposedF, this, name](std::string req_body, bool &res) {
                     log("Calling C++ function: " + name);
-                    return util::Caller::call(exposedF, req_body);
+                    return util::Caller::call(exposedF, req_body, res);
                 });
             } else {
                 this->err("Cannot expose function " + name + ": Unable to allocate memory");
@@ -941,7 +1338,7 @@ namespace CppJsLib {
         }
 
         /**
-         * Do not use this
+         * @warning Do not use this. Use the import macro instead
          */
         template<class...Args>
         inline void _importJsFunction(std::function<void(Args...)> &function, std::string fName) {
@@ -966,7 +1363,7 @@ namespace CppJsLib {
         }
 
         /**
-         * Do not use this
+         * @warning Do not use this
          */
         CPPJSLIB_EXPORT void
         call_jsFn(std::vector<std::string> *argV, const char *funcName,
@@ -975,7 +1372,7 @@ namespace CppJsLib {
 #ifdef CPPJSLIB_ENABLE_WEBSOCKET
 
         /**
-         * Do not use this
+         * @warning Do not use this. Use the import macro instead
          */
         template<class R, class...Args>
         inline void
@@ -1006,6 +1403,7 @@ namespace CppJsLib {
          * @param websocketPort the websocket port to use
          * @param host the hostname to use
          * @param block if this is a blocking call
+         * @note this call will sleep for 2-3 seconds, to see if all servers started successfully
          * @return if the operation was successful
          */
         CPPJSLIB_EXPORT bool
@@ -1016,12 +1414,13 @@ namespace CppJsLib {
          *
          * @param port the port to listen on
          * @param block if this is a blocking call
+         * @note this call will sleep for 1-2 seconds, to see if all servers started successfully
          * @return if the operation was successful
          */
         CPPJSLIB_EXPORT bool startNoWeb(int port, bool block = true);
 
         /**
-         * Please don't call this
+         * @warning Do not call this. Websocket support is enabled, therefore a port for the websocket server must be specified
          */
         CPPJSLIB_EXPORT bool start(int port, const std::string &host = "localhost", bool block = true);
 
@@ -1033,24 +1432,20 @@ namespace CppJsLib {
          * @param port the port to use
          * @param host the hostname to use
          * @param block if this is a blocking call
+         * @note this call will sleep for 1 second, to see if all servers started successfully
          * @return if the operation was successful
          */
         CPPJSLIB_EXPORT bool start(int port, const std::string &host = "localhost", bool block = true);
 
         /**
-         * Do not use this
+         * @warning Do not use this. Use the import macro instead
          */
-        template<class...Args>
-        inline void import(std::function<void(Args...)> &function) {
-            function = [this] (Args... args) {
-                err("Javascript function called but CppJsLib was built without websocket support");
-            };
-        }
-
         template<class R, class...Args>
-        inline void import(std::function<std::vector<R>(Args...)> &function, int waitS = -1) {
+        inline void
+        _importJsFunction(std::function<std::vector<R>(Args...)> &function, std::string fName, int waitS = -1) {
+            err("Cannot import non-void javascript function when built without websocket support");
             function = [this] (Args... args) {
-                err("Javascript function called but CppJsLib was built without websocket support");
+                err("Javascript non-void function called but CppJsLib was built without websocket support");
                 return std::vector<R>();
             };
         }
@@ -1106,7 +1501,7 @@ namespace CppJsLib {
         /**
          * A function used by the getHttpServer macro
          *
-         * @warning Please DO NOT USE this function
+         * @warning Do not use this function. Use the getHttpServer() macro instead
          * @tparam T the param to convert the server pointer to, MUST be httplib::Server* or httplib::SSLServer*
          * @return a pointer to the http Server of this instance
          */
@@ -1117,12 +1512,29 @@ namespace CppJsLib {
 
 #ifdef CPPJSLIB_ENABLE_WEBSOCKET
 
+        /**
+         * Set a function to be called if a client connects to the websocket server
+         *
+         * @param handler the function
+         */
         CPPJSLIB_EXPORT void setWebSocketOpenHandler(const std::function<void()> &handler);
 
+        /**
+         * Set a function to be called if a client disconnects from the websocket server
+         *
+         * @param handler the function
+         */
         CPPJSLIB_EXPORT void setWebSocketCloseHandler(const std::function<void()> &handler);
 
 #   ifdef CPPJSLIB_ENABLE_HTTPS
 
+        /**
+         * Get the tls websocket server
+         *
+         * @warning Do not use this function. Use the getTlsWebServer() macro instead
+         * @tparam T the type tot convert to
+         * @return a shared_ptr to the server
+         */
         template<typename T>
         inline std::shared_ptr<T> _getTLSWebServer() {
             return std::static_pointer_cast<T>(ws_server);
@@ -1130,6 +1542,13 @@ namespace CppJsLib {
 
 #   endif //CPPJSLIB_ENABLE_HTTPS
 
+        /**
+         * Get the websocket server
+         *
+         * @warning Do not use this function. Use the getWebServer() macro instead
+         * @tparam T the type tot convert to
+         * @return a shared_ptr to the server
+         */
         template<typename T>
         inline std::shared_ptr<T> _getWebServer() {
 #   ifdef CPPJSLIB_ENABLE_HTTPS
@@ -1144,18 +1563,34 @@ namespace CppJsLib {
         }
 
 #else
+        /**
+         * @warning Do not use this function
+         */
         CPPJSLIB_EXPORT void pushToSseVec(const std::string& s);
 #endif //CPPJSLIB_ENABLE_WEBSOCKET
 
 // Delete default destructor if the dll is used to prevent heap corruption
 #ifndef CPPJSLIB_STATIC_DEFINE
 
+        /**
+         * The default destructor is deleted if a dynamic library is used
+         */
         ~WebGUI() = delete;
 
 #else
 
+        /**
+         * Check if the main server is running
+         *
+         * @return if the main server is running
+         */
         CPPJSLIB_EXPORT bool isRunning();
 
+        /**
+         * Check if WebGUI was started without a web server
+         *
+         * @return if only the websocket servers are started
+         */
         CPPJSLIB_EXPORT CPPJSLIB_NODISCARD bool isWebsocketOnly() const;
 
         ~WebGUI();
@@ -1168,6 +1603,7 @@ namespace CppJsLib {
         bool check_ports;
         bool running;
         bool stopped;
+        using PostHandler = std::function<std::string(std::string req_body, bool &res)>;
 #ifdef CPPJSLIB_ENABLE_HTTPS
         const bool ssl;
         const unsigned short fallback_plain;
@@ -1190,7 +1626,6 @@ namespace CppJsLib {
         std::vector<void *> voidPtrVector;
         std::vector<std::vector<std::string> *> strVecVector;
 
-        using PostHandler = std::function<std::string(std::string req_body)>;
         std::map<std::string, PostHandler> websocketTargets;
         std::map<std::string, std::vector<std::string> *> jsFnCallbacks;
         std::function<void(const std::string &)> _loggingF;

@@ -35,6 +35,7 @@
 CppJsLib::WebGUI *wGui;
 std::function<void(int)> func = {};
 std::function<std::vector<int>()> tf = {};
+std::function<void(std::map<int, int>, std::vector<int>)> jsFunc;
 
 std::function<void()> fn;
 
@@ -85,6 +86,7 @@ int main() {
     wGui->import(fn);
     wGui->import(func);
     wGui->import(tf, 0);
+    wGui->import(jsFunc);
 #endif
     wGui->expose(f);
     wGui->expose(d);
@@ -101,7 +103,7 @@ int main() {
 #ifdef TEST_GHBUILD
     bool block = false;
 #else
-    bool block = true;
+    bool block = false;
 #endif
 
     ASSERT_MEM_OK();
@@ -109,7 +111,7 @@ int main() {
 #ifdef TEST_USE_DLL
     {
         CppJsLib::WebGUI::WebGUI_unique ptr = CppJsLib::WebGUI::create_unique("web");
-        ptr->start(8026, UNIQUE_WS_PORT "localhost", false);
+        //ptr->start(8026, UNIQUE_WS_PORT "localhost", false);
         std::this_thread::sleep_for(std::chrono::milliseconds(20));
         ptr->stop();
     }
@@ -117,10 +119,11 @@ int main() {
 
     ASSERT_MEM_OK();
 
-    //DifferentWebServerTest();
+    DifferentWebServerTest();
 
     std::cout << "Starting web server..." << std::endl;
     wGui->start(8028, TEST_WS_PORT CppJsLib::localhost, block);
+    std::cout << "Sleep" << std::endl;
     std::this_thread::sleep_for(std::chrono::seconds(20));
 
 #ifdef CPPJSLIB_ENABLE_WEBSOCKET
