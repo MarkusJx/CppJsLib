@@ -69,7 +69,7 @@ cppJsLib.onLoad(function () {
 ```c++
 // JS functions with return value always return a std::vector with the individual
 // responses of all clients
-std::function<std::vector<int()> func;
+std::function<std::vector<int>()> func;
 
 // Create WebGUI object and use a unique_ptr for automatic memory management
 auto gui = WebGUI::create_unique("web");
