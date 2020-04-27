@@ -121,14 +121,23 @@ jobs:
       run: mkdir include
     - name: install boost
       run: sudo apt-get install libboost1.65-all-dev -y
-    - name: cmake
+    - name: cmake release
       run: cmake -DCMAKE_BUILD_TYPE=Release -DENABLE_HTTPS=TRUE -DENABLE_WEBSOCKET=TRUE -DBUILDDLL=TRUE .
     - name: build
       run: cmake --build . 
-    - name: Upload object
+    - name: Upload release object
       uses: actions/upload-artifact@v1
       with:
         name: CppJsLibReleaseLinux
+        path: src/libCppJsLib.so
+    - name: cmake debug
+      run: cmake -DCMAKE_BUILD_TYPE=Debug -DENABLE_HTTPS=TRUE -DENABLE_WEBSOCKET=TRUE -DBUILDDLL=TRUE .
+    - name: build debug
+      run: cmake --build .
+    - name: Upload debug object
+      uses: actions/upload-artifact@v1
+      with:
+        name: CppJsLibDebugLinux
         path: src/libCppJsLib.so
 
   build-windows-release:
@@ -158,8 +167,10 @@ jobs:
         run: cmake -DENABLE_HTTPS=TRUE -DENABLE_WEBSOCKET=TRUE -DBUILDDLL=TRUE .
         env:
           BOOST_ROOT: C:/local/boost_1_67_0
-      - name: build
+      - name: build release
         run: cmake --build . --config Release
+      - name: build debug
+        run: cmake --build . --config Debug
       #- name: copy libcrypto to src folder
       #  run: cp openssl-1.1.0f-vs2017/bin64/libcryptoMD.dll src/Release/libcryptoMD.dll
       #- name: copy libssl to src folder
@@ -172,11 +183,16 @@ jobs:
       #  run: Test.exe
       #  shell: cmd
       #  working-directory: ./test/Release
-      - name: Upload library
+      - name: Upload release library
         uses: actions/upload-artifact@v1
         with:
           name: CppJsLibReleaseWin
           path: src/Release
+      - name: Upload debug library
+        uses: actions/upload-artifact@v1
+        with:
+          name: CppJsLibReleaseWin
+          path: src/Debug
 
   build-macos-release:
 
@@ -190,11 +206,20 @@ jobs:
       run: brew install openssl
     - name: install boost
       run: brew install boost
-    - name: cmake
+    - name: cmake release
       run: cmake -DCMAKE_BUILD_TYPE=Release -DENABLE_HTTPS=TRUE -DENABLE_WEBSOCKET=TRUE -DBUILDDLL=TRUE -DOPENSSL_ROOT_DIR="/usr/local/opt/openssl@1.1" .
+    - name: build release
+      run: cmake --build .
+    - name: Upload release object
+      uses: actions/upload-artifact@v1
+      with:
+        name: CppJsLibReleaseMacOs
+        path: src/libCppJsLib.dylib
+    - name: cmake debug
+      run: cmake -DCMAKE_BUILD_TYPE=Debug -DENABLE_HTTPS=TRUE -DENABLE_WEBSOCKET=TRUE -DBUILDDLL=TRUE -DOPENSSL_ROOT_DIR="/usr/local/opt/openssl@1.1" .
     - name: build
       run: cmake --build .
-    - name: Upload object
+    - name: Upload debug object
       uses: actions/upload-artifact@v1
       with:
         name: CppJsLibReleaseMacOs
