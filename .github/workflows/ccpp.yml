@@ -191,7 +191,7 @@ jobs:
       - name: Upload debug library
         uses: actions/upload-artifact@v1
         with:
-          name: CppJsLibReleaseWin
+          name: CppJsLibDebugWin
           path: src/Debug
 
   build-macos-release:
@@ -222,5 +222,5 @@ jobs:
     - name: Upload debug object
       uses: actions/upload-artifact@v1
       with:
-        name: CppJsLibReleaseMacOs
+        name: CppJsLibDebugMacOs
         path: src/libCppJsLib.dylib
