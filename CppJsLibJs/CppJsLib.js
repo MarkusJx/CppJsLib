@@ -55,10 +55,10 @@ const cppJsLib = {
             try {
                 x.send();
                 x.onreadystatechange = () => {
-                    s = x.status;
-                    resolve(s >= 200 && s < 300 || s === 304);
-                }
-                // catch network & other problems
+                        s = x.status;
+                        resolve(s >= 200 && s < 300 || s === 304);
+                    }
+                    // catch network & other problems
             } catch (e) {
                 resolve(false);
             }
@@ -122,7 +122,7 @@ const cppJsLib = {
     'initWebsocketOnly': function(host, port, tls = false) {
         this.init(true, tls, host, port);
     },
-    'onClose': function () {
+    'onClose': function() {
         if (!this.disconnectTimeoutRunning) {
             this.disconnectTimeoutRunning = true;
             this.connected = false;
@@ -344,7 +344,7 @@ const cppJsLib = {
             }
 
             for (let i = 0; i < args.length; i++) {
-                if (!this.argMatches(arguments[i], args[i]) && !args[i].startsWith("map<")) {
+                if (!this.argMatches(arguments[i], args[i])) {
                     console.error("Arguments do not match!\n Expected: " + args[i] + " but got: " +
                         ((Array.isArray(arguments[i]) && arguments[i].length > 0) ? typeof(arguments[i][0]) + "[]" : typeof(arguments[i])));
                     return;
@@ -388,6 +388,25 @@ const cppJsLib = {
                 return false;
             }
         }
+
+        if (argString.startsWith("map<")) {
+            if (typeof(arg) === "object") {
+                try {
+                    argString = argString.replace("map<", "").replace(">", "").split(",");
+                    if (Object.entries(arg).length > 0) {
+                        let k = Object.keys(arg)[0];
+                        return this.argMatches(arg[k], argString[1]);
+                    } else {
+                        return true;
+                    }
+                } catch (e) {
+                    return false;
+                }
+            } else {
+                return false;
+            }
+        }
+
         switch (argString) {
             case "int":
                 return typeof(arg) === "number";

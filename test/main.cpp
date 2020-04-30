@@ -48,7 +48,7 @@ std::map<int, std::string> d(const std::map<int, std::string> &v) {
     for (const auto& i : v) {
         std::cout << i.first << ", " << i.second << std::endl;
     }
-    return std::map<int, std::string>();
+    return v;
 }
 
 int main() {
@@ -111,7 +111,7 @@ int main() {
 #ifdef TEST_USE_DLL
     {
         CppJsLib::WebGUI::WebGUI_unique ptr = CppJsLib::WebGUI::create_unique("web");
-        //ptr->start(8026, UNIQUE_WS_PORT "localhost", false);
+        ptr->start(8026, UNIQUE_WS_PORT "localhost", false);
         std::this_thread::sleep_for(std::chrono::milliseconds(20));
         ptr->stop();
     }
