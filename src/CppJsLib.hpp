@@ -1274,8 +1274,8 @@ namespace CppJsLib {
         /**
          * @warning Do not use this. This function is just required for the jni lib
          */
-        void exportJavaFunction(const std::string& name, std::string returnType, std::string *argTypes, int numArgs,
-                                const std::function<std::string(std::string *, int)> &fn);
+        void exportJavaFunction(const std::string& name, const std::string& returnType, std::string *argTypes, int numArgs,
+                                const std::function<std::string(std::vector<std::string>)> &fn);
 #endif //CPPJSLIB_BUILD_JNI_DLL
 
         /**

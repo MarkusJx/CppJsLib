@@ -257,9 +257,9 @@ std::string getTypeName(const char *jType) {
 }
 
 void
-CppJsLib::WebGUI::exportJavaFunction(const std::string &name, std::string returnType, std::string *argTypes,
-                                     int numArgs, const std::function<std::string(std::string *, int)> &fn) {
-    std::string fnString = std::move(returnType);
+CppJsLib::WebGUI::exportJavaFunction(const std::string &name, const std::string& returnType, std::string *argTypes,
+                                     int numArgs, const std::function<std::string(vector<string>)> &fn) {
+    std::string fnString = returnType;
     fnString.append(" ").append(name).append("(");
     for (int i = 0; i < numArgs; i++) {
         if (i > 0) fnString.append(", ");
@@ -271,16 +271,17 @@ CppJsLib::WebGUI::exportJavaFunction(const std::string &name, std::string return
     std::string r = "/callfunc_";
     r.append(name);
 
-    callFromPost(r.c_str(), [numArgs, this, fn](const std::string &req_body) {
-        int size = 0;
-        auto *argArr = util::parseJSONInput(&size, req_body);
+    callFromPost(r.c_str(), [numArgs, this, fn, returnType](const std::string &req_body, bool &res) {
+        vector<string> argArr = util::parseJSONInput(req_body);
 
-        if (size != numArgs) {
-            err("[CppJsLib] Argument count from JS does not match");
+        if (argArr.size() != numArgs) {
+            err("Argument count from JS does not match");
+            res = false;
             return string("");
         }
 
-        return fn(argArr, size);
+        res = returnType != "void";
+        return fn(argArr);
     });
 }
 
@@ -732,7 +733,7 @@ JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_exposeFunction(JNIEnv *env,
         jobject fn = env->NewGlobalRef(func);
         c->jv.push_back(fn);
 
-        c->webGui->exportJavaFunction(_name, rt, args, len, [rt, fn](std::string *argv, int argc) {
+        c->webGui->exportJavaFunction(_name, rt, args, len, [rt, fn](const vector<string>& args) {
             JNIEnv *env;
             errno_t err = getEnv(env);
             if (err) {
@@ -744,10 +745,10 @@ JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_exposeFunction(JNIEnv *env,
             jmethodID call = env->GetMethodID(ExposedFunc, "call", "([Ljava/lang/String;)[Ljava/lang/String;");
 
             jclass String = JAVA_STRING_CLS();
-            jobjectArray arr = env->NewObjectArray(argc, String, nullptr);
+            jobjectArray arr = env->NewObjectArray(args.size(), String, nullptr);
 
-            for (int i = 0; i < argc; i++) {
-                jstring str = env->NewStringUTF(argv[i].c_str());
+            for (int i = 0; i < args.size(); i++) {
+                jstring str = env->NewStringUTF(args[i].c_str());
                 env->SetObjectArrayElement(arr, i, str);
             }
 
@@ -790,7 +791,7 @@ JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_exposeVoidFunction(JNIEnv *
         jobject fn = env->NewGlobalRef(func);
         c->jv.push_back(fn);
 
-        c->webGui->exportJavaFunction(_name, "void", args, len, [fn](std::string *argv, int argc) {
+        c->webGui->exportJavaFunction(_name, "void", args, len, [fn](vector<string> args) {
             JNIEnv *env;
             errno_t err = getEnv(env);
             if (err) {
@@ -801,10 +802,10 @@ JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_exposeVoidFunction(JNIEnv *
             jmethodID call = env->GetMethodID(ExposedFunc, "call", "([Ljava/lang/String;)V");
 
             jclass String = JAVA_STRING_CLS();
-            jobjectArray arr = env->NewObjectArray(argc, String, nullptr);
+            jobjectArray arr = env->NewObjectArray(args.size(), String, nullptr);
 
-            for (int i = 0; i < argc; i++) {
-                jstring str = env->NewStringUTF(argv[i].c_str());
+            for (int i = 0; i < args.size(); i++) {
+                jstring str = env->NewStringUTF(args[i].c_str());
                 env->SetObjectArrayElement(arr, i, str);
             }
 
@@ -975,7 +976,7 @@ JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_stringArrayToJSON(JNIEnv *e
         m.insert(std::make_pair(c, str));
     }
 
-    string res = CppJsLib::util::stringArrayToJSON(&v);
+    string res = CppJsLib::util::stringArrayToJSON(v);
     for (std::pair<const char *, jstring> p : m) {
         env->ReleaseStringUTFChars(p.second, p.first);
     }
@@ -993,14 +994,13 @@ JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_createStringArrayFromJSON(J
     SET_JVM();
     const char *s = env->GetStringUTFChars(json, &isFalse);
 
-    int size = 0;
-    string *res = CppJsLib::util::createStringArrayFromJSON(&size, s);
+    vector<string> res = CppJsLib::util::createStringArrayFromJSON(s);
     env->ReleaseStringUTFChars(json, s);
 
     jclass String = JAVA_STRING_CLS();
-    jobjectArray arr = env->NewObjectArray(size, String, nullptr);
+    jobjectArray arr = env->NewObjectArray(res.size(), String, nullptr);
 
-    for (int i = 0; i < size; i++) {
+    for (int i = 0; i < res.size(); i++) {
         jstring str = env->NewStringUTF(res[i].c_str());
         env->SetObjectArrayElement(arr, i, str);
     }
