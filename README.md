@@ -213,6 +213,8 @@ auto wssrv = gui->getTLSWebServer();
 
 ### Not using prebuilt binaries
 Also known as 'building yourself' or 'the not fun way'
+
+**Note: C++20 requires boost 1.73.0 or later**
 * To build with websocket protocol support, boost >= 1.60 < 1.70 must be installed (on windows the environment variable ``BOOST_ROOT`` must point to where the boost installation is located)
 * To build with SSL support OpenSSL must be installed
 * CMake is used to build the project

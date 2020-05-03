@@ -43,24 +43,28 @@ const cppJsLib = {
             port = ":" + location.port;
         }
         return new Promise(resolve => {
-            x.open(
-                // requesting the headers is faster, and just enough
-                "HEAD",
-                // append a random string to the current hostname,
-                // to make sure we're not hitting the cache
-                "//" + window.location.hostname + port + "/?rand=" + Math.random(),
-                // make a synchronous request
-                true
-            );
-            try {
-                x.send();
-                x.onreadystatechange = () => {
+            if (typeof CPPJSLIB_NO_CONNECTED_CHECK != "undefined" && CPPJSLIB_NO_CONNECTED_CHECK) {
+                resolve(true);
+            } else {
+                x.open(
+                    // requesting the headers is faster, and just enough
+                    "HEAD",
+                    // append a random string to the current hostname,
+                    // to make sure we're not hitting the cache
+                    "//" + window.location.hostname + port + "/?rand=" + Math.random(),
+                    // make a synchronous request
+                    true
+                );
+                try {
+                    x.send();
+                    x.onreadystatechange = () => {
                         s = x.status;
                         resolve(s >= 200 && s < 300 || s === 304);
                     }
                     // catch network & other problems
-            } catch (e) {
-                resolve(false);
+                } catch (e) {
+                    resolve(false);
+                }
             }
         });
     },
