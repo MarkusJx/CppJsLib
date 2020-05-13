@@ -220,7 +220,7 @@ void onMessage(std::shared_ptr<Endpoint> s, std::string initString,
 
 template<typename Endpoint>
 bool
-startNoWeb_f(std::shared_ptr<Endpoint> ws_server, int port, bool block, std::string initString,
+startNoWeb_f(std::shared_ptr<Endpoint> ws_server, const std::string &host, int port, bool block, std::string initString,
              const std::map<std::string, WebGUI::PostHandler> &websocketTargets,
              const std::function<void(const std::string &)> &_errorF,
              const std::function<void(const std::string &)> &_loggingF, bool websocket_only,
@@ -231,11 +231,11 @@ startNoWeb_f(std::shared_ptr<Endpoint> ws_server, int port, bool block, std::str
 
     if (block) {
         _loggingF("Starting websocket server in blocking mode");
-        startWebsocketServer(ws_server, port);
+        startWebsocketServer(ws_server, host, port);
     } else {
         _loggingF("Starting websocket server in non-blocking mode");
-        std::thread websocketThread([ws_server, port] {
-            startWebsocketServer(ws_server, port);
+        std::thread websocketThread([ws_server, port, host] {
+            startWebsocketServer(ws_server, host, port);
         });
         websocketThread.detach();
 
@@ -251,7 +251,7 @@ startNoWeb_f(std::shared_ptr<Endpoint> ws_server, int port, bool block, std::str
     return ws_server->is_listening();
 }
 
-CPPJSLIB_EXPORT bool WebGUI::startNoWeb(int port, bool block) {
+CPPJSLIB_EXPORT bool WebGUI::startNoWeb(int port, const std::string &host, bool block) {
     log("Starting without a web server");
     if (check_ports) {
         int err = 0;
@@ -279,30 +279,30 @@ CPPJSLIB_EXPORT bool WebGUI::startNoWeb(int port, bool block) {
 #   ifdef CPPJSLIB_ENABLE_HTTPS
     if (fallback_plain) {
         log("Starting websocket plain fallback server");
-        startNoWeb_f(std::static_pointer_cast<wspp::server>(ws_plain_server), fallback_plain, false, initString,
+        startNoWeb_f(std::static_pointer_cast<wspp::server>(ws_plain_server), host, fallback_plain, false, initString,
                      websocketTargets, _errorF, _loggingF, websocket_only, jsFnCallbacks);
     }
 
     if (ssl) {
         log("Starting websocket tls server");
-        running = startNoWeb_f(std::static_pointer_cast<wspp::server_tls>(ws_server), port, block, initString,
+        running = startNoWeb_f(std::static_pointer_cast<wspp::server_tls>(ws_server), host, port, block, initString,
                                websocketTargets, _errorF, _loggingF, websocket_only, jsFnCallbacks);
         return running;
     } else {
         log("Starting websocket server");
-        running = startNoWeb_f(std::static_pointer_cast<wspp::server>(ws_server), port, block, initString,
+        running = startNoWeb_f(std::static_pointer_cast<wspp::server>(ws_server), host, port, block, initString,
                                websocketTargets, _errorF, _loggingF, websocket_only, jsFnCallbacks);
         return running;
     }
 #   else
     log("Starting websocket server");
-    running = startNoWeb_f(std::static_pointer_cast<wspp::server>(ws_server), port, block, initString,
+    running = startNoWeb_f(std::static_pointer_cast<wspp::server>(ws_server), host, port, block, initString,
                            websocketTargets, _errorF, _loggingF, websocket_only, jsFnCallbacks);
     return running;
 #   endif
 }
 
-CPPJSLIB_EXPORT CPPJSLIB_MAYBE_UNUSED bool WebGUI::start(int port, const std::string &host, bool block) {
+CPPJSLIB_EXPORT CPPJSLIB_MAYBE_UNUSED bool WebGUI::start(int, const std::string &, bool) {
     err("Can not start servers without websocketPort set, when built with websocket protocol support. Please define macro 'CPPJSLIB_ENABLE_WEBSOCKET' before including CppJsLib.hpp");
     return false;
 }
@@ -457,7 +457,7 @@ CPPJSLIB_EXPORT bool WebGUI::start(int port, const std::string &host, bool block
 #endif //CPPJSLIB_ENABLE_WEBSOCKET
 
     running = true;
-    bool wsRunning = true;
+    bool wsRunning;
     bool *runningPtr = &running;
     bool *stoppedPtr = &stopped;
 
@@ -465,12 +465,12 @@ CPPJSLIB_EXPORT bool WebGUI::start(int port, const std::string &host, bool block
 #   ifdef CPPJSLIB_ENABLE_HTTPS
     if (ssl) {
         log("Starting tls websocket server");
-        wsRunning = startNoWeb_f(std::static_pointer_cast<wspp::server_tls>(ws_server), websocketPort, false, "",
+        wsRunning = startNoWeb_f(std::static_pointer_cast<wspp::server_tls>(ws_server), host, websocketPort, false, "",
                                  std::map<std::string, PostHandler>(), _errorF, _loggingF,
                                  false, jsFnCallbacks);
     } else {
         log("Starting websocket server");
-        wsRunning = startNoWeb_f(std::static_pointer_cast<wspp::server>(ws_server), websocketPort, false, "",
+        wsRunning = startNoWeb_f(std::static_pointer_cast<wspp::server>(ws_server), host, websocketPort, false, "",
                                  std::map<std::string, PostHandler>(), _errorF, _loggingF,
                                  false, jsFnCallbacks);
     }
@@ -478,13 +478,13 @@ CPPJSLIB_EXPORT bool WebGUI::start(int port, const std::string &host, bool block
     if (fallback_plain) {
         log("Starting websocket plain fallback server");
         wsRunning = wsRunning &&
-                    startNoWeb_f(std::static_pointer_cast<wspp::server>(ws_plain_server), websocketPort, false, "",
+                    startNoWeb_f(std::static_pointer_cast<wspp::server>(ws_plain_server), host, websocketPort, false, "",
                                  std::map<std::string, PostHandler>(), _errorF, _loggingF,
                                  false, jsFnCallbacks);
     }
 #   else
     log("Starting websocket server");
-    wsRunning = startNoWeb_f(std::static_pointer_cast<wspp::server>(ws_server), websocketPort, false, "",
+    wsRunning = startNoWeb_f(std::static_pointer_cast<wspp::server>(ws_server), host, websocketPort, false, "",
                  std::map<std::string, std::function<std::string(std::string)>>(), _errorF, _loggingF, false,
                  jsFnCallbacks);
 #   endif //CPPJSLIB_ENABLE_HTTPS

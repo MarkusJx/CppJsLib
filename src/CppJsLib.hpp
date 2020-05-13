@@ -1153,7 +1153,7 @@ namespace CppJsLib {
          * @return a WebGUI_unique object, which will handle the deallocation
          */
         static inline WebGUI_unique
-        create_ptr(const std::string &base_dir, const std::string &cert_path, const std::string &private_key_path,
+        create_unique(const std::string &base_dir, const std::string &cert_path, const std::string &private_key_path,
                    unsigned short websocket_plain_fallback_port = 0) {
             return WebGUI_unique(create(base_dir, cert_path, private_key_path, websocket_plain_fallback_port),
                                  deleteInstance);
@@ -1220,7 +1220,7 @@ namespace CppJsLib {
          * @return a WebGUI_unique object, which will handle the deallocation
          */
         static inline WebGUI_unique
-        create_ptr(const std::string &base_dir, const std::string &cert_path, const std::string &private_key_path,
+        create_unique(const std::string &base_dir, const std::string &cert_path, const std::string &private_key_path,
                          unsigned short websocket_plain_fallback_port = 0) {
             return std::make_unique<WebGUI>(base_dir, cert_path, private_key_path, websocket_plain_fallback_port);
         }
@@ -1412,12 +1412,13 @@ namespace CppJsLib {
         /**
          * Start only the websocket servers without the http(s) server
          *
+         * @param host the host to listen on
          * @param port the port to listen on
          * @param block if this is a blocking call
          * @note this call will sleep for 1-2 seconds, to see if all servers started successfully
          * @return if the operation was successful
          */
-        CPPJSLIB_EXPORT bool startNoWeb(int port, bool block = true);
+        CPPJSLIB_EXPORT bool startNoWeb(int port, const std::string& host = "localhost", bool block = true);
 
         /**
          * @warning Do not call this. Websocket support is enabled, therefore a port for the websocket server must be specified

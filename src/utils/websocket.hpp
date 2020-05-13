@@ -70,10 +70,10 @@ inline void initWebsocketServer(std::shared_ptr<EndpointType> s, const std::shar
 }
 
 template<typename EndpointType>
-inline void startWebsocketServer(std::shared_ptr<EndpointType> s, int port) {
+inline void startWebsocketServer(std::shared_ptr<EndpointType> s, const std::string &host, int port) {
     loggingF("Starting websocket to listen on port " + std::to_string(port));
     try {
-        s->listen(port);
+        s->listen(host, std::to_string(port));
         s->start_accept();
 
         s->run();
