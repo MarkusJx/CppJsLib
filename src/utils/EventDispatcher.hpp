@@ -5,8 +5,6 @@
 #ifndef CPPJSLIBALL_EVENTDISPATCHER_HPP
 #define CPPJSLIBALL_EVENTDISPATCHER_HPP
 
-#ifndef CPPJSLIB_ENABLE_WEBSOCKET
-
 #include <httplib.h>
 
 /**
@@ -27,7 +25,5 @@ private:
     std::atomic_int cid_;
     std::string message_;
 };
-
-#endif
 
 #endif //CPPJSLIBALL_EVENTDISPATCHER_HPP

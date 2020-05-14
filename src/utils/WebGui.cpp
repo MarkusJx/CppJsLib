@@ -10,10 +10,7 @@
 
 #include "websocket.hpp"
 #include "socket.hpp"
-
-#ifndef CPPJSLIB_ENABLE_WEBSOCKET
 #include "EventDispatcher.hpp"
-#endif
 
 using namespace CppJsLib;
 
@@ -52,6 +49,7 @@ WebGUI::WebGUI(const std::string &base_dir)
     server = std::static_pointer_cast<void>(svr);
 
     websocket_only = false;
+    no_websocket = false;
 
 #ifdef CPPJSLIB_ENABLE_WEBSOCKET
 #   ifdef CPPJSLIB_ENABLE_HTTPS
@@ -91,6 +89,7 @@ WebGUI::WebGUI(const std::string &base_dir, const std::string &cert_path,
     }
 
     websocket_only = false;
+    no_websocket = false;
 
 #if defined(CPPJSLIB_ENABLE_WEBSOCKET) && defined(CPPJSLIB_ENABLE_HTTPS)
     setPassword();
@@ -253,6 +252,12 @@ startNoWeb_f(std::shared_ptr<Endpoint> ws_server, const std::string &host, int p
 
 CPPJSLIB_EXPORT bool WebGUI::startNoWeb(int port, const std::string &host, bool block) {
     log("Starting without a web server");
+
+    if (port < 0) {
+        err("Cannot start websocket server with a negative port");
+        return false;
+    }
+
     if (check_ports) {
         int err = 0;
         if (port_is_in_use("localhost", port, err)) {
@@ -264,6 +269,7 @@ CPPJSLIB_EXPORT bool WebGUI::startNoWeb(int port, const std::string &host, bool 
     }
 
     websocket_only = true;
+    no_websocket = false;
 
     nlohmann::json initList;
     for (std::pair<char *, char *> p : initMap) {
@@ -302,16 +308,192 @@ CPPJSLIB_EXPORT bool WebGUI::startNoWeb(int port, const std::string &host, bool 
 #   endif
 }
 
-CPPJSLIB_MAYBE_UNUSED CPPJSLIB_EXPORT bool WebGUI::start(int, const std::string &, bool) {
-    err("Can not start servers without websocketPort set, when built with websocket protocol support. Please define macro 'CPPJSLIB_ENABLE_WEBSOCKET' before including CppJsLib.hpp");
-    return false;
+CPPJSLIB_EXPORT bool WebGUI::startNoWebSocket(int port, const std::string &host, bool block) {
+    log("Starting servers");
+
+    if (port < 0) {
+        err("Cannot start servers with a negative port number");
+        return false;
+    }
+
+    // Check if this is started or websocket-only
+    if (websocket_only) {
+        err("WebGUI is already started in websocket-only mode");
+        return false;
+    }
+
+    if (running) {
+        err("WebGUI is already running");
+        return false;
+    }
+
+    no_websocket = true;
+    websocket_only = false;
+
+    // Check if the ports are occupied, if enabled
+    if (check_ports) {
+        int _err = 0;
+        if (port_is_in_use(host.c_str(), port, _err)) {
+            err("port " + std::to_string(port) + " is already in use");
+            return false;
+        } else if (_err != 0) {
+            err("port_is_in_use finished with code " + std::to_string(_err));
+        }
+    }
+
+    log("Starting web server");
+    auto CppJsLibJsHandler = [this](const httplib::Request &req, httplib::Response &res) {
+        std::ifstream inFile;
+        inFile.open("CppJsLibJs/CppJsLib.js");
+        if (!inFile.is_open()) {
+            err("Could not open CppJsLibJs/CppJsLib.js");
+            res.status = 404;
+            return;
+        }
+
+        std::stringstream strStream;
+        strStream << inFile.rdbuf();
+        std::string str = strStream.str();
+        inFile.clear();
+        inFile.close();
+        strStream.clear();
+
+        res.set_content(str, "text/javascript");
+    };
+
+    nlohmann::json initList;
+    for (std::pair<char *, char *> p: initMap) {
+        initList[p.first] = p.second;
+        free(p.first);
+        free(p.second);
+    }
+    std::map<char *, char *>().swap(initMap);
+
+    std::string serialized_string = initList.dump();
+    auto initHandler = [serialized_string](const httplib::Request &req, httplib::Response &res) {
+        res.set_content(serialized_string, "text/plain");
+    };
+
+    nlohmann::json init_ws_json;
+    init_ws_json["ws"] = "false";
+
+    std::string init_ws_string = init_ws_json.dump();
+
+    auto init_ws_handler = [init_ws_string](const httplib::Request &req, httplib::Response &res) {
+        res.set_content(init_ws_string, "text/plain");
+    };
+
+#ifdef CPPJSLIB_ENABLE_HTTPS
+    if (ssl) {
+        std::static_pointer_cast<httplib::SSLServer>(server)->Get("/CppJsLib.js", CppJsLibJsHandler);
+        std::static_pointer_cast<httplib::SSLServer>(server)->Get("/init", initHandler);
+        std::static_pointer_cast<httplib::SSLServer>(server)->Get("/init_ws", init_ws_handler);
+    } else {
+        std::static_pointer_cast<httplib::Server>(server)->Get("/init", initHandler);
+        std::static_pointer_cast<httplib::Server>(server)->Get("/CppJsLib.js", CppJsLibJsHandler);
+        std::static_pointer_cast<httplib::Server>(server)->Get("/init_ws", init_ws_handler);
+    }
+#else
+    std::static_pointer_cast<httplib::Server>(server)->Get("/init", initHandler);
+    std::static_pointer_cast<httplib::Server>(server)->Get("/CppJsLib.js", CppJsLibJsHandler);
+    std::static_pointer_cast<httplib::Server>(server)->Get("/init_ws", init_ws_handler);
+#endif //CPPJSLIB_ENABLE_HTTPS
+
+    // Start SSE listeners
+    // Source: https://github.com/yhirose/cpp-httplib/blob/master/example/sse.cc
+    for (const std::string &s : sseVec) {
+        auto *ed = new EventDispatcher();
+
+        auto handler = [&](const httplib::Request &, httplib::Response &res) {
+            res.set_header("text/plain", "text/event-stream");
+            res.set_chunked_content_provider([&](uint64_t, httplib::DataSink &sink) {
+                ed->wait_event(&sink);
+            });
+        };
+
+        sseEventMap.insert(std::pair<std::string, void *>(s, (void *) ed));
+
+        std::string pattern = "/ev_";
+        pattern.append(s);
+#   ifdef CPPJSLIB_ENABLE_HTTPS
+        if (ssl) {
+            std::static_pointer_cast<httplib::SSLServer>(server)->Get(pattern.c_str(), handler);
+        } else {
+            std::static_pointer_cast<httplib::Server>(server)->Get(pattern.c_str(), handler);
+        }
+#   else
+        std::static_pointer_cast<httplib::Server>(server)->Get(pattern.c_str(), handler);
+#   endif //CPPJSLIB_ENABLE_HTTPS
+    }
+
+    sseVec.clear();
+
+    running = true;
+    bool *runningPtr = &running;
+    bool *stoppedPtr = &stopped;
+
+    std::function < void() > func;
+#ifdef CPPJSLIB_ENABLE_HTTPS
+    if (ssl) {
+        log("Starting ssl web server");
+        std::shared_ptr<httplib::SSLServer> svr = std::static_pointer_cast<httplib::SSLServer>(server);
+        func = [svr, host, port, runningPtr, stoppedPtr, this]() {
+            if (!svr->listen(host.c_str(), port)) {
+                err("Could not start ssl web server");
+                (*runningPtr) = false;
+            }
+
+            (*stoppedPtr) = true;
+        };
+    } else {
+        log("Starting web server");
+        std::shared_ptr<httplib::Server> svr = std::static_pointer_cast<httplib::Server>(server);
+        func = [svr, host, port, runningPtr, stoppedPtr, this]() {
+            if (!svr->listen(host.c_str(), port)) {
+                err("Could not start web server");
+                (*runningPtr) = false;
+            }
+
+            (*stoppedPtr) = true;
+        };
+    }
+#else
+    std::shared_ptr<httplib::Server> svr = std::static_pointer_cast<httplib::Server>(server);
+    func = [svr, host, port, runningPtr, stoppedPtr, this]() {
+        if (!svr->listen(host.c_str(), port)) {
+            err("Could not start web server");
+            (*runningPtr) = false;
+        }
+
+        (*stoppedPtr) = true;
+    };
+#endif //CPPJSLIB_ENABLE_HTTPS
+
+    if (!block) {
+        log("Starting web server in non-blocking mode");
+        std::thread t(func);
+        t.detach();
+
+        // Sleep for one second, so the servers can fail
+        log("Sleeping for a short while");
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+    } else {
+        log("Starting web server in blocking mode");
+        func();
+    }
+
+    return running;
+}
+
+CPPJSLIB_MAYBE_UNUSED CPPJSLIB_EXPORT bool WebGUI::start(int port, const std::string &host, bool block) {
+    return startNoWebSocket(port, host, block);
 }
 
 CPPJSLIB_MAYBE_UNUSED CPPJSLIB_EXPORT bool
 WebGUI::start(int port, int websocketPort, const std::string &host, bool block)
 #else
 
-CPPJSLIB_EXPORT bool WebGUI::start(int port, const std::string &host, bool block)
+CPPJSLIB_MAYBE_UNUSED CPPJSLIB_EXPORT bool WebGUI::start(int port, const std::string &host, bool block)
 #endif //CPPJSLIB_ENABLE_WEBSOCKET
 {
     log("Starting servers");
@@ -326,9 +508,20 @@ CPPJSLIB_EXPORT bool WebGUI::start(int port, const std::string &host, bool block
         return false;
     }
 
+#ifdef CPPJSLIB_ENABLE_WEBSOCKET
     if (port < 0) {
         return startNoWeb(websocketPort, host, block);
     }
+
+    if (websocketPort < 0) {
+        return startNoWebSocket(port, host, block);
+    }
+#else
+    if (port < 0) {
+        err("Cannot start servers with a negative port number");
+        return false;
+    }
+#endif //CPPJSLIB_ENABLE_WEBSOCKET
 
     // Check if the ports are occupied, if enabled
     if (check_ports) {
@@ -461,11 +654,11 @@ CPPJSLIB_EXPORT bool WebGUI::start(int port, const std::string &host, bool block
 #endif //CPPJSLIB_ENABLE_WEBSOCKET
 
     running = true;
-    bool wsRunning;
     bool *runningPtr = &running;
     bool *stoppedPtr = &stopped;
 
 #ifdef CPPJSLIB_ENABLE_WEBSOCKET
+    bool wsRunning;
 #   ifdef CPPJSLIB_ENABLE_HTTPS
     if (ssl) {
         log("Starting tls websocket server");
@@ -545,7 +738,11 @@ CPPJSLIB_EXPORT bool WebGUI::start(int port, const std::string &host, bool block
         func();
     }
 
+#ifdef CPPJSLIB_ENABLE_WEBSOCKET
     return running && wsRunning;
+#else
+    return running;
+#endif //CPPJSLIB_ENABLE_WEBSOCKET
 }
 
 CPPJSLIB_EXPORT void WebGUI::callFromPost(const char *target, const PostHandler &handler) {
@@ -616,87 +813,6 @@ std::string gen_random(const int len) {
     return tmp;
 }
 
-CPPJSLIB_EXPORT void WebGUI::call_jsFn(std::vector<std::string> *argV, const char *funcName,
-                                       std::vector<std::string> *results, int wait) {
-    log("Calling js function: " + std::string(funcName));
-    // Dump the list of arguments into a json string
-    nlohmann::json j;
-    if (!argV->empty()) {
-        for (std::string s: *argV) {
-            j[funcName].push_back(s);
-        }
-    } else {
-        j[funcName].push_back("");
-    }
-
-    std::shared_ptr<wspp::con_list> list = std::static_pointer_cast<wspp::con_list>(ws_connections);
-
-    // Set the message handlers if the function is non-void
-    std::string callback = gen_random(40);
-    if (results) {
-        log("Waiting for results from javascript");
-        while (jsFnCallbacks.count(callback) != 0) {
-            callback = gen_random(40);
-        }
-
-        j["callback"] = callback;
-        jsFnCallbacks.insert(std::make_pair(callback, results));
-    }
-
-    std::string str = j.dump();
-
-    // Send request to all clients
-    log("Sending request");
-    for (const auto &it : *list) {
-        try {
-#   ifdef CPPJSLIB_ENABLE_HTTPS
-            if (ssl) {
-                std::static_pointer_cast<wspp::server_tls>(ws_server)->send(it, str,
-                                                                            websocketpp::frame::opcode::value::text);
-            } else {
-                std::static_pointer_cast<wspp::server>(ws_server)->send(it, str,
-                                                                        websocketpp::frame::opcode::value::text);
-            }
-
-#   else
-            std::static_pointer_cast<wspp::server>(ws_server)->send(it, str, websocketpp::frame::opcode::value::text);
-#   endif //CPPJSLIB_ENABLE_HTTPS
-        } catch (...) {
-            err("Could not send message");
-        }
-    }
-
-#   ifdef CPPJSLIB_ENABLE_HTTPS
-    if (fallback_plain) {
-        log("Sending message to websocket plain fallback server");
-        std::shared_ptr<wspp::con_list> plain_list = std::static_pointer_cast<wspp::con_list>(ws_plain_connections);
-        for (const auto &it : *plain_list) {
-            try {
-                std::static_pointer_cast<wspp::server>(ws_plain_server)->send(it, str,
-                                                                              websocketpp::frame::opcode::value::text);
-            } catch (...) {
-                err("Could not send message");
-            }
-        }
-    }
-#   endif //CPPJSLIB_ENABLE_HTTPS
-
-    if (results) {
-        // Wait for the results to come in
-        if (wait != -1) wait *= 100;
-        int counter = 0;
-        while (results->size() < list->size() && counter < wait) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(10));
-            if (wait != -1) counter++;
-        }
-
-        // Remove the message handler
-        if (jsFnCallbacks.find(callback) != jsFnCallbacks.end()) {
-            jsFnCallbacks.erase(jsFnCallbacks.find(callback));
-        }
-    }
-}
-
 CPPJSLIB_EXPORT void WebGUI::setWebSocketOpenHandler(const std::function<void()> &handler) {
 #   ifdef CPPJSLIB_ENABLE_HTTPS
     if (ssl) {
@@ -735,10 +851,112 @@ CPPJSLIB_EXPORT void WebGUI::setWebSocketCloseHandler(const std::function<void()
 
 }
 
-#else
+#endif //CPPJSLIB_ENABLE_WEBSOCKET
 
-CPPJSLIB_EXPORT void
-WebGUI::call_jsFn(std::vector<std::string> *argV, const char *funcName, std::vector<std::string> *, int) {
+CPPJSLIB_EXPORT void WebGUI::call_jsFn(std::vector<std::string> *argV, const char *funcName,
+                                       std::vector<std::string> *results, int wait) {
+#ifdef CPPJSLIB_ENABLE_WEBSOCKET
+    if (no_websocket) {
+        if (results) {
+            err("Cannot call a JavaScript function with a return value because the websocket server was disabled");
+            return;
+        }
+
+        nlohmann::json j;
+        if (!argV->empty()) {
+            for (std::string s: *argV) {
+                j[funcName].push_back(s);
+            }
+        } else {
+            j[funcName].push_back("");
+        }
+
+        std::string str = j.dump();
+        auto it = sseEventMap.find(std::string(funcName));
+        if (it != sseEventMap.end()) {
+            auto ed = (EventDispatcher *) it->second;
+            ed->send_event(str);
+        }
+    } else {
+        log("Calling js function: " + std::string(funcName));
+        // Dump the list of arguments into a json string
+        nlohmann::json j;
+        if (!argV->empty()) {
+            for (std::string s: *argV) {
+                j[funcName].push_back(s);
+            }
+        } else {
+            j[funcName].push_back("");
+        }
+
+        std::shared_ptr<wspp::con_list> list = std::static_pointer_cast<wspp::con_list>(ws_connections);
+
+        // Set the message handlers if the function is non-void
+        std::string callback = gen_random(40);
+        if (results) {
+            log("Waiting for results from javascript");
+            while (jsFnCallbacks.count(callback) != 0) {
+                callback = gen_random(40);
+            }
+
+            j["callback"] = callback;
+            jsFnCallbacks.insert(std::make_pair(callback, results));
+        }
+
+        std::string str = j.dump();
+
+        // Send request to all clients
+        log("Sending request");
+        for (const auto &it : *list) {
+            try {
+#   ifdef CPPJSLIB_ENABLE_HTTPS
+                if (ssl) {
+                    std::static_pointer_cast<wspp::server_tls>(ws_server)->send(it, str,
+                                                                                websocketpp::frame::opcode::value::text);
+                } else {
+                    std::static_pointer_cast<wspp::server>(ws_server)->send(it, str,
+                                                                            websocketpp::frame::opcode::value::text);
+                }
+
+#   else
+                std::static_pointer_cast<wspp::server>(ws_server)->send(it, str, websocketpp::frame::opcode::value::text);
+#   endif //CPPJSLIB_ENABLE_HTTPS
+            } catch (...) {
+                err("Could not send message");
+            }
+        }
+
+#   ifdef CPPJSLIB_ENABLE_HTTPS
+        if (fallback_plain) {
+            log("Sending message to websocket plain fallback server");
+            std::shared_ptr<wspp::con_list> plain_list = std::static_pointer_cast<wspp::con_list>(ws_plain_connections);
+            for (const auto &it : *plain_list) {
+                try {
+                    std::static_pointer_cast<wspp::server>(ws_plain_server)->send(it, str,
+                                                                                  websocketpp::frame::opcode::value::text);
+                } catch (...) {
+                    err("Could not send message");
+                }
+            }
+        }
+#   endif //CPPJSLIB_ENABLE_HTTPS
+
+        if (results) {
+            // Wait for the results to come in
+            if (wait != -1) wait *= 100;
+            int counter = 0;
+            while (results->size() < list->size() && counter < wait) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(10));
+                if (wait != -1) counter++;
+            }
+
+            // Remove the message handler
+            if (jsFnCallbacks.find(callback) != jsFnCallbacks.end()) {
+                jsFnCallbacks.erase(jsFnCallbacks.find(callback));
+            }
+        }
+    }
+#else
     nlohmann::json j;
     if (!argV->empty()) {
         for (std::string s: *argV) {
@@ -754,9 +972,8 @@ WebGUI::call_jsFn(std::vector<std::string> *argV, const char *funcName, std::vec
         auto ed = (EventDispatcher *) it->second;
         ed->send_event(str);
     }
-}
-
 #endif //CPPJSLIB_ENABLE_WEBSOCKET
+}
 
 CPPJSLIB_EXPORT void WebGUI::log(const std::string &msg) {
     _loggingF(msg);
@@ -814,15 +1031,27 @@ CPPJSLIB_EXPORT bool WebGUI::isRunning() {
         return std::static_pointer_cast<wspp::server>(ws_server)->is_listening();
 #   endif //CPPJSLIB_ENABLE_HTTPS
     } else {
+        if (no_websocket) {
 #   ifdef CPPJSLIB_ENABLE_HTTPS
-        if (ssl) {
-            return std::static_pointer_cast<httplib::SSLServer>(server)->is_running();
-        } else {
-            return std::static_pointer_cast<httplib::Server>(server)->is_running();
-        }
+            if (ssl) {
+                return std::static_pointer_cast<wspp::server_tls>(ws_server)->is_listening();
+            } else {
+                return std::static_pointer_cast<wspp::server>(ws_server)->is_listening();
+            }
 #   else
-        return std::static_pointer_cast<httplib::Server>(server)->is_running();
+            return std::static_pointer_cast<wspp::server>(ws_server)->is_listening();
 #   endif //CPPJSLIB_ENABLE_HTTPS
+        } else {
+#   ifdef CPPJSLIB_ENABLE_HTTPS
+            if (ssl) {
+                return std::static_pointer_cast<httplib::SSLServer>(server)->is_running();
+            } else {
+                return std::static_pointer_cast<httplib::Server>(server)->is_running();
+            }
+#   else
+            return std::static_pointer_cast<httplib::Server>(server)->is_running();
+#   endif //CPPJSLIB_ENABLE_HTTPS
+        }
     }
 #else
 #   ifdef CPPJSLIB_ENABLE_HTTPS

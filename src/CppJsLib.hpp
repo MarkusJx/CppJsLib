@@ -143,6 +143,39 @@ namespace CppJsLib {
      */
     CPPJSLIB_MAYBE_UNUSED const char no_base_dir[1] = "";
 
+    /**
+     * @brief Disable a service like the websocket server or the web server
+     *
+     * Usage:
+     *
+     * <code>
+     * auto ptr = CppJsLib::WebGUI::create_unique(CppJsLib::no_base_dir, "cert.pem", "key.pem");<br>
+     * ptr->start(CppJsLib::service_disabled, 81, "localhost", true);
+     * </code>
+     *
+     * which is equal to:
+     *
+     * <code>
+     * auto ptr = CppJsLib::WebGUI::create_unique(CppJsLib::no_base_dir, "cert.pem", "key.pem");<br>
+     * ptr->startNoWeb(81, "localhost", true);
+     * </code>
+     *
+     * or:
+     *
+     * <code>
+     * auto ptr = CppJsLib::WebGUI::create_unique("web", "cert.pem", "key.pem");<br>
+     * ptr->start(80, CppJsLib::service_disabled, "localhost", true);
+     * </code>
+     *
+     * that is equal to:
+     *
+     * <code>
+     * auto ptr = CppJsLib::WebGUI::create_unique("web", "cert.pem", "key.pem");<br>
+     * ptr->startNoWebSocket(80, "localhost", true);
+     * </code>
+     */
+    CPPJSLIB_MAYBE_UNUSED const int service_disabled = -1;
+
     class WebGUI;
 
     /**
@@ -1507,6 +1540,18 @@ namespace CppJsLib {
 #endif //CPPJSLIB_ENABLE_WEBSOCKET
 
         /**
+         * Start without a websocket server (only the web server).
+         * JavaScript functions with callbacks will be disabled.
+         *
+         * @param port the port to use
+         * @param host the hostname to use
+         * @param block if this is a blocking call
+         * @note this call will sleep for 1 second, to see if all servers started successfully
+         * @return if the operation was successful
+         */
+        CPPJSLIB_EXPORT bool startNoWebSocket(int port, const std::string &host = "localhost", bool block = true);
+
+        /**
          * Set the logger
          *
          * @param loggingFunction the logging function
@@ -1691,6 +1736,7 @@ namespace CppJsLib {
 #endif //CPPJSLIB_ENABLE_HTTPS
     private:
         bool websocket_only;
+        bool no_websocket;
 #ifdef CPPJSLIB_ENABLE_WEBSOCKET
         std::shared_ptr<void> ws_server;
         std::shared_ptr<void> ws_connections;

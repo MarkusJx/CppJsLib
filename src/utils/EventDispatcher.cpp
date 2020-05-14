@@ -1,9 +1,3 @@
-//
-// Created by markus on 16/04/2020.
-//
-
-#ifndef CPPJSLIB_ENABLE_WEBSOCKET
-
 #include "EventDispatcher.hpp"
 
 EventDispatcher::EventDispatcher() {
@@ -26,5 +20,3 @@ void EventDispatcher::send_event(const std::string &message) {
     message_ = message;
     cv_.notify_all();
 }
-
-#endif
