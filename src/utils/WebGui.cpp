@@ -302,12 +302,12 @@ CPPJSLIB_EXPORT bool WebGUI::startNoWeb(int port, const std::string &host, bool 
 #   endif
 }
 
-CPPJSLIB_EXPORT CPPJSLIB_MAYBE_UNUSED bool WebGUI::start(int, const std::string &, bool) {
+CPPJSLIB_MAYBE_UNUSED CPPJSLIB_EXPORT bool WebGUI::start(int, const std::string &, bool) {
     err("Can not start servers without websocketPort set, when built with websocket protocol support. Please define macro 'CPPJSLIB_ENABLE_WEBSOCKET' before including CppJsLib.hpp");
     return false;
 }
 
-CPPJSLIB_EXPORT CPPJSLIB_MAYBE_UNUSED bool
+CPPJSLIB_MAYBE_UNUSED CPPJSLIB_EXPORT bool
 WebGUI::start(int port, int websocketPort, const std::string &host, bool block)
 #else
 
@@ -324,6 +324,10 @@ CPPJSLIB_EXPORT bool WebGUI::start(int port, const std::string &host, bool block
     if (running) {
         err("WebGUI is already running");
         return false;
+    }
+
+    if (port < 0) {
+        return startNoWeb(websocketPort, host, block);
     }
 
     // Check if the ports are occupied, if enabled
@@ -478,7 +482,8 @@ CPPJSLIB_EXPORT bool WebGUI::start(int port, const std::string &host, bool block
     if (fallback_plain) {
         log("Starting websocket plain fallback server");
         wsRunning = wsRunning &&
-                    startNoWeb_f(std::static_pointer_cast<wspp::server>(ws_plain_server), host, websocketPort, false, "",
+                    startNoWeb_f(std::static_pointer_cast<wspp::server>(ws_plain_server), host, websocketPort, false,
+                                 "",
                                  std::map<std::string, PostHandler>(), _errorF, _loggingF,
                                  false, jsFnCallbacks);
     }
@@ -490,7 +495,7 @@ CPPJSLIB_EXPORT bool WebGUI::start(int port, const std::string &host, bool block
 #   endif //CPPJSLIB_ENABLE_HTTPS
 #endif //CPPJSLIB_ENABLE_WEBSOCKET
 
-    std::function<void()> func;
+    std::function < void() > func;
 #ifdef CPPJSLIB_ENABLE_HTTPS
     if (ssl) {
         log("Starting ssl web server");
@@ -567,15 +572,21 @@ CPPJSLIB_EXPORT void WebGUI::callFromPost(const char *target, const PostHandler 
 
 }
 
-CPPJSLIB_EXPORT void WebGUI::setLogger(const std::function<void(const std::string &)> &f) {
+CPPJSLIB_EXPORT void WebGUI::setLoggerFunc(const std::function<void(const char *)> &f) {
     _loggingF = [f](const std::string &s) {
-        f(s);
+        size_t strLen = strlen(s.c_str()) + 1;
+        char *c = (char *) calloc(strLen, sizeof(char));
+        memcpy(c, s.c_str(), strLen);
+        f(c);
     };
 }
 
-CPPJSLIB_EXPORT void WebGUI::setError(const std::function<void(const std::string &)> &f) {
+CPPJSLIB_EXPORT void WebGUI::setErrorFunc(const std::function<void(const char *)> &f) {
     _errorF = [f](const std::string &s) {
-        f(s);
+        size_t strLen = strlen(s.c_str()) + 1;
+        char *c = (char *) calloc(strLen, sizeof(char));
+        memcpy(c, s.c_str(), strLen);
+        f(c);
     };
 }
 

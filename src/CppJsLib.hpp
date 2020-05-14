@@ -1,7 +1,7 @@
 #ifndef CPPJSLIB_WEBGUI_HPP
 #define CPPJSLIB_WEBGUI_HPP
 
-#if __cplusplus >= 201603L
+#if __cplusplus >= 201603L || (defined(_MSVC_LANG) && _MSVC_LANG >= 201603L)
 #   define CPPJSLIB_MAYBE_UNUSED [[maybe_unused]]
 #   define CPPJSLIB_NODISCARD [[nodiscard]]
 #else
@@ -106,8 +106,42 @@
 namespace CppJsLib {
     /**
      * @brief Localhost IP
+     *
+     * Bind the servers to localhost. Like this:
+     *
+     * <code>
+     * webGui->startNoWeb(80, CppJsLib::localhost, true);
+     * </code>
+     *
+     * or:
+     *
+     * <code>
+     * webGui->start(80, 81, CppJsLib::localhost, true);
+     * </code>
      */
-    const char localhost[] = "127.0.0.1";
+    CPPJSLIB_MAYBE_UNUSED const char localhost[10] = "localhost";
+
+    /**
+     * @brief Initialize without a base directory
+     *
+     * Do not define a base directory to be used with the WebGUI constructor.
+     * Intended use is to create a new WebGUI instance with TLS enabled but the web server should not be started. Example:
+     *
+     * <code>
+     * auto ptr = CppJsLib::WebGUI::create_unique(CppJsLib::no_base_dir, "cert.pem", "key.pem");<br>
+     * ptr->startNoWeb(80, "localhost", true);
+     * </code>
+     *
+     * It can also be used to create a new WebGUI instance with SSL/TLS enabled but the main web base directory will
+     * be added later. Like this:
+     *
+     * <code>
+     * auto ptr = CppJsLib::WebGUI::create_unique(CppJsLib::no_base_dir, "cert.pem", "key.pem");<br>
+     * ptr->set_mount_point("/", "web");<br>
+     * ptr->start(80, 81, "localhost", true);
+     * </code>
+     */
+    CPPJSLIB_MAYBE_UNUSED const char no_base_dir[1] = "";
 
     class WebGUI;
 
@@ -185,6 +219,7 @@ namespace CppJsLib {
 
 #ifndef CPPJSLIB_ENABLE_WEBSOCKET
         CPPJSLIB_EXPORT void pushToSseVector(WebGUI *webGui, const std::string &s);
+
 #endif
 
         template<class>
@@ -439,11 +474,11 @@ namespace CppJsLib {
 
 #ifdef CPPJSLIB_ENABLE_WEBSOCKET
 
-/**
-         * A struct for js function
-         *
-         * @tparam R the function return type
-         */
+        /**
+                 * A struct for js function
+                 *
+                 * @tparam R the function return type
+                 */
         template<class R>
         struct JsFunction<std::vector<R>()> {
             /**
@@ -1033,6 +1068,12 @@ namespace CppJsLib {
                 return "";
             }
         };
+
+        CPPJSLIB_EXPORT void deallocateMessage(const char *data);
+
+        CPPJSLIB_EXPORT void setLogger(const std::function<void(const char *)> &loggingFunction);
+
+        CPPJSLIB_EXPORT void setError(const std::function<void(const char *)> &errorFunction);
     }
 
     /**
@@ -1040,14 +1081,26 @@ namespace CppJsLib {
      *
      * @param loggingFunction the logging function
      */
-    CPPJSLIB_EXPORT void setLogger(const std::function<void(const std::string &)> &loggingFunction);
+    inline void setLogger(const std::function<void(const std::string &)> &loggingFunction) {
+        util::setLogger([loggingFunction](const char *c) {
+            std::string msg(c);
+            util::deallocateMessage(c);
+            loggingFunction(msg);
+        });
+    }
 
     /**
      * Set a general error function
      *
      * @param errorFunction  the error function
      */
-    CPPJSLIB_EXPORT void setError(const std::function<void(const std::string &)> &errorFunction);
+    inline void setError(const std::function<void(const std::string &)> &errorFunction) {
+        util::setError([errorFunction](const char *c) {
+            std::string msg(c);
+            util::deallocateMessage(c);
+            errorFunction(msg);
+        });
+    }
 
     /**
      * The WebGUI class
@@ -1154,7 +1207,7 @@ namespace CppJsLib {
          */
         static inline WebGUI_unique
         create_unique(const std::string &base_dir, const std::string &cert_path, const std::string &private_key_path,
-                   unsigned short websocket_plain_fallback_port = 0) {
+                      unsigned short websocket_plain_fallback_port = 0) {
             return WebGUI_unique(create(base_dir, cert_path, private_key_path, websocket_plain_fallback_port),
                                  deleteInstance);
         }
@@ -1418,7 +1471,7 @@ namespace CppJsLib {
          * @note this call will sleep for 1-2 seconds, to see if all servers started successfully
          * @return if the operation was successful
          */
-        CPPJSLIB_EXPORT bool startNoWeb(int port, const std::string& host = "localhost", bool block = true);
+        CPPJSLIB_EXPORT bool startNoWeb(int port, const std::string &host = "localhost", bool block = true);
 
         /**
          * @warning Do not call this. Websocket support is enabled, therefore a port for the websocket server must be specified
@@ -1445,7 +1498,7 @@ namespace CppJsLib {
         inline void
         _importJsFunction(std::function<std::vector<R>(Args...)> &function, std::string fName, int waitS = -1) {
             err("Cannot import non-void javascript function when built without websocket support");
-            function = [this] (Args... args) {
+            function = [this](Args... args) {
                 err("Javascript non-void function called but CppJsLib was built without websocket support");
                 return std::vector<R>();
             };
@@ -1458,14 +1511,26 @@ namespace CppJsLib {
          *
          * @param loggingFunction the logging function
          */
-        CPPJSLIB_EXPORT void setLogger(const std::function<void(const std::string &)> &loggingFunction);
+        inline void setLogger(const std::function<void(const std::string &)> &loggingFunction) {
+            setLoggerFunc([loggingFunction](const char *c) {
+                std::string msg(c);
+                util::deallocateMessage(c);
+                loggingFunction(msg);
+            });
+        }
 
         /**
          * Set the error function
          *
          * @param errorFunction the error function
          */
-        CPPJSLIB_EXPORT void setError(const std::function<void(const std::string &)> &errorFunction);
+        inline void setError(const std::function<void(const std::string &)> &errorFunction) {
+            setErrorFunc([errorFunction](const char *c) {
+                std::string msg(c);
+                util::deallocateMessage(c);
+                errorFunction(msg);
+            });
+        }
 
         /**
          * Do not use this
@@ -1567,7 +1632,8 @@ namespace CppJsLib {
         /**
          * @warning Do not use this function
          */
-        CPPJSLIB_EXPORT void pushToSseVec(const std::string& s);
+        CPPJSLIB_EXPORT void pushToSseVec(const std::string &s);
+
 #endif //CPPJSLIB_ENABLE_WEBSOCKET
 
 // Delete default destructor if the dll is used to prevent heap corruption
@@ -1590,9 +1656,23 @@ namespace CppJsLib {
         /**
          * Check if WebGUI was started without a web server
          *
+         * Returns true if
+         *
+         * <code>
+         * webGui->startNoWeb(80);
+         * </code>
+         *
+         * was used, false if
+         *
+         * <code>
+         * webGui->start(80, 81);
+         * </code>
+         *
+         * was used.
+         *
          * @return if only the websocket servers are started
          */
-        CPPJSLIB_EXPORT CPPJSLIB_NODISCARD bool isWebsocketOnly() const;
+        CPPJSLIB_NODISCARD CPPJSLIB_EXPORT bool isWebsocketOnly() const;
 
         ~WebGUI();
 
@@ -1639,6 +1719,10 @@ namespace CppJsLib {
         CPPJSLIB_EXPORT void err(const std::string &msg);
 
         CPPJSLIB_EXPORT void insertToInitMap(char *name, char *exposedFStr);
+
+        CPPJSLIB_EXPORT void setLoggerFunc(const std::function<void(const char *)> &loggingFunction);
+
+        CPPJSLIB_EXPORT void setErrorFunc(const std::function<void(const char *)> &errorFunction);
     };
 
     /**
@@ -1646,19 +1730,19 @@ namespace CppJsLib {
      *
      * @return false, if there was an error
      */
-    CPPJSLIB_EXPORT CPPJSLIB_MAYBE_UNUSED bool ok();
+    CPPJSLIB_NODISCARD CPPJSLIB_EXPORT bool ok();
 
     /**
      * Get the last error
      *
      * @return the last error string
      */
-    CPPJSLIB_EXPORT CPPJSLIB_MAYBE_UNUSED std::string getLastError();
+    CPPJSLIB_NODISCARD CPPJSLIB_EXPORT std::string getLastError();
 
     /**
      * Reset the last error
      */
-    CPPJSLIB_EXPORT CPPJSLIB_MAYBE_UNUSED void resetLastError();
+    CPPJSLIB_EXPORT void resetLastError();
 }
 
 #endif //CPPJSLIB_WEBGUI_HPP

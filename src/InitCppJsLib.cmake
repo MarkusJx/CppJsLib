@@ -196,6 +196,8 @@ function(initCppJsLib target source_dir include_dir)
                 # If boost was found, enable websocket support and add link and include dirs
                 message(STATUS "Boost found, building with websocket protocol support")
                 message(STATUS "Boost version: ${Boost_VERSION_STRING}")
+                message(STATUS "Boost library directory: ${Boost_LIBRARY_DIRS}")
+                message(STATUS "Boost include directory: ${Boost_INCLUDE_DIRS}")
 
                 add_compile_definitions(CPPJSLIB_ENABLE_WEBSOCKET)
                 set(BOOST_INCLUDE_DIRS ${Boost_INCLUDE_DIRS})

@@ -74,6 +74,7 @@ inline void startWebsocketServer(std::shared_ptr<EndpointType> s, const std::str
     loggingF("Starting websocket to listen on port " + std::to_string(port));
     try {
         s->listen(host, std::to_string(port));
+        //s->listen(port);
         s->start_accept();
 
         s->run();

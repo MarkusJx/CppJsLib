@@ -184,12 +184,26 @@ CPPJSLIB_EXPORT void CppJsLib::util::pushToSseVector(WebGUI *webGui, const std::
 
 #endif //CPPJSLIB_ENABLE_WEBSOCKET
 
-CPPJSLIB_EXPORT void CppJsLib::setLogger(const std::function<void(const std::string &)> &f) {
-    setLoggingF(f);
+CPPJSLIB_EXPORT void CppJsLib::util::setLogger(const std::function<void(const char *)> &f) {
+    setLoggingF([f](const std::string &msg) {
+        size_t strLen = strlen(msg.c_str()) + 1;
+        char *c = (char *) calloc(strLen, sizeof(char));
+        memcpy(c, msg.c_str(), strLen);
+        f(c);
+    });
 }
 
-CPPJSLIB_EXPORT void CppJsLib::setError(const std::function<void(const std::string &)> &f) {
-    setErrorF(f);
+CPPJSLIB_EXPORT void CppJsLib::util::setError(const std::function<void(const char *)> &f) {
+    setErrorF([f](const std::string &msg) {
+        size_t strLen = strlen(msg.c_str()) + 1;
+        char *c = (char *) calloc(strLen, sizeof(char));
+        memcpy(c, msg.c_str(), strLen);
+        f(c);
+    });
+}
+
+CPPJSLIB_EXPORT void CppJsLib::util::deallocateMessage(const char *data) {
+    free((char *) data);
 }
 
 CPPJSLIB_EXPORT void CppJsLib::util::pushToStrVecVector(WebGUI *webGui, std::vector<std::string> *v) {
