@@ -408,6 +408,7 @@ CPPJSLIB_EXPORT bool WebGUI::startNoWebSocket(int port, const std::string &host,
             res.set_header("text/plain", "text/event-stream");
             res.set_chunked_content_provider([&](uint64_t, httplib::DataSink &sink) {
                 ed->wait_event(&sink);
+                return true;
             });
         };
 
@@ -632,6 +633,7 @@ CPPJSLIB_MAYBE_UNUSED CPPJSLIB_EXPORT bool WebGUI::start(int port, const std::st
             res.set_header("text/plain", "text/event-stream");
             res.set_chunked_content_provider([&](uint64_t, httplib::DataSink &sink) {
                 ed->wait_event(&sink);
+                return true;
             });
         };
 
@@ -1093,9 +1095,7 @@ WebGUI::~WebGUI() {
         delete v;
     }
 
-#ifndef CPPJSLIB_ENABLE_WEBSOCKET
     for (const auto &p : sseEventMap) {
         delete ((EventDispatcher *) p.second);
     }
-#endif //CPPJSLIB_ENABLE_WEBSOCKET
 }
