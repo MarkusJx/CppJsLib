@@ -340,7 +340,7 @@ function(initCppJsLib target source_dir include_dir)
     message(STATUS "CppJsLib subdirectory: ${source_dir}/")
 
     # Set all sources
-    set(base_sources ${source_dir}/CppJsLib.cpp ${source_dir}/CppJsLib.hpp)
+    set(base_sources ${source_dir}/CppJsLib.cpp ${source_dir}/CppJsLib.hpp ${source_dir}/CppJsLibAll.hpp)
 
     FILE(GLOB utils
             "${source_dir}/utils/*.hpp"

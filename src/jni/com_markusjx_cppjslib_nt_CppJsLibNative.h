@@ -13,15 +13,16 @@ extern "C" {
  * Signature: (Ljava/lang/String;)I
  */
 JNIEXPORT jint JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_initWebGUI__Ljava_lang_String_2
-  (JNIEnv *, jclass, jstring);
+        (JNIEnv *, jclass, jstring);
 
 /*
  * Class:     com_markusjx_cppjslib_nt_CppJsLibNative
  * Method:    initWebGUI
  * Signature: (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;I)I
  */
-JNIEXPORT jint JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_initWebGUI__Ljava_lang_String_2Ljava_lang_String_2Ljava_lang_String_2I
-  (JNIEnv *, jclass, jstring, jstring, jstring, jint);
+JNIEXPORT jint
+JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_initWebGUI__Ljava_lang_String_2Ljava_lang_String_2Ljava_lang_String_2I
+        (JNIEnv *, jclass, jstring, jstring, jstring, jint);
 
 /*
  * Class:     com_markusjx_cppjslib_nt_CppJsLibNative
@@ -29,7 +30,7 @@ JNIEXPORT jint JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_initWebGUI__
  * Signature: (I)Z
  */
 JNIEXPORT jboolean JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_running
-  (JNIEnv *, jclass, jint);
+        (JNIEnv *, jclass, jint);
 
 /*
  * Class:     com_markusjx_cppjslib_nt_CppJsLibNative
@@ -37,7 +38,7 @@ JNIEXPORT jboolean JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_running
  * Signature: (I)Z
  */
 JNIEXPORT jboolean JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_stopped
-  (JNIEnv *, jclass, jint);
+        (JNIEnv *, jclass, jint);
 
 /*
  * Class:     com_markusjx_cppjslib_nt_CppJsLibNative
@@ -45,7 +46,7 @@ JNIEXPORT jboolean JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_stopped
  * Signature: (IZ)V
  */
 JNIEXPORT void JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_checkPorts__IZ
-  (JNIEnv *, jclass, jint, jboolean);
+        (JNIEnv *, jclass, jint, jboolean);
 
 /*
  * Class:     com_markusjx_cppjslib_nt_CppJsLibNative
@@ -53,39 +54,43 @@ JNIEXPORT void JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_checkPorts__
  * Signature: (I)Z
  */
 JNIEXPORT jboolean JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_checkPorts__I
-  (JNIEnv *, jclass, jint);
+        (JNIEnv *, jclass, jint);
 
 /*
  * Class:     com_markusjx_cppjslib_nt_CppJsLibNative
  * Method:    setLogger
  * Signature: (ILcom/markusjx/cppjslib/interfaces/LoggingFunction;)V
  */
-JNIEXPORT void JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_setLogger__ILcom_markusjx_cppjslib_interfaces_LoggingFunction_2
-  (JNIEnv *, jclass, jint, jobject);
+JNIEXPORT void
+JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_setLogger__ILcom_markusjx_cppjslib_interfaces_LoggingFunction_2
+        (JNIEnv *, jclass, jint, jobject);
 
 /*
  * Class:     com_markusjx_cppjslib_nt_CppJsLibNative
  * Method:    setError
  * Signature: (ILcom/markusjx/cppjslib/interfaces/LoggingFunction;)V
  */
-JNIEXPORT void JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_setError__ILcom_markusjx_cppjslib_interfaces_LoggingFunction_2
-  (JNIEnv *, jclass, jint, jobject);
+JNIEXPORT void
+JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_setError__ILcom_markusjx_cppjslib_interfaces_LoggingFunction_2
+        (JNIEnv *, jclass, jint, jobject);
 
 /*
  * Class:     com_markusjx_cppjslib_nt_CppJsLibNative
  * Method:    setLogger
  * Signature: (Lcom/markusjx/cppjslib/interfaces/LoggingFunction;)V
  */
-JNIEXPORT void JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_setLogger__Lcom_markusjx_cppjslib_interfaces_LoggingFunction_2
-  (JNIEnv *, jclass, jobject);
+JNIEXPORT void
+JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_setLogger__Lcom_markusjx_cppjslib_interfaces_LoggingFunction_2
+        (JNIEnv *, jclass, jobject);
 
 /*
  * Class:     com_markusjx_cppjslib_nt_CppJsLibNative
  * Method:    setError
  * Signature: (Lcom/markusjx/cppjslib/interfaces/LoggingFunction;)V
  */
-JNIEXPORT void JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_setError__Lcom_markusjx_cppjslib_interfaces_LoggingFunction_2
-  (JNIEnv *, jclass, jobject);
+JNIEXPORT void
+JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_setError__Lcom_markusjx_cppjslib_interfaces_LoggingFunction_2
+        (JNIEnv *, jclass, jobject);
 
 /*
  * Class:     com_markusjx_cppjslib_nt_CppJsLibNative
@@ -93,7 +98,7 @@ JNIEXPORT void JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_setError__Lc
  * Signature: (ILcom/markusjx/cppjslib/interfaces/Handler;)V
  */
 JNIEXPORT void JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_setWebSocketOpenHandler
-  (JNIEnv *, jclass, jint, jobject);
+        (JNIEnv *, jclass, jint, jobject);
 
 /*
  * Class:     com_markusjx_cppjslib_nt_CppJsLibNative
@@ -101,7 +106,7 @@ JNIEXPORT void JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_setWebSocket
  * Signature: (ILcom/markusjx/cppjslib/interfaces/Handler;)V
  */
 JNIEXPORT void JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_setWebSocketCloseHandler
-  (JNIEnv *, jclass, jint, jobject);
+        (JNIEnv *, jclass, jint, jobject);
 
 /*
  * Class:     com_markusjx_cppjslib_nt_CppJsLibNative
@@ -109,15 +114,23 @@ JNIEXPORT void JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_setWebSocket
  * Signature: (IIILjava/lang/String;Z)Z
  */
 JNIEXPORT jboolean JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_start
-  (JNIEnv *, jclass, jint, jint, jint, jstring, jboolean);
+        (JNIEnv *, jclass, jint, jint, jint, jstring, jboolean);
 
 /*
  * Class:     com_markusjx_cppjslib_nt_CppJsLibNative
  * Method:    startNoWeb
- * Signature: (IIZ)Z
+ * Signature: (IILjava/lang/String;Z)Z
  */
 JNIEXPORT jboolean JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_startNoWeb
-  (JNIEnv *, jclass, jint, jint, jboolean);
+        (JNIEnv *, jclass, jint, jint, jstring, jboolean);
+
+/*
+ * Class:     com_markusjx_cppjslib_nt_CppJsLibNative
+ * Method:    startNoWebSocket
+ * Signature: (IILjava/lang/String;Z)Z
+ */
+JNIEXPORT jboolean JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_startNoWebSocket
+        (JNIEnv *, jclass, jint, jint, jstring, jboolean);
 
 /*
  * Class:     com_markusjx_cppjslib_nt_CppJsLibNative
@@ -125,7 +138,7 @@ JNIEXPORT jboolean JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_startNoW
  * Signature: (ILjava/lang/String;Ljava/lang/String;)V
  */
 JNIEXPORT void JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_setMountPoint
-  (JNIEnv *, jclass, jint, jstring, jstring);
+        (JNIEnv *, jclass, jint, jstring, jstring);
 
 /*
  * Class:     com_markusjx_cppjslib_nt_CppJsLibNative
@@ -133,7 +146,7 @@ JNIEXPORT void JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_setMountPoin
  * Signature: (ILjava/lang/String;)V
  */
 JNIEXPORT void JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_removeMountPoint
-  (JNIEnv *, jclass, jint, jstring);
+        (JNIEnv *, jclass, jint, jstring);
 
 /*
  * Class:     com_markusjx_cppjslib_nt_CppJsLibNative
@@ -141,7 +154,7 @@ JNIEXPORT void JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_removeMountP
  * Signature: (IZI)Z
  */
 JNIEXPORT jboolean JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_stop
-  (JNIEnv *, jclass, jint, jboolean, jint);
+        (JNIEnv *, jclass, jint, jboolean, jint);
 
 /*
  * Class:     com_markusjx_cppjslib_nt_CppJsLibNative
@@ -149,7 +162,7 @@ JNIEXPORT jboolean JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_stop
  * Signature: (ILcom/markusjx/cppjslib/interfaces/CExposedFunc;Ljava/lang/String;Ljava/lang/String;[Ljava/lang/String;)V
  */
 JNIEXPORT void JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_exposeFunction
-  (JNIEnv *, jclass, jint, jobject, jstring, jstring, jobjectArray);
+        (JNIEnv *, jclass, jint, jobject, jstring, jstring, jobjectArray);
 
 /*
  * Class:     com_markusjx_cppjslib_nt_CppJsLibNative
@@ -157,7 +170,7 @@ JNIEXPORT void JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_exposeFuncti
  * Signature: (ILcom/markusjx/cppjslib/interfaces/CExposedVoidFunc;Ljava/lang/String;[Ljava/lang/String;)V
  */
 JNIEXPORT void JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_exposeVoidFunction
-  (JNIEnv *, jclass, jint, jobject, jstring, jobjectArray);
+        (JNIEnv *, jclass, jint, jobject, jstring, jobjectArray);
 
 /*
  * Class:     com_markusjx_cppjslib_nt_CppJsLibNative
@@ -165,7 +178,7 @@ JNIEXPORT void JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_exposeVoidFu
  * Signature: (ILjava/lang/String;Ljava/lang/String;[Ljava/lang/String;I)I
  */
 JNIEXPORT jint JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_importFunction
-  (JNIEnv *, jclass, jint, jstring, jstring, jobjectArray, jint);
+        (JNIEnv *, jclass, jint, jstring, jstring, jobjectArray, jint);
 
 /*
  * Class:     com_markusjx_cppjslib_nt_CppJsLibNative
@@ -173,7 +186,7 @@ JNIEXPORT jint JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_importFuncti
  * Signature: (II[Ljava/lang/String;)[Ljava/lang/String;
  */
 JNIEXPORT jobjectArray JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_callJSFunction
-  (JNIEnv *, jclass, jint, jint, jobjectArray);
+        (JNIEnv *, jclass, jint, jint, jobjectArray);
 
 /*
  * Class:     com_markusjx_cppjslib_nt_CppJsLibNative
@@ -181,7 +194,7 @@ JNIEXPORT jobjectArray JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_call
  * Signature: (II[Ljava/lang/String;)V
  */
 JNIEXPORT void JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_callVoidJsFunction
-  (JNIEnv *, jclass, jint, jint, jobjectArray);
+        (JNIEnv *, jclass, jint, jint, jobjectArray);
 
 /*
  * Class:     com_markusjx_cppjslib_nt_CppJsLibNative
@@ -189,7 +202,7 @@ JNIEXPORT void JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_callVoidJsFu
  * Signature: ([Ljava/lang/String;)Ljava/lang/String;
  */
 JNIEXPORT jstring JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_stringArrayToJSON
-  (JNIEnv *, jclass, jobjectArray);
+        (JNIEnv *, jclass, jobjectArray);
 
 /*
  * Class:     com_markusjx_cppjslib_nt_CppJsLibNative
@@ -197,7 +210,7 @@ JNIEXPORT jstring JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_stringArr
  * Signature: (Ljava/lang/String;)[Ljava/lang/String;
  */
 JNIEXPORT jobjectArray JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_createStringArrayFromJSON
-  (JNIEnv *, jclass, jstring);
+        (JNIEnv *, jclass, jstring);
 
 /*
  * Class:     com_markusjx_cppjslib_nt_CppJsLibNative
@@ -205,7 +218,7 @@ JNIEXPORT jobjectArray JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_crea
  * Signature: (I)V
  */
 JNIEXPORT void JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_deleteWebGUI
-  (JNIEnv *, jclass, jint);
+        (JNIEnv *, jclass, jint);
 
 /*
  * Class:     com_markusjx_cppjslib_nt_CppJsLibNative
@@ -213,7 +226,7 @@ JNIEXPORT void JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_deleteWebGUI
  * Signature: ()Z
  */
 JNIEXPORT jboolean JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_hasWebsocketSupport
-  (JNIEnv *, jclass);
+        (JNIEnv *, jclass);
 
 /*
  * Class:     com_markusjx_cppjslib_nt_CppJsLibNative
@@ -221,7 +234,7 @@ JNIEXPORT jboolean JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_hasWebso
  * Signature: ()Z
  */
 JNIEXPORT jboolean JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_hasHttpsSupport
-  (JNIEnv *, jclass);
+        (JNIEnv *, jclass);
 
 /*
  * Class:     com_markusjx_cppjslib_nt_CppJsLibNative
@@ -229,7 +242,7 @@ JNIEXPORT jboolean JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_hasHttps
  * Signature: ()Z
  */
 JNIEXPORT jboolean JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_ok
-  (JNIEnv *, jclass);
+        (JNIEnv *, jclass);
 
 /*
  * Class:     com_markusjx_cppjslib_nt_CppJsLibNative
@@ -237,7 +250,7 @@ JNIEXPORT jboolean JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_ok
  * Signature: ()Ljava/lang/String;
  */
 JNIEXPORT jstring JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_getLastError
-  (JNIEnv *, jclass);
+        (JNIEnv *, jclass);
 
 /*
  * Class:     com_markusjx_cppjslib_nt_CppJsLibNative
@@ -245,7 +258,7 @@ JNIEXPORT jstring JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_getLastEr
  * Signature: ()V
  */
 JNIEXPORT void JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_resetLastError
-  (JNIEnv *, jclass);
+        (JNIEnv *, jclass);
 
 #ifdef __cplusplus
 }

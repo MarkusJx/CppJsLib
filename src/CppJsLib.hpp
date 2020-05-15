@@ -182,9 +182,22 @@ namespace CppJsLib {
      * Utility namespace. Containing dependencies for WebGUI
      */
     namespace util {
+        /**
+         * Logging namespace for all functions in the header
+         */
         namespace logging {
+            /**
+             * Log something
+             *
+             * @param message the message to log
+             */
             CPPJSLIB_EXPORT void log(const std::string &message);
 
+            /**
+             * Log an error
+             *
+             * @param message the error message to log
+             */
             CPPJSLIB_EXPORT void err(const std::string &message);
         }
 
@@ -307,7 +320,7 @@ namespace CppJsLib {
              * @return the resulting JSON string
              */
             CPPJSLIB_MAYBE_UNUSED static std::string toJsonString(std::vector<T> toConvert) {
-                std::vector<std::string> stringVector(toConvert.size());
+                std::vector<std::string> stringVector;
                 for (T val : toConvert) {
                     stringVector.push_back(TypeConverter<T>::toString(val));
                 }
@@ -1097,10 +1110,27 @@ namespace CppJsLib {
             }
         };
 
+        /**
+         * Deallocate a buffer. Equals to <code>free()</code>.
+         * Intended to be used by <code>CppJsLib::setLogger()</code> and <code>CppJsLib::setError()</code>.
+         * Just here to prevent access violations when a shared library is used.
+         *
+         * @param data the buffer to free
+         */
         CPPJSLIB_EXPORT void deallocateMessage(const char *data);
 
+        /**
+         * Set the logging function. This is intended to be called by <code>CppJsLib::setLogger()</code>
+         *
+         * @param loggingFunction the function to be called to log stuff
+         */
         CPPJSLIB_EXPORT void setLogger(const std::function<void(const char *)> &loggingFunction);
 
+        /**
+         * Set the error function. This is intended to be called by <code>CppJsLib::setError()</code>
+         *
+         * @param errorFunction the function to be called on error
+         */
         CPPJSLIB_EXPORT void setError(const std::function<void(const char *)> &errorFunction);
     }
 
@@ -1360,7 +1390,28 @@ namespace CppJsLib {
 #endif //CPPJSLIB_BUILD_JNI_DLL
 
         /**
-         * @warning Do not use this. Use the export macro instead
+         * Export C function to JavaScript. Not intended to be called directly.
+         * The expose macro should be used instead. Like this:
+         *
+         * <code>
+         * void funcToExpose(int i, std::string str) {<br>&emsp;
+         *      // Some code...<br>
+         * }<br>
+         *
+         * int main() {<br>&emsp;
+         *      auto ptr = CppJsLib::WebGUI::create_unique("web");<br>&emsp;
+         *      ptr->expose(funcToExpose);
+         *      <br><br>&emsp;
+         *      ptr->start(80, 81);<br>
+         * }
+         * </code>
+         *
+         * Must be called before <code>CppJsLib::WebGUI::start</code> is called
+         *
+         * @tparam Args the function arguments
+         * @param f the function to expose to js
+         * @param name the function name
+         * @warning Do not use this. Use the expose macro instead
          */
         template<class...Args>
         inline void _exportFunction(void(*f)(Args...), std::string name) {
@@ -1390,6 +1441,28 @@ namespace CppJsLib {
         }
 
         /**
+         * Export C function to JavaScript. Not intended to be called directly.
+         * The expose macro should be used instead. Like this:
+         *
+         * <code>
+         * int funcToExpose(int i, std::string str) {<br>&emsp;
+         *      // Some code...<br>
+         * }<br>
+         *
+         * int main() {<br>&emsp;
+         *      auto ptr = CppJsLib::WebGUI::create_unique("web");<br>&emsp;
+         *      ptr->expose(funcToExpose);
+         *      <br><br>&emsp;
+         *      ptr->start(80, 81);<br>
+         * }
+         * </code>
+         *
+         * Must be called before <code>CppJsLib::WebGUI::start</code> is called
+         *
+         * @tparam R the function return type
+         * @tparam Args the function arguments
+         * @param f the function to expose to js
+         * @param name the function name
          * @warning Do not use this. Use the export macro instead
          */
         template<class R, class...Args>
@@ -1419,6 +1492,20 @@ namespace CppJsLib {
         }
 
         /**
+         * Import a JavaScript function. Not intended to be called directly.
+         * The import macro should be used instead. Like this:
+         *
+         * <code>
+         * std::function<void(int, std::string, bool)> js_function;<br><br>
+         * auto ptr = CppJsLib::WebGUI::create_unique("web");<br>
+         * ptr->import(js_function);
+         * </code>
+         *
+         * Must be called before <code>CppJsLib::WebGUI::start</code> is called
+         *
+         * @tparam Args the function arguments
+         * @param function the function to import
+         * @param fName the function name. Must match the js equivalent
          * @warning Do not use this. Use the import macro instead
          */
         template<class...Args>
@@ -1447,12 +1534,28 @@ namespace CppJsLib {
          * @warning Do not use this
          */
         CPPJSLIB_EXPORT void
-        call_jsFn(std::vector<std::string> *argV, const char *funcName,
-                  [[maybe_unused]] [[maybe_unused]] [[maybe_unused]] [[maybe_unused]] [[maybe_unused]] [[maybe_unused]] [[maybe_unused]] [[maybe_unused]] std::vector<std::string> *results = nullptr, int wait = -1);
+        call_jsFn(std::vector<std::string> *argV, const char *funcName, std::vector<std::string> *results = nullptr,
+                  int wait = -1);
 
 #ifdef CPPJSLIB_ENABLE_WEBSOCKET
 
         /**
+         * Import a JavaScript function. Not intended to be called directly.
+         * The import macro should be used instead. Like this:
+         *
+         * <code>
+         * std::function<std::vector<int>(int, std::string, bool)> js_function;<br><br>
+         * auto ptr = CppJsLib::WebGUI::create_unique("web");<br>
+         * ptr->import(js_function);
+         * </code>
+         *
+         * Must be called before <code>CppJsLib::WebGUI::start</code> is called
+         *
+         * @tparam R the function return type
+         * @tparam Args the function arguments
+         * @param function the function to import
+         * @param fName the function name. Must match the js equivalent
+         * @param waitS a timeout for the responses to come in
          * @warning Do not use this. Use the import macro instead
          */
         template<class R, class...Args>
@@ -1502,7 +1605,16 @@ namespace CppJsLib {
         CPPJSLIB_EXPORT bool startNoWeb(int port, const std::string &host = "localhost", bool block = true);
 
         /**
-         * @warning Do not call this. Websocket support is enabled, therefore a port for the websocket server must be specified
+         * Start without a websocket server (only the web server).
+         * JavaScript functions with callbacks will be disabled.
+         *
+         * When built with websocket support, this function equals to <code>CppJsLib::WebGUI::startNoWebSocket</code>.
+         *
+         * @param host the host to listen on
+         * @param port the port to listen on
+         * @param block if this is a blocking call
+         * @note this call will sleep for 1-2 seconds, to see if all servers started successfully
+         * @return if the operation was successful
          */
         CPPJSLIB_EXPORT bool start(int port, const std::string &host = "localhost", bool block = true);
 
@@ -1520,7 +1632,16 @@ namespace CppJsLib {
         CPPJSLIB_EXPORT bool start(int port, const std::string &host = "localhost", bool block = true);
 
         /**
-         * @warning Do not use this. Use the import macro instead
+         * Import a JavaScript function. Not intended to be called. It just exists to prevent compilation errors.
+         *
+         * @tparam R the function return type
+         * @tparam Args the function arguments
+         * @param function the function to import
+         * @param fName the function name. Must match the js equivalent
+         * @param waitS a timeout for the responses to come in
+         *
+         * @warning this function is not intended to be called since websocket support is disabled, therefore non-void
+         *          js functions are not supported.
          */
         template<class R, class...Args>
         inline void

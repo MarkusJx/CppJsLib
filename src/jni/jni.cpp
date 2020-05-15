@@ -257,7 +257,7 @@ std::string getTypeName(const char *jType) {
 }
 
 void
-CppJsLib::WebGUI::exportJavaFunction(const std::string &name, const std::string& returnType, std::string *argTypes,
+CppJsLib::WebGUI::exportJavaFunction(const std::string &name, const std::string &returnType, std::string *argTypes,
                                      int numArgs, const std::function<std::string(vector<string>)> &fn) {
     std::string fnString = returnType;
     fnString.append(" ").append(name).append("(");
@@ -616,13 +616,14 @@ JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_start(JNIEnv *env, jclass, 
     SET_JVM();
     WebGUIContainer *c = findContainer(id);
     if (c) {
-        auto _host = env->GetStringUTFChars(host, &isFalse);
+        auto hostChars = env->GetStringUTFChars(host, &isFalse);
+        std::string hostStr(hostChars);
+        env->ReleaseStringUTFChars(host, hostChars);
 #ifdef CPPJSLIB_ENABLE_WEBSOCKET
-        bool res = c->webGui->start(port, websocketPort, _host, block);
+        bool res = c->webGui->start(port, websocketPort, hostStr, block);
 #else
-        bool res = c->webGui->start(port, _host, block);
+        bool res = c->webGui->start(port, hostStr, block);
 #endif
-        env->ReleaseStringUTFChars(host, _host);
         return res;
     } else {
         return false;
@@ -635,13 +636,17 @@ JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_start(JNIEnv *env, jclass, 
  * Signature: (IIZ)Z
  */
 JNIEXPORT jboolean
-JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_startNoWeb(JNIEnv *env, jclass, jint id, jint port,
+JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_startNoWeb(JNIEnv *env, jclass, jint id, jint port, jstring host,
                                                                 jboolean block) {
     SET_JVM();
 #ifdef CPPJSLIB_ENABLE_WEBSOCKET
     WebGUIContainer *c = findContainer(id);
     if (c) {
-        return c->webGui->startNoWeb(port, block);
+        auto hostChars = env->GetStringUTFChars(host, &isFalse);
+        std::string hostStr(hostChars);
+        env->ReleaseStringUTFChars(host, hostChars);
+
+        return c->webGui->startNoWeb(port, hostStr, block);
     } else {
         return false;
     }
@@ -649,6 +654,27 @@ JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_startNoWeb(JNIEnv *env, jcl
     errorF("startNoWeb is not defined since CppJsLib was built without websocket protocol support");
     return false;
 #endif
+}
+
+/*
+ * Class:     com_markusjx_cppjslib_nt_CppJsLibNative
+ * Method:    startNoWebSocket
+ * Signature: (IILjava/lang/String;Z)Z
+ */
+JNIEXPORT jboolean
+JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_startNoWebSocket(JNIEnv *env, jclass, jint id, jint port,
+                                                                      jstring host, jboolean block) {
+    SET_JVM();
+    WebGUIContainer *c = findContainer(id);
+    if (c) {
+        auto hostChars = env->GetStringUTFChars(host, &isFalse);
+        std::string hostStr(hostChars);
+        env->ReleaseStringUTFChars(host, hostChars);
+
+        return c->webGui->startNoWebSocket(port, hostStr, block);
+    } else {
+        return false;
+    }
 }
 
 /*
@@ -733,7 +759,7 @@ JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_exposeFunction(JNIEnv *env,
         jobject fn = env->NewGlobalRef(func);
         c->jv.push_back(fn);
 
-        c->webGui->exportJavaFunction(_name, rt, args, len, [rt, fn](const vector<string>& args) {
+        c->webGui->exportJavaFunction(_name, rt, args, len, [rt, fn](const vector<string> &args) {
             JNIEnv *env;
             errno_t err = getEnv(env);
             if (err) {
