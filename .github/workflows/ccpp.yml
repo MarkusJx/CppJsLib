@@ -111,7 +111,7 @@ jobs:
         name: CppJsLibMacOsTest
         path: test
   
-  build-ubuntu-release:
+  build-ubuntu-all:
 
     runs-on: ubuntu-latest
     
@@ -123,7 +123,7 @@ jobs:
       run: sudo apt-get install libboost1.65-all-dev -y
     - name: cmake release
       run: cmake -DCMAKE_BUILD_TYPE=Release -DENABLE_HTTPS=TRUE -DENABLE_WEBSOCKET=TRUE -DBUILDDLL=TRUE .
-    - name: build
+    - name: build release
       run: cmake --build . 
     - name: Upload release object
       uses: actions/upload-artifact@v1
@@ -140,7 +140,7 @@ jobs:
         name: CppJsLibDebugLinux
         path: src/libCppJsLib.so
 
-  build-windows-release:
+  build-windows-all:
 
     runs-on: windows-latest
 
@@ -194,7 +194,7 @@ jobs:
           name: CppJsLibDebugWin
           path: src/Debug
 
-  build-macos-release:
+  build-macos-all:
 
     runs-on: macos-latest
 
@@ -217,7 +217,7 @@ jobs:
         path: src/libCppJsLib.dylib
     - name: cmake debug
       run: cmake -DCMAKE_BUILD_TYPE=Debug -DENABLE_HTTPS=TRUE -DENABLE_WEBSOCKET=TRUE -DBUILDDLL=TRUE -DOPENSSL_ROOT_DIR="/usr/local/opt/openssl@1.1" .
-    - name: build
+    - name: build debug
       run: cmake --build .
     - name: Upload debug object
       uses: actions/upload-artifact@v1
