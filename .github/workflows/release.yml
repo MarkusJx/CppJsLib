@@ -27,7 +27,7 @@ jobs:
     - name: zip files
       uses: papeloto/action-zip@v1
       with:
-        files: src/libCppJsLib.so src/CppJsLib.hpp tmp
+        files: src/libCppJsLib.so src/CppJsLib.hpp src/CppJsLibAll.hpp tmp
         dest: rel.zip
     
     # Compile jni lib and jar
@@ -212,7 +212,7 @@ jobs:
       - name: zip files
         uses: papeloto/action-zip@v1
         with:
-          files: src/Release/CppJsLib.dll src/Release/CppJsLib.lib src/CppJsLib.hpp tmp
+          files: src/Release/CppJsLib.dll src/Release/CppJsLib.lib src/CppJsLib.hpp src/CppJsLibAll.hpp tmp
           dest: win-amd64.zip
       - name: Upload artifact
         uses: actions/upload-artifact@v1.0.0
@@ -257,7 +257,7 @@ jobs:
     - name: zip files
       uses: papeloto/action-zip@v1
       with:
-        files: src/libCppJsLib.dylib src/CppJsLib.hpp tmp
+        files: src/libCppJsLib.dylib src/CppJsLib.hpp src/CppJsLibAll.hpp tmp
         dest: macos-amd64.zip
     - name: Upload artifact
       uses: actions/upload-artifact@v1.0.0
