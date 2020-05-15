@@ -82,9 +82,10 @@ int main() {
 #endif
     ASSERT_MEM_OK();
 
-#ifdef TEST_ENABLE_WEBSOCKET
     wGui->import(fn);
     wGui->import(func);
+
+#ifdef TEST_ENABLE_WEBSOCKET
     wGui->import(tf, 0);
     wGui->import(jsFunc);
 #endif
@@ -103,7 +104,7 @@ int main() {
 #ifdef TEST_GHBUILD
     bool block = false;
 #else
-    bool block = false;
+    bool block = true;
 #endif
 
     ASSERT_MEM_OK();
@@ -123,6 +124,7 @@ int main() {
 
     std::cout << "Starting web server..." << std::endl;
     wGui->start(8028, TEST_WS_PORT CppJsLib::localhost, block);
+
     std::cout << "Sleep" << std::endl;
     std::this_thread::sleep_for(std::chrono::seconds(20));
 

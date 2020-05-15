@@ -44,7 +44,7 @@ CPPJSLIB_EXPORT void WebGUI::deleteInstance(WebGUI *webGui) {
 
 WebGUI::WebGUI(const std::string &base_dir)
         : initMap(), voidPtrVector(), strVecVector(), websocketTargets(), jsFnCallbacks(), sseVec(), sseEventMap()
-          CPPJSLIB_DISABLE_SSL_MACRO {
+CPPJSLIB_DISABLE_SSL_MACRO {
     std::shared_ptr<httplib::Server> svr = std::make_shared<httplib::Server>();
     server = std::static_pointer_cast<void>(svr);
 
@@ -309,7 +309,7 @@ CPPJSLIB_EXPORT bool WebGUI::startNoWeb(int port, const std::string &host, bool 
 }
 
 CPPJSLIB_EXPORT bool WebGUI::startNoWebSocket(int port, const std::string &host, bool block) {
-    log("Starting servers");
+    log("Starting without websocket server");
 
     if (port < 0) {
         err("Cannot start servers with a negative port number");
@@ -404,9 +404,10 @@ CPPJSLIB_EXPORT bool WebGUI::startNoWebSocket(int port, const std::string &host,
     for (const std::string &s : sseVec) {
         auto *ed = new EventDispatcher();
 
-        auto handler = [&](const httplib::Request &, httplib::Response &res) {
-            res.set_header("text/plain", "text/event-stream");
-            res.set_chunked_content_provider([&](uint64_t, httplib::DataSink &sink) {
+        auto sseHandler = [&, ed](const httplib::Request &, httplib::Response &res) {
+            log("Client connected to server sent event");
+            res.set_header("Content-Type", "text/event-stream");
+            res.set_chunked_content_provider([ed](uint64_t, httplib::DataSink &sink) {
                 ed->wait_event(&sink);
                 return true;
             });
@@ -416,14 +417,15 @@ CPPJSLIB_EXPORT bool WebGUI::startNoWebSocket(int port, const std::string &host,
 
         std::string pattern = "/ev_";
         pattern.append(s);
+        log("Adding SSE listen pattern: " + pattern);
 #   ifdef CPPJSLIB_ENABLE_HTTPS
         if (ssl) {
-            std::static_pointer_cast<httplib::SSLServer>(server)->Get(pattern.c_str(), handler);
+            std::static_pointer_cast<httplib::SSLServer>(server)->Get(pattern.c_str(), sseHandler);
         } else {
-            std::static_pointer_cast<httplib::Server>(server)->Get(pattern.c_str(), handler);
+            std::static_pointer_cast<httplib::Server>(server)->Get(pattern.c_str(), sseHandler);
         }
 #   else
-        std::static_pointer_cast<httplib::Server>(server)->Get(pattern.c_str(), handler);
+        std::static_pointer_cast<httplib::Server>(server)->Get(pattern.c_str(), sseHandler);
 #   endif //CPPJSLIB_ENABLE_HTTPS
     }
 
@@ -629,9 +631,10 @@ CPPJSLIB_MAYBE_UNUSED CPPJSLIB_EXPORT bool WebGUI::start(int port, const std::st
     for (const std::string &s : sseVec) {
         auto *ed = new EventDispatcher();
 
-        auto handler = [&](const httplib::Request &, httplib::Response &res) {
-            res.set_header("text/plain", "text/event-stream");
-            res.set_chunked_content_provider([&](uint64_t, httplib::DataSink &sink) {
+        auto sseHandler = [&, ed](const httplib::Request &, httplib::Response &res) {
+            log("Client connected to server sent event");
+            res.set_header("Content-Type", "text/event-stream");
+            res.set_chunked_content_provider([ed](uint64_t, httplib::DataSink &sink) {
                 ed->wait_event(&sink);
                 return true;
             });
@@ -641,14 +644,15 @@ CPPJSLIB_MAYBE_UNUSED CPPJSLIB_EXPORT bool WebGUI::start(int port, const std::st
 
         std::string pattern = "/ev_";
         pattern.append(s);
+        log("Adding SSE listen pattern: " + pattern);
 #   ifdef CPPJSLIB_ENABLE_HTTPS
         if (ssl) {
-            std::static_pointer_cast<httplib::SSLServer>(server)->Get(pattern.c_str(), handler);
+            std::static_pointer_cast<httplib::SSLServer>(server)->Get(pattern.c_str(), sseHandler);
         } else {
-            std::static_pointer_cast<httplib::Server>(server)->Get(pattern.c_str(), handler);
+            std::static_pointer_cast<httplib::Server>(server)->Get(pattern.c_str(), sseHandler);
         }
 #   else
-        std::static_pointer_cast<httplib::Server>(server)->Get(pattern.c_str(), handler);
+        std::static_pointer_cast<httplib::Server>(server)->Get(pattern.c_str(), sseHandler);
 #   endif //CPPJSLIB_ENABLE_HTTPS
     }
 
@@ -856,7 +860,8 @@ CPPJSLIB_EXPORT void WebGUI::setWebSocketCloseHandler(const std::function<void()
 #endif //CPPJSLIB_ENABLE_WEBSOCKET
 
 CPPJSLIB_EXPORT void WebGUI::call_jsFn(std::vector<std::string> *argV, const char *funcName,
-                                       std::vector<std::string> *results, int wait) {
+                                       CPPJSLIB_MAYBE_UNUSED std::vector<std::string> *results,
+                                       CPPJSLIB_MAYBE_UNUSED int wait) {
 #ifdef CPPJSLIB_ENABLE_WEBSOCKET
     if (no_websocket) {
         if (results) {
@@ -874,13 +879,14 @@ CPPJSLIB_EXPORT void WebGUI::call_jsFn(std::vector<std::string> *argV, const cha
         }
 
         std::string str = j.dump();
+        log("Calling js function via server sent events: " + str);
+
         auto it = sseEventMap.find(std::string(funcName));
         if (it != sseEventMap.end()) {
             auto ed = (EventDispatcher *) it->second;
             ed->send_event(str);
         }
     } else {
-        log("Calling js function: " + std::string(funcName));
         // Dump the list of arguments into a json string
         nlohmann::json j;
         if (!argV->empty()) {
@@ -906,6 +912,7 @@ CPPJSLIB_EXPORT void WebGUI::call_jsFn(std::vector<std::string> *argV, const cha
         }
 
         std::string str = j.dump();
+        log("Calling js function via websocket: " + str);
 
         // Send request to all clients
         log("Sending request");
@@ -969,6 +976,8 @@ CPPJSLIB_EXPORT void WebGUI::call_jsFn(std::vector<std::string> *argV, const cha
     }
 
     std::string str = j.dump();
+    log("Calling js function via server sent events: " + str);
+
     auto it = sseEventMap.find(std::string(funcName));
     if (it != sseEventMap.end()) {
         auto ed = (EventDispatcher *) it->second;
@@ -1068,11 +1077,9 @@ CPPJSLIB_EXPORT bool WebGUI::isRunning() {
 #endif //CPPJSLIB_ENABLE_WEBSOCKET
 }
 
-#ifndef CPPJSLIB_ENABLE_WEBSOCKET
 CPPJSLIB_EXPORT void WebGUI::pushToSseVec(const std::string &s) {
     sseVec.push_back(s);
 }
-#endif //CPPJSLIB_ENABLE_WEBSOCKET
 
 CPPJSLIB_EXPORT bool WebGUI::isWebsocketOnly() const {
     return websocket_only;

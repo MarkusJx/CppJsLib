@@ -17,7 +17,7 @@ const cppJsLib = {
      * @type WebSocket
      */
     'webSocket': null,
-    'onLoad': function(fn) {
+    'onLoad': function (fn) {
         if (typeof fn !== 'function') {
             console.error("Function added to onLoad is not a function");
             return;
@@ -34,9 +34,9 @@ const cppJsLib = {
      *
      * @returns {Promise<Boolean>} if the server is reachable
      */
-    'serverReachable': function() {
+    'serverReachable': function () {
         // IE vs. standard XHR creation
-        let x = new(window.ActiveXObject || XMLHttpRequest)("Microsoft.XMLHTTP"),
+        let x = new (window.ActiveXObject || XMLHttpRequest)("Microsoft.XMLHTTP"),
             s;
         let port = "";
         if (location.port.length > 0) {
@@ -68,7 +68,7 @@ const cppJsLib = {
             }
         });
     },
-    'sendRequest': function(request, callback = false, body = "", type = "POST") {
+    'sendRequest': function (request, callback = false, body = "", type = "POST") {
         if (this.webSocket_only) {
             let req = {};
             req["header"] = request;
@@ -98,11 +98,11 @@ const cppJsLib = {
                     return;
                 }
 
-                let xhttp = new(window.ActiveXObject || XMLHttpRequest)("Microsoft.XMLHTTP");
+                let xhttp = new (window.ActiveXObject || XMLHttpRequest)("Microsoft.XMLHTTP");
                 try {
                     xhttp.open(type, request, true);
                     if (callback) {
-                        xhttp.onreadystatechange = function() {
+                        xhttp.onreadystatechange = function () {
                             if (this.readyState === 4 && this.status === 200) {
                                 callback(xhttp.responseText);
                             }
@@ -118,15 +118,15 @@ const cppJsLib = {
     },
     /**
      * Init with a websocket only connection (no web server)
-     * 
+     *
      * @param {String} host the host to connect to
      * @param {Number} port the websocket port
      * @param {Boolean} tls if to use TLS
      */
-    'initWebsocketOnly': function(host, port, tls = false) {
+    'initWebsocketOnly': function (host, port, tls = false) {
         this.init(true, tls, host, port);
     },
-    'onClose': function() {
+    'onClose': function () {
         if (!this.disconnectTimeoutRunning) {
             this.disconnectTimeoutRunning = true;
             this.connected = false;
@@ -137,7 +137,7 @@ const cppJsLib = {
             }, 5000);
         }
     },
-    'init': function(websocket_only = false, tls = false, host = "", port = 0) {
+    'init': function (websocket_only = false, tls = false, host = "", port = 0) {
         this.webSocket_only = websocket_only;
         this.tls = tls;
         this.host = host;
@@ -318,8 +318,17 @@ const cppJsLib = {
                     }
                 } else {
                     for (let key in this.exposedFunctions) {
-                        let evtSource = new EventSource("/ev_" + key);
+                        const evtSource = new EventSource("ev_" + key);
+                        evtSource.onopen = () => {
+                            console.debug("Listening for Server Sent Event: ev_" + key);
+                        }
+
+                        evtSource.onclose = () => {
+                            console.debug("SSE connection closed")
+                        }
+
                         evtSource.onmessage = (event) => {
+                            console.debug("Received sse event message: " + event.data);
                             let data = JSON.parse(event.data);
                             let key = Object.keys(data)[0];
                             if (this.exposedFunctions.hasOwnProperty(key)) {
@@ -339,9 +348,9 @@ const cppJsLib = {
             }, "", "GET");
         }
     },
-    'addFn': function(returnType, name, args) {
+    'addFn': function (returnType, name, args) {
         console.debug("Initializing function " + name + " with " + args.length + " argument(s): " + args);
-        this[name] = function() {
+        this[name] = function () {
             if (args.length !== arguments.length) {
                 console.error("Argument count does not match!");
                 return;
@@ -350,12 +359,12 @@ const cppJsLib = {
             for (let i = 0; i < args.length; i++) {
                 if (!this.argMatches(arguments[i], args[i])) {
                     console.error("Arguments do not match!\n Expected: " + args[i] + " but got: " +
-                        ((Array.isArray(arguments[i]) && arguments[i].length > 0) ? typeof(arguments[i][0]) + "[]" : typeof(arguments[i])));
+                        ((Array.isArray(arguments[i]) && arguments[i].length > 0) ? typeof (arguments[i][0]) + "[]" : typeof (arguments[i])));
                     return;
                 }
             }
 
-            let obj = { args: arguments };
+            let obj = {args: arguments};
 
             if (returnType !== "void") {
                 return new Promise((resolve) => {
@@ -380,7 +389,7 @@ const cppJsLib = {
             }
         }
     },
-    'argMatches': function(arg, argString) {
+    'argMatches': function (arg, argString) {
         if (argString.endsWith("[]")) {
             if (Array.isArray(arg)) {
                 if (arg.length > 0) {
@@ -394,7 +403,7 @@ const cppJsLib = {
         }
 
         if (argString.startsWith("map<")) {
-            if (typeof(arg) === "object") {
+            if (typeof (arg) === "object") {
                 try {
                     argString = argString.replace("map<", "").replace(">", "").split(",");
                     if (Object.entries(arg).length > 0) {
@@ -413,20 +422,20 @@ const cppJsLib = {
 
         switch (argString) {
             case "int":
-                return typeof(arg) === "number";
+                return typeof (arg) === "number";
             case "bool":
-                return typeof(arg) === "boolean";
+                return typeof (arg) === "boolean";
             case "float":
-                return typeof(arg) === "number";
+                return typeof (arg) === "number";
             case "double":
-                return typeof(arg) === "number";
+                return typeof (arg) === "number";
             case "string":
-                return typeof(arg) === "string";
+                return typeof (arg) === "string";
             default:
                 return false;
         }
     },
-    'expose': function(toExpose) {
+    'expose': function (toExpose) {
         this.exposedFunctions[toExpose.name] = toExpose;
     }
 };

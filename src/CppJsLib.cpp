@@ -176,13 +176,9 @@ CPPJSLIB_EXPORT void CppJsLib::util::callJsFunc(WebGUI *wGui, std::vector<std::s
     wGui->call_jsFn(argV, funcName, results, wait);
 }
 
-#ifndef CPPJSLIB_ENABLE_WEBSOCKET
-
 CPPJSLIB_EXPORT void CppJsLib::util::pushToSseVector(WebGUI *webGui, const std::string &s) {
     webGui->pushToSseVec(s);
 }
-
-#endif //CPPJSLIB_ENABLE_WEBSOCKET
 
 CPPJSLIB_EXPORT void CppJsLib::util::setLogger(const std::function<void(const char *)> &f) {
     setLoggingF([f](const std::string &msg) {

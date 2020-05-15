@@ -250,10 +250,7 @@ namespace CppJsLib {
 
         CPPJSLIB_EXPORT void pushToVoidPtrVector(WebGUI *webGui, void *ptr);
 
-#ifndef CPPJSLIB_ENABLE_WEBSOCKET
         CPPJSLIB_EXPORT void pushToSseVector(WebGUI *webGui, const std::string &s);
-
-#endif
 
         template<class>
         struct CPPJSLIB_MAYBE_UNUSED TypeConverter;
@@ -439,7 +436,7 @@ namespace CppJsLib {
          * @param args the arguments to convert
          */
         template<class ...Args>
-        inline void ConvertToStringVector(std::vector<std::string> argV, Args...args) {
+        inline void ConvertToStringVector(std::vector<std::string> &argV, Args...args) {
             // Use volatile to disable optimization
             CPPJSLIB_MAYBE_UNUSED volatile auto x = {(argV.push_back(args), 0)...};
         }
@@ -500,9 +497,7 @@ namespace CppJsLib {
             }
 
             *toInit = tmp;
-#ifndef CPPJSLIB_ENABLE_WEBSOCKET
             pushToSseVector(_wGui, name);
-#endif //CPPJSLIB_ENABLE_WEBSOCKET
         }
 
 #ifdef CPPJSLIB_ENABLE_WEBSOCKET
@@ -1453,7 +1448,7 @@ namespace CppJsLib {
          */
         CPPJSLIB_EXPORT void
         call_jsFn(std::vector<std::string> *argV, const char *funcName,
-                  std::vector<std::string> *results = nullptr, int wait = -1);
+                  [[maybe_unused]] [[maybe_unused]] [[maybe_unused]] [[maybe_unused]] [[maybe_unused]] [[maybe_unused]] [[maybe_unused]] [[maybe_unused]] std::vector<std::string> *results = nullptr, int wait = -1);
 
 #ifdef CPPJSLIB_ENABLE_WEBSOCKET
 
@@ -1673,13 +1668,12 @@ namespace CppJsLib {
 #   endif //CPPJSLIB_ENABLE_HTTPS
         }
 
-#else
+#endif //CPPJSLIB_ENABLE_WEBSOCKET
+
         /**
          * @warning Do not use this function
          */
         CPPJSLIB_EXPORT void pushToSseVec(const std::string &s);
-
-#endif //CPPJSLIB_ENABLE_WEBSOCKET
 
 // Delete default destructor if the dll is used to prevent heap corruption
 #ifndef CPPJSLIB_STATIC_DEFINE
