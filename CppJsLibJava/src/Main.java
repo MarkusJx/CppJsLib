@@ -30,6 +30,8 @@ public class Main {
         // the return type and the argument types
         var f = gui.importFunction("f", -1, int.class, int.class);
 
+        f.invoke(0);
+
         // Start the servers with their ports on this machine, without blocking
         gui.start(8025, 8026, "localhost", false);
 

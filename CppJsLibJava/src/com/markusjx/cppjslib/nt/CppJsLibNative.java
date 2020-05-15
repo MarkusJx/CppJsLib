@@ -43,7 +43,9 @@ public final class CppJsLibNative {
 
     public static native boolean start(int id, int port, int websocketPort, String host, boolean block);
 
-    public static native boolean startNoWeb(int id, int port, boolean block);
+    public static native boolean startNoWeb(int id, int port, String host, boolean block);
+
+    public static native boolean startNoWebSocket(int id, int port, String host, boolean block);
 
     public static native void setMountPoint(int id, String mnt, String dir);
 

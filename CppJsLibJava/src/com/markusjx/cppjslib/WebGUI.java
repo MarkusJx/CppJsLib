@@ -60,7 +60,7 @@ import java.net.ServerSocket;
  *          }
  *      }
  * }</pre>
- *
+ * <p>
  * IMPORTANT: call {@link #close()} when finished with this object
  * <br>
  * <br>
@@ -69,7 +69,7 @@ import java.net.ServerSocket;
  * <br>
  * <br>
  * If the C++ library was built without websocket protocol support, following functions will throw an {@link OperationNotSupportedException}:
- * {@link #start(int, int, String)}, {@link #start(int, int, String, boolean)}, {@link #startNoWeb(int)}, {@link #startNoWeb(int, boolean)}, {@link #WebGUI(String, String, String, int)},
+ * {@link #start(int, int, String)}, {@link #start(int, int, String, boolean)}, {@link #startNoWeb(int, String)}, {@link #startNoWeb(int, String, boolean)}, {@link #WebGUI(String, String, String, int)},
  * {@link #setWebSocketOpenHandler(Handler)}, {@link #setWebSocketCloseHandler(Handler)}, {@link #importVoidFunction(String, Class[])}, {@link #importFunction(String, int, Class, Class[])}
  * <br>
  * <br>
@@ -104,7 +104,7 @@ public class WebGUI implements AutoCloseable {
 
     /**
      * Create a WebGUI instance without a base directory.
-     * May only be used to start without a http(s) server ({@link #startNoWeb(int)}, {@link #startNoWeb(int, boolean)})
+     * May only be used to start without a http(s) server ({@link #startNoWeb(int, String)}, {@link #startNoWeb(int, String, boolean)})
      *
      * @throws CppOutOfMemoryException if not enough memory is available
      */
@@ -449,11 +449,12 @@ public class WebGUI implements AutoCloseable {
      * This will throw an {@link OperationNotSupportedException} if the C++ library was built without websocket protocol support
      *
      * @param port the port to listen on
+     * @param host the host address
      * @return if the operation was successful. (Can only return false. Really. Blocks otherwise.)
      * @throws PortAlreadyInUseException if one of the requested ports is already in use
      */
-    public boolean startNoWeb(int port) throws PortAlreadyInUseException {
-        return startNoWeb(port, true);
+    public boolean startNoWeb(int port, String host) throws PortAlreadyInUseException {
+        return startNoWeb(port, host, true);
     }
 
     /**
@@ -465,7 +466,7 @@ public class WebGUI implements AutoCloseable {
      * @return if the operation was successful
      * @throws PortAlreadyInUseException if one of the requested ports is already in use
      */
-    public boolean startNoWeb(int port, boolean block) throws PortAlreadyInUseException {
+    public boolean startNoWeb(int port, String host, boolean block) throws PortAlreadyInUseException {
         checkDeleted();
         if (!CppJsLib.hasWebsocketSupport()) {
             try {
@@ -478,7 +479,25 @@ public class WebGUI implements AutoCloseable {
         if (!CCheckPorts && checkPorts && portsInUse("localhost", port)) {
             throw new PortAlreadyInUseException("A requested port was already in use");
         } else {
-            return CppJsLibNative.startNoWeb(id, port, block);
+            return CppJsLibNative.startNoWeb(id, port, host, block);
+        }
+    }
+
+    /**
+     * Start only the http server.
+     *
+     * @param port  the port to listen on
+     * @param block if this is a blocking call
+     * @return if the operation was successful
+     * @throws PortAlreadyInUseException if one of the requested ports is already in use
+     */
+    public boolean startNoWebSocket(int port, String host, boolean block) throws PortAlreadyInUseException {
+        checkDeleted();
+
+        if (!CCheckPorts && checkPorts && portsInUse("localhost", port)) {
+            throw new PortAlreadyInUseException("A requested port was already in use");
+        } else {
+            return CppJsLibNative.startNoWebSocket(id, port, host, block);
         }
     }
 
@@ -631,15 +650,28 @@ public class WebGUI implements AutoCloseable {
      * @param args  the args to check
      * @param types the argument types
      * @return the resulting String array
-     * @throws Exception if any lengths do not match
      */
-    private String[] checkArgs(Object[] args, Class<?>... types) throws Exception {
+    private String[] checkArgs(Object[] args, Class<?>... types) {
+        assert args.length == types.length : "Number of arguments does not match: " + args.length + " vs. " + types.length;
+
+        //noinspection ConstantConditions
         if (args.length != types.length) {
-            throw new Exception("Wrong length");
+            throw new RuntimeException("Wrong length");
+        }
+
+        for (int i = 0; i < args.length; i++) {
+            var cls1 = utils.toObjClass(args[i].getClass());
+            var cls2 = utils.toObjClass(types[i]);
+
+            assert cls1 == cls2 : "Arguments do not match: Expected " + cls2.getName() + ", got " + cls1.getName();
+
+            //noinspection ConstantConditions
+            if (cls1 != cls2) {
+                throw new RuntimeException("Arguments do not match: Expected " + cls2.getName() + ", got " + cls1.getName());
+            }
         }
 
         String[] strArgs = new String[args.length];
-
 
         for (int i = 0; i < args.length; i++) {
             strArgs[i] = utils.objToString(args[i], types[i]);
@@ -664,18 +696,15 @@ public class WebGUI implements AutoCloseable {
         for (int i = 0; i < argTypes.length; i++) {
             argTypes[i] = types[i].getName();
         }
+
         int fnID = CppJsLibNative.importFunction(id, name, "void", argTypes, -1);
         if (fnID == -1) {
             throw new CppOutOfMemoryException("The library returned that no memory could be allocated");
         }
 
         return args -> {
-            try {
-                String[] strArgs = checkArgs(args, types);
-                CppJsLibNative.callVoidJsFunction(id, fnID, strArgs);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+            String[] strArgs = checkArgs(args, types);
+            CppJsLibNative.callVoidJsFunction(id, fnID, strArgs);
         };
     }
 
@@ -706,19 +735,15 @@ public class WebGUI implements AutoCloseable {
         for (int i = 0; i < argTypes.length; i++) {
             argTypes[i] = types[i].getName();
         }
+
         int fnID = CppJsLibNative.importFunction(id, name, returnType.getName(), argTypes, wait);
         if (fnID == -1) {
             throw new CppOutOfMemoryException("The library returned that no memory could be allocated");
         }
 
         return args -> {
-            try {
-                String[] strArgs = checkArgs(args, types);
-                return utils.toObject(returnType, CppJsLibNative.callJSFunction(id, fnID, strArgs));
-            } catch (Exception e) {
-                e.printStackTrace();
-                return null;
-            }
+            String[] strArgs = checkArgs(args, types);
+            return utils.toObject(returnType, CppJsLibNative.callJSFunction(id, fnID, strArgs));
         };
     }
 

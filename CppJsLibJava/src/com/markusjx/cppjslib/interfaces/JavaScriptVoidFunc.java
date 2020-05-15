@@ -9,5 +9,5 @@ public interface JavaScriptVoidFunc {
      *
      * @param args the arguments
      */
-    void call(Object... args);
+    void invoke(Object... args);
 }

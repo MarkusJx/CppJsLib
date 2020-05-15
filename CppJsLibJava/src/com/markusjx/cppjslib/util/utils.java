@@ -86,4 +86,21 @@ public final class utils {
             return String.valueOf(obj);
         }
     }
+
+    /**
+     * Convert any class type to its class equivalent
+     *
+     * @param type the type to convert
+     * @return the resulting type
+     */
+    public static Class<?> toObjClass(Class<?> type) {
+        if (Boolean.class == type || boolean.class == type) return Boolean.class;
+        if (Byte.class == type || byte.class == type) return Byte.class;
+        if (Short.class == type || short.class == type) return Short.class;
+        if (Integer.class == type || int.class == type) return Integer.class;
+        if (Long.class == type || long.class == type) return Long.class;
+        if (Float.class == type || float.class == type) return Float.class;
+        if (Double.class == type || double.class == type) return Double.class;
+        return type;
+    }
 }

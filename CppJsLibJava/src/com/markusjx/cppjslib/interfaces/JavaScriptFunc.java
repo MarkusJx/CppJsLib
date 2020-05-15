@@ -12,5 +12,5 @@ public interface JavaScriptFunc<R> {
      * @param args the arguments
      * @return an array of all client returns
      */
-    R[] call(Object... args);
+    R[] invoke(Object... args);
 }
