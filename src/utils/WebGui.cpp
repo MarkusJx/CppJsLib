@@ -1,7 +1,3 @@
-//
-// Created by markus on 02/03/2020.
-//
-
 #include "CppJsLib.hpp"
 
 #include <httplib.h>

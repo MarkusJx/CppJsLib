@@ -2,7 +2,33 @@
 
 CppJsLib is a C++ library to call C++ function from JavaScript and vice-versa (like [eel](https://github.com/samuelhwilliams/Eel) or [guy](https://github.com/manatlan/guy) for python)
 
-## Examples
+
+Table of contents
+=================
+
+<!--ts-->
+   * [Examples](#examples)
+     * [Basic example](#basic-example)
+     * [JS function with return value](#import-js-function-with-return-value)
+       * [Import with timeout](#import-js-function-with-a-timeout)
+     * [SSL/TLS support](#use-with-ssl-enabled)
+     * [Start without the http server](#start-without-web-server)
+     * [Use without a dynamic library](#usage-without-relying-on-the-dynamic-library)
+     * [Logging](#logging)
+       * [Set logger](#set-logger)
+       * [Set error handler](#set-error-message-handler)
+     * [Get http server](#get-underlying-yhirosecpp-httplib-server)
+     * [Get websocket server](#get-underlying-zaphoydwebsocketpp-websocket-server)
+   * [Adding it to your project](#adding-it-to-your-project)
+     * [Using prebuilt binaries](#using-prebuilt-binaries)
+     * [Building it yourself](#not-using-prebuilt-binaries)
+   * [Java Binding](#java-binding)
+     * [Basic example](#basic-example-1)
+   * [License](#license)
+   * [Third-Party licenses](#third-party-licenses)
+<!--te-->
+
+# Examples
 ### Basic example
 #### C++ code
 ```c++
@@ -99,9 +125,10 @@ gui->import(func, 5);
 ```
 
 ## Use with SSL enabled
+CppJsLib also supports SSL/TLS to make use of the HTTPS protocol. The websocket communication will also be encrypted.
 ### Using unique_ptr
 ```c++
-auto gui = WebGUI::create_shared("web", "cert.pem", "server.pem");
+auto gui = WebGUI::create_unique("web", "cert.pem", "server.pem");
 ```
 ### Using shared_ptr
 ```c++
@@ -109,7 +136,7 @@ auto gui = WebGUI::create_shared("web", "cert.pem", "server.pem");
 ```
 ### Using normal pointers
 ```c++
-auto gui = new WebGUI("web", "cert.pem", "server.pem");
+auto gui = WebGUI::create("web", "cert.pem", "server.pem");
 ```
 
 ## Start without web server
@@ -122,6 +149,24 @@ auto gui = WebGUI::create_unique();
 
 // Start only the websocket server (non-blocking)
 gui->startNoWeb(1234, false);
+
+// Do stuff with it...
+
+// Stop it
+gui->stop();
+```
+
+## Start without the websocket server
+It is also possible to only start the http server. Server sent events will be used for the communication.
+Please note that only void JavaScript functions are supported when not relying on the websocket protocol.
+```c++
+auto gui = WebGUI::create_unique();
+
+// Expose functions: gui->expose(...);
+// Import functions: gui->import(...);
+
+// Start only the websocket server (non-blocking)
+gui->startNoWebSocket(1234, false);
 
 // Do stuff with it...
 
@@ -147,14 +192,14 @@ delete gui;
 ### Set logger
 #### For all future instances
 ```c++
-CppJsLib::setLogger([] (const auto &msg) {
+CppJsLib::setLogger([] (const std::string &msg) {
     // Do something
 });
 ```
 
 #### For a specific instance
 ```c++
-gui->setLogger([] (const auto &msg) {
+gui->setLogger([] (const std::string &msg) {
     // Do something
 });
 ```
@@ -162,14 +207,14 @@ gui->setLogger([] (const auto &msg) {
 ### Set error message handler
 #### For all future versions
 ```c++
-CppJsLib::setError([] (const auto &err) {
+CppJsLib::setError([] (const std::string &err) {
     // Do something
 });
 ```
 
 #### For a specific instance
 ```c++
-gui->setError([] (const auto &err) {
+gui->setError([] (const std::string &err) {
     // Do something
 });
 ```
@@ -209,12 +254,18 @@ auto wssrv = gui->getTLSWebServer();
 
 #include <CppJsLib.hpp>
 ```
+* It is also possible to add ```CppJsLibAll.hpp``` to your include path, which will automatically define all required macros. It will also undefine macros, which may cause problems.
+* So you just have to include ```CppJsLibAll.hpp``` :
+```c++
+#include <CppJsLibAll.hpp>
+```
+
 * Put the ``CppJsLibJs`` folder with the ``CppJsLib.js`` file inside of it into your Application's folder
 
 ### Not using prebuilt binaries
 Also known as 'building yourself' or 'the not fun way'
 
-**Note: C++20 requires boost 1.73.0 or later**
+**Note: Building with C++20 requires boost 1.73.0 or later**
 * To build with websocket protocol support, boost >= 1.60 < 1.70 must be installed (on windows the environment variable ``BOOST_ROOT`` must point to where the boost installation is located)
 * To build with SSL support OpenSSL must be installed
 * CMake is used to build the project
@@ -235,6 +286,10 @@ BUILD_JNI_DLL: Build a dll to be called with JNI
 * Put the ``CppJsLibJs`` folder with the ``CppJsLib.js`` file inside of it into your Application's folder
 
 ## Java binding
+
+CppJsLib also provides a Java binding. To use it, add CppJsLibJava.jar to your project, put CppJsLib.[dll/so/dylib]
+and the CppJsLibJs folder in your Java library path. You can find all artifacts under the 
+[Releases](https://github.com/MarkusJx/CppJsLib/releases) section. 
 ### Basic example
 ```java
 private static void fn1(int i) {
@@ -284,5 +339,5 @@ This project uses code from
 * [nlohmann/json](https://github.com/nlohmann/json) licensed under [MIT license](https://github.com/nlohmann/json/blob/develop/LICENSE.MIT)
 * [yhirose/cpp-httplib](https://github.com/yhirose/cpp-httplib) licensed under [MIT license](https://github.com/yhirose/cpp-httplib/blob/master/LICENSE)
 * [openssl/openssl](https://github.com/openssl/openssl) licensed under [Apache License 2.0](https://github.com/openssl/openssl/blob/master/LICENSE)
+* [boost](https://www.boost.org) licensed under the [Boost Software License](https://www.boost.org/users/license.html)
 * [zaphoyd/websocketpp](https://github.com/zaphoyd/websocketpp) license to be seen [here](https://github.com/zaphoyd/websocketpp/blob/master/COPYING)
-* [boost](https://www.boost.org) license to be seen [here](https://www.boost.org/users/license.html)
