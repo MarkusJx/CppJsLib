@@ -1,3 +1,11 @@
+# InitCppJsLib.cmake
+#
+# Licensed under the MIT License
+#
+# Copyright (c) 2020 MarkusJx
+#
+# The full license including third-party licenses is available at https://github.com/MarkusJx/CppJsLib/blob/master/LICENSE
+
 # Initialize CppJsLib
 # Usage: initCppJsLib(target_name source_dir include_dir <ENABLE_WEBSOCKET> <ENABLE_HTTPS> <USE_JUTILS> <BUILD_JNI_DLL>)
 function(initCppJsLib target source_dir include_dir)

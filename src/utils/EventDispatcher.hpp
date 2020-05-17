@@ -1,7 +1,3 @@
-//
-// Created by markus on 16/04/2020.
-//
-
 #ifndef CPPJSLIBALL_EVENTDISPATCHER_HPP
 #define CPPJSLIBALL_EVENTDISPATCHER_HPP
 

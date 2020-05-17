@@ -1,7 +1,13 @@
-//
-// Created by markus on 02/03/2020.
-//
-
+/*
+ * loggingfunc.cpp
+ * Defines functions for logging
+ *
+ * Licensed under the MIT License
+ *
+ * Copyright (c) 2020 MarkusJx
+ *
+ * The full license including third-party licenses is available at https://github.com/MarkusJx/CppJsLib/blob/master/LICENSE
+ */
 #include "loggingfunc.hpp"
 #include "../CppJsLib.hpp"
 

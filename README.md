@@ -156,6 +156,18 @@ gui->startNoWeb(1234, false);
 gui->stop();
 ```
 
+You will have to tell CppJsLib.js where to connect to:
+```html
+<script>
+    const CPPJSLIB_NO_INIT = true; // Do not initialize with http server
+</script>
+<script src="CppJsLib.js"></script>
+<script>
+    // Initialize with websocket only, no TLS, on localhost and port 1234
+    cppJsLib.init(true, false, "localhost", 1234);
+</script>
+```
+
 ## Start without the websocket server
 It is also possible to only start the http server. Server sent events will be used for the communication.
 Please note that only void JavaScript functions are supported when not relying on the websocket protocol.

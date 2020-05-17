@@ -1,7 +1,13 @@
-//
-// Created by markus on 14/03/2020.
-//
-
+/*
+ * jni.cpp
+ * Defines functions for the java binding
+ *
+ * Licensed under the MIT License
+ *
+ * Copyright (c) 2020 MarkusJx
+ *
+ * The full license including third-party licenses is available at https://github.com/MarkusJx/CppJsLib/blob/master/LICENSE
+ */
 #include <utility>
 #include <vector>
 #include <mutex>

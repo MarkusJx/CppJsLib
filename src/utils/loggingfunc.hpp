@@ -1,7 +1,13 @@
-//
-// Created by markus on 02/03/2020.
-//
-
+/*
+ * loggingfunc.hpp
+ * Declares functions for logging
+ *
+ * Licensed under the MIT License
+ *
+ * Copyright (c) 2020 MarkusJx
+ *
+ * The full license including third-party licenses is available at https://github.com/MarkusJx/CppJsLib/blob/master/LICENSE
+ */
 #ifndef CPPJSLIBALL_LOGGINGFUNC_HPP
 #define CPPJSLIBALL_LOGGINGFUNC_HPP
 

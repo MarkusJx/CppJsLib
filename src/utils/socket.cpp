@@ -1,7 +1,13 @@
-//
-// Created by markus on 05/03/2020.
-//
-
+/*
+ * socket.cpp
+ * Defines function to check if a port is in use
+ *
+ * Licensed under the MIT License
+ *
+ * Copyright (c) 2020 MarkusJx
+ *
+ * The full license including third-party licenses is available at https://github.com/MarkusJx/CppJsLib/blob/master/LICENSE
+ */
 #include "loggingfunc.hpp"
 #include "../CppJsLib.hpp"
 

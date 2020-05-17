@@ -1,3 +1,13 @@
+/*
+ * WebGui.cpp
+ * Defines the functions for the WebGUI class
+ *
+ * Licensed under the MIT License
+ *
+ * Copyright (c) 2020 MarkusJx
+ *
+ * The full license including third-party licenses is available at https://github.com/MarkusJx/CppJsLib/blob/master/LICENSE
+ */
 #include "CppJsLib.hpp"
 
 #include <httplib.h>

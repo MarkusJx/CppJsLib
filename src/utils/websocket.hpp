@@ -1,7 +1,13 @@
-//
-// Created by markus on 02/03/2020.
-//
-
+/*
+ * websocket.hpp
+ * Declares and defines functions to utilize the websocket protocol
+ *
+ * Licensed under the MIT License
+ *
+ * Copyright (c) 2020 MarkusJx
+ *
+ * The full license including third-party licenses is available at https://github.com/MarkusJx/CppJsLib/blob/master/LICENSE
+ */
 #ifndef CPPJSLIBALL_WEBSOCKET_HPP
 #define CPPJSLIBALL_WEBSOCKET_HPP
 
@@ -71,10 +77,9 @@ inline void initWebsocketServer(std::shared_ptr<EndpointType> s, const std::shar
 
 template<typename EndpointType>
 inline void startWebsocketServer(std::shared_ptr<EndpointType> s, const std::string &host, int port) {
-    loggingF("Starting websocket to listen on port " + std::to_string(port));
+    loggingF("Starting websocket to listen on host " + host + " and port " + std::to_string(port));
     try {
         s->listen(host, std::to_string(port));
-        //s->listen(port);
         s->start_accept();
 
         s->run();

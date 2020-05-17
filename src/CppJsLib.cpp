@@ -1,7 +1,13 @@
-//
-// Created by Markus on 11/12/2019.
-//
-
+/*
+ * CppJsLib.cpp
+ * Defines functions for the CppJsLib namespace
+ *
+ * Licensed under the MIT License
+ *
+ * Copyright (c) 2020 MarkusJx
+ *
+ * The full license including third-party licenses is available at https://github.com/MarkusJx/CppJsLib/blob/master/LICENSE
+ */
 #include "CppJsLib.hpp"
 
 #include <json.hpp>

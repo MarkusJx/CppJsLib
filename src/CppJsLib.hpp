@@ -1,5 +1,6 @@
 /*
  * CppJsLib.hpp
+ *
  * Licensed under the MIT License
  *
  * Copyright (c) 2020 MarkusJx
