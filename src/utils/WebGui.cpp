@@ -675,28 +675,23 @@ CPPJSLIB_MAYBE_UNUSED CPPJSLIB_EXPORT bool WebGUI::start(int port, const std::st
     if (ssl) {
         log("Starting tls websocket server");
         wsRunning = startNoWeb_f(std::static_pointer_cast<wspp::server_tls>(ws_server), host, websocketPort, false, "",
-                                 std::map<std::string, PostHandler>(), _errorF, _loggingF,
-                                 false, jsFnCallbacks);
+                                 std::map<std::string, PostHandler>(), _errorF, _loggingF, false, jsFnCallbacks);
     } else {
         log("Starting websocket server");
         wsRunning = startNoWeb_f(std::static_pointer_cast<wspp::server>(ws_server), host, websocketPort, false, "",
-                                 std::map<std::string, PostHandler>(), _errorF, _loggingF,
-                                 false, jsFnCallbacks);
+                                 std::map<std::string, PostHandler>(), _errorF, _loggingF, false, jsFnCallbacks);
     }
 
     if (fallback_plain) {
         log("Starting websocket plain fallback server");
         wsRunning = wsRunning &&
                     startNoWeb_f(std::static_pointer_cast<wspp::server>(ws_plain_server), host, websocketPort, false,
-                                 "",
-                                 std::map<std::string, PostHandler>(), _errorF, _loggingF,
-                                 false, jsFnCallbacks);
+                                 "", std::map<std::string, PostHandler>(), _errorF, _loggingF, false, jsFnCallbacks);
     }
 #   else
     log("Starting websocket server");
     wsRunning = startNoWeb_f(std::static_pointer_cast<wspp::server>(ws_server), host, websocketPort, false, "",
-                 std::map<std::string, std::function<std::string(std::string)>>(), _errorF, _loggingF, false,
-                 jsFnCallbacks);
+                 std::map<std::string, PostHandler>(), _errorF, _loggingF, false, jsFnCallbacks);
 #   endif //CPPJSLIB_ENABLE_HTTPS
 #endif //CPPJSLIB_ENABLE_WEBSOCKET
 
