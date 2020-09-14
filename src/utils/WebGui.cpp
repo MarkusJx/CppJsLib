@@ -640,7 +640,7 @@ CPPJSLIB_MAYBE_UNUSED CPPJSLIB_EXPORT bool WebGUI::start(int port, const std::st
         auto sseHandler = [&, ed](const httplib::Request &, httplib::Response &res) {
             log("Client connected to server sent event");
             res.set_header("Content-Type", "text/event-stream");
-            res.set_chunked_content_provider([ed](uint64_t, httplib::DataSink &sink) {
+            res.set_chunked_content_provider("text/event-stream", [ed](uint64_t, httplib::DataSink &sink) {
                 ed->wait_event(&sink);
                 return true;
             });
