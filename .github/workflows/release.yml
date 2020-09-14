@@ -188,14 +188,14 @@ jobs:
         run: mkdir lib
       - name: download openssl
         shell: powershell
-        run: wget https://www.npcglib.org/~stathis/downloads/openssl-1.1.0f-vs2017.7z -OutFile openssl.7z
+        run: wget https://mirror.firedaemon.com/OpenSSL/openssl-1.1.1h-dev.zip -OutFile openssl.zip
       - name: unzip openssl
-        run: 7z x openssl.7z -r -y
+        run: 7z x openssl.zip -r -y
       - name: copy openssl headers
-        run: cp -r openssl-1.1.0f-vs2017/include64/openssl include
+        run: cp -r openssl-1.1/x64/include/openssl include
         shell: cmd
       - name: copy openssl libs
-        run: cp -r openssl-1.1.0f-vs2017/lib64/. lib
+        run: cp -r openssl-1.1/x64/lib/. lib
         shell: cmd
       - name: Install Boost
         run: choco install -y boost-msvc-14.1
