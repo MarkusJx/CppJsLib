@@ -50,7 +50,7 @@ CPPJSLIB_EXPORT void WebGUI::deleteInstance(WebGUI *webGui) {
 
 WebGUI::WebGUI(const std::string &base_dir)
         : initMap(), voidPtrVector(), strVecVector(), websocketTargets(), jsFnCallbacks(), sseVec(), sseEventMap()
-CPPJSLIB_DISABLE_SSL_MACRO {
+          CPPJSLIB_DISABLE_SSL_MACRO {
     std::shared_ptr<httplib::Server> svr = std::make_shared<httplib::Server>();
     server = std::static_pointer_cast<void>(svr);
 
@@ -413,7 +413,7 @@ CPPJSLIB_EXPORT bool WebGUI::startNoWebSocket(int port, const std::string &host,
         auto sseHandler = [&, ed](const httplib::Request &, httplib::Response &res) {
             log("Client connected to server sent event");
             res.set_header("Content-Type", "text/event-stream");
-            res.set_chunked_content_provider([ed](uint64_t, httplib::DataSink &sink) {
+            res.set_chunked_content_provider("text/event-stream", [ed](uint64_t, httplib::DataSink &sink) {
                 ed->wait_event(&sink);
                 return true;
             });

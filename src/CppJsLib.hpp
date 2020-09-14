@@ -1834,6 +1834,13 @@ namespace CppJsLib {
 #else
 
         /**
+         * The default destructor
+         */
+        ~WebGUI();
+
+#endif //CPPJSLIB_STATIC_DEFINE
+
+        /**
          * Check if the main server is running
          *
          * @return if the main server is running
@@ -1860,10 +1867,6 @@ namespace CppJsLib {
          * @return if only the websocket servers are started
          */
         CPPJSLIB_NODISCARD CPPJSLIB_EXPORT bool isWebsocketOnly() const;
-
-        ~WebGUI();
-
-#endif //CPPJSLIB_STATIC_DEFINE
 
         /**
          * Set this to false to not check if any ports are in use when started
