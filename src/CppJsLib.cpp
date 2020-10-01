@@ -204,6 +204,14 @@ CPPJSLIB_EXPORT void CppJsLib::util::setError(const std::function<void(const cha
     });
 }
 
+CPPJSLIB_EXPORT void *CppJsLib::util::_malloc(size_t size) {
+    return ::malloc(size);
+}
+
+CPPJSLIB_EXPORT std::vector<std::string> *CppJsLib::util::createSseVector() {
+    return new std::vector<std::string>();
+}
+
 CPPJSLIB_EXPORT void CppJsLib::util::deallocateMessage(const char *data) {
     free((char *) data);
 }

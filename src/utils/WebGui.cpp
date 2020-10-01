@@ -1099,7 +1099,7 @@ WebGUI::~WebGUI() {
     }
 
     for (std::vector<std::string> *v : strVecVector) {
-        std::vector<std::string>().swap(*v);
+        v->clear();
         delete v;
     }
 

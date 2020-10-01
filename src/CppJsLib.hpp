@@ -292,6 +292,21 @@ namespace CppJsLib {
 
         CPPJSLIB_EXPORT void pushToSseVector(WebGUI *webGui, const std::string &s);
 
+        /**
+         * Malloc clone. Used for allocating memory when using a dll
+         *
+         * @param size the number of bytes to allocate
+         * @return the pointer to the allocated memory block
+         */
+        CPPJSLIB_EXPORT void *_malloc(size_t size);
+
+        /**
+         * Create a new string vector instance
+         *
+         * @return the vector
+         */
+        CPPJSLIB_EXPORT std::vector<std::string> *createSseVector();
+
         template<class>
         struct CPPJSLIB_MAYBE_UNUSED TypeConverter;
 
@@ -530,7 +545,7 @@ namespace CppJsLib {
          */
         template<class ...Args>
         inline void initJsFunction(JsFunction<void(Args...)> **toInit, const std::string &name, WebGUI *_wGui) {
-            auto *tmp = (JsFunction<void(Args...)> *) malloc(sizeof(JsFunction<void(Args...)>));
+            auto *tmp = (JsFunction<void(Args...)> *) _malloc(sizeof(JsFunction<void(Args...)>));
             if (tmp) {
                 strcpy(tmp->fnName, name.c_str());
                 tmp->wGui = _wGui;
@@ -562,7 +577,7 @@ namespace CppJsLib {
                 for (std::string c : *responseReturns) {
                     tmp.push_back(ConvertString<R>(c));
                 }
-                std::vector<std::string>().swap(*responseReturns);
+                responseReturns->clear();
 
                 return tmp;
             }
@@ -596,7 +611,7 @@ namespace CppJsLib {
                 for (std::string c : *responseReturns) {
                     tmp.push_back(ConvertString<R>(c));
                 }
-                std::vector<std::string>().swap(*responseReturns);
+                responseReturns->clear();
 
                 return tmp;
             }
@@ -622,13 +637,13 @@ namespace CppJsLib {
         initJsFunction(JsFunction<std::vector<R>(Args ...)> **toInit, const std::string &name, WebGUI *_wGui,
                        int waitS) {
             // Allocate the JsFunction struct
-            auto *tmp = (JsFunction<std::vector<R>(Args ...)> *) malloc(sizeof(JsFunction<std::vector<R>(Args ...)>));
+            auto *tmp = (JsFunction<std::vector<R>(Args ...)> *) _malloc(sizeof(JsFunction<std::vector<R>(Args ...)>));
             if (tmp) {
                 strcpy(tmp->fnName, name.c_str());
                 tmp->wGui = _wGui;
                 tmp->wait = waitS;
 
-                tmp->responseReturns = new std::vector<std::string>();
+                tmp->responseReturns = createSseVector();
                 pushToStrVecVector(_wGui, tmp->responseReturns);
             }
 
@@ -1035,7 +1050,7 @@ namespace CppJsLib {
         void initExposedFunction(ExposedFunction<R(Args...)> **toInit, R (*f)(Args...), const std::string &name,
                                  WebGUI *wGui) {
             // Allocate the struct
-            auto *tmp = (ExposedFunction<R(Args...)> *) malloc(sizeof(ExposedFunction<R(Args...)>));
+            auto *tmp = (ExposedFunction<R(Args...)> *) _malloc(sizeof(ExposedFunction<R(Args...)>));
             if (tmp) {
                 // Use function_traits to convert the arguments to strings
                 typedef function_traits<std::function<R(Args...)>> fn_traits;
@@ -1672,7 +1687,7 @@ namespace CppJsLib {
          */
         template<class R, class...Args>
         inline void
-        _importJsFunction(std::function<std::vector<R>(Args...)> &function, std::string fName, int waitS = -1) {
+        _importJsFunction(std::function<std::vector<R>(Args...)> &function, const std::string &fName, int waitS = -1) {
             err("Cannot import non-void javascript function when built without websocket support");
             function = [this](Args... args) {
                 err("Javascript non-void function called but CppJsLib was built without websocket support");
