@@ -544,10 +544,10 @@ CPPJSLIB_MAYBE_UNUSED CPPJSLIB_EXPORT bool WebGUI::start(int port, const std::st
 
 #ifdef CPPJSLIB_ENABLE_WEBSOCKET
         if (port_is_in_use(host.c_str(), websocketPort, _err)) {
-            err("[CppJsLib] port " + std::to_string(websocketPort) + " is already in use");
+            err("port " + std::to_string(websocketPort) + " is already in use");
             return false;
         } else if (_err != 0) {
-            err("[CppJsLib] port_is_in_use finished with code " + std::to_string(_err));
+            err("port_is_in_use finished with code " + std::to_string(_err));
         }
 #endif //CPPJSLIB_ENABLE_WEBSOCKET
     }
