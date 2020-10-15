@@ -777,7 +777,7 @@ JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_exposeFunction(JNIEnv *env,
             jmethodID call = env->GetMethodID(ExposedFunc, "call", "([Ljava/lang/String;)[Ljava/lang/String;");
 
             jclass String = JAVA_STRING_CLS();
-            jobjectArray arr = env->NewObjectArray(args.size(), String, nullptr);
+            jobjectArray arr = env->NewObjectArray((jsize) args.size(), String, nullptr);
 
             for (int i = 0; i < args.size(); i++) {
                 jstring str = env->NewStringUTF(args[i].c_str());
@@ -834,7 +834,7 @@ JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_exposeVoidFunction(JNIEnv *
             jmethodID call = env->GetMethodID(ExposedFunc, "call", "([Ljava/lang/String;)V");
 
             jclass String = JAVA_STRING_CLS();
-            jobjectArray arr = env->NewObjectArray(args.size(), String, nullptr);
+            jobjectArray arr = env->NewObjectArray((jsize) args.size(), String, nullptr);
 
             for (int i = 0; i < args.size(); i++) {
                 jstring str = env->NewStringUTF(args[i].c_str());
@@ -1030,7 +1030,7 @@ JNICALL Java_com_markusjx_cppjslib_nt_CppJsLibNative_createStringArrayFromJSON(J
     env->ReleaseStringUTFChars(json, s);
 
     jclass String = JAVA_STRING_CLS();
-    jobjectArray arr = env->NewObjectArray(res.size(), String, nullptr);
+    jobjectArray arr = env->NewObjectArray((jsize) res.size(), String, nullptr);
 
     for (int i = 0; i < res.size(); i++) {
         jstring str = env->NewStringUTF(res[i].c_str());
