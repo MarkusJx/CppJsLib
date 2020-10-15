@@ -6,6 +6,12 @@ set(CMAKE_CXX_STANDARD 17)
 option(BUILDDLL FALSE)
 option(USE_DLL FALSE)
 option(BUILD_JNI_DLL FALSE)
+option(LINK_STATIC FALSE)
+
+if (LINK_STATIC)
+    message(STATUS "Creating static library")
+    set(BUILDDLL TRUE)
+endif ()
 
 if (BUILD_JNI_DLL)
     set(BUILDDLL TRUE)
