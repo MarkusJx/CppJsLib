@@ -1,6 +1,8 @@
 import com.markusjx.cppjslib.Expose;
 import com.markusjx.cppjslib.WebGUI;
 import com.markusjx.cppjslib.exception.CppJsLibException;
+import com.markusjx.cppjslib.interfaces.JavaScriptFunc;
+import com.markusjx.cppjslib.interfaces.JavaScriptVoidFunc;
 
 public class Main {
     // Add @Expose to expose function
@@ -24,13 +26,13 @@ public class Main {
         gui.exposeVoidFunction(args1 -> fn2((String) args1[0]), "fn2", String.class);
 
         // Import javascript void function with name and argument types
-        var fn = gui.importVoidFunction("func", int.class);
+        JavaScriptVoidFunc fn = gui.importVoidFunction("func", int.class);
 
         // Import non-void function with name, a timeout, -1 equals infinite,
         // the return type and the argument types
-        var f = gui.importFunction("f", -1, int.class, int.class);
+        JavaScriptFunc<Integer> f = gui.importFunction("f", -1, int.class, int.class, String.class);
 
-        f.invoke(0);
+        f.invoke(0, "abc");
 
         // Start the servers with their ports on this machine, without blocking
         gui.start(8025, 8026, "localhost", false);

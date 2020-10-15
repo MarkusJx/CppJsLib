@@ -687,8 +687,8 @@ public class WebGUI implements AutoCloseable {
         }
 
         for (int i = 0; i < args.length; i++) {
-            var cls1 = utils.toObjClass(args[i].getClass());
-            var cls2 = utils.toObjClass(types[i]);
+            Class<?> cls1 = utils.toObjClass(args[i].getClass());
+            Class<?> cls2 = utils.toObjClass(types[i]);
 
             assert cls1 == cls2 : "Arguments do not match: Expected " + cls2.getName() + ", got " + cls1.getName();
 
@@ -794,7 +794,7 @@ public class WebGUI implements AutoCloseable {
         checkDeleted();
 
         CppJsLibNative.deleteWebGUI(id);
-        deleted = true;
+        this.deleted = true;
     }
 
     /**
