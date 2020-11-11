@@ -29,6 +29,13 @@ jobs:
       with:
         languages: ${{ matrix.language }}
 
+    # Set up JDK for building java
+    - name: Set up JDK
+      uses: actions/setup-java@v1
+      if: matrix.language == 'java'
+      with:
+        java-version: '11.0.3'
+
     # Build java
     # This will load all sources into a file called 'sources.txt' and compile them all into a jar
     - name: Build java
@@ -37,7 +44,8 @@ jobs:
       run: |
         find -name "*.java" > sources.txt
         javac @sources.txt
-        jar cvf CppJsLibJava.jar com/markusjx/cppjslib/*.class com/markusjx/cppjslib/nt/*.class com/markusjx/cppjslib/interfaces/*.class com/markusjx/cppjslib/functional/*.class com/markusjx/cppjslib/util/*.class com/markusjx/cppjslib/exception/*.class
+        jar cvf CppJsLibJava.jar com/markusjx/cppjslib/*.class com/markusjx/cppjslib/nt/*.class com/markusjx/cppjslib/interfaces/*.class com/markusjx/cppjslib/functional/*.class\
+                com/markusjx/cppjslib/util/*.class com/markusjx/cppjslib/exception/*.class
 
     # Build C++
     # This will install boost und build using cmake
