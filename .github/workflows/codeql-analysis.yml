@@ -29,9 +29,15 @@ jobs:
       with:
         languages: ${{ matrix.language }}
 
-    - name: Autobuild java
-      uses: github/codeql-action/autobuild@v1
+    # Build java
+    # This will load all sources into a file called 'sources.txt' and compile them all into a jar
+    - name: Build java
       if: matrix.language == 'java'
+      working-directory: CppJsLibJava/src
+      run: |
+        find -name "*.java" > sources.txt
+        javac @sources.txt
+        jar cvf CppJsLibJava.jar com/markusjx/cppjslib/*.class com/markusjx/cppjslib/nt/*.class com/markusjx/cppjslib/interfaces/*.class com/markusjx/cppjslib/functional/*.class com/markusjx/cppjslib/util/*.class com/markusjx/cppjslib/exception/*.class
 
     # Build C++
     # This will install boost und build using cmake
