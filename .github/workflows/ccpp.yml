@@ -161,12 +161,16 @@ jobs:
       - name: copy openssl libs
         run: cp -r openssl-1.1/x64/lib/. lib
         shell: cmd
-      - name: Install Boost
-        run: choco install -y boost-msvc-14.1
+      #- name: Install Boost
+      #  run: choco install -y boost-msvc-14.1
+      - name: Set boost root
+        id: boost_root
+        run: echo "::set-output name=boost_root::$BOOST_ROOT_1_69_0"
+        shell: bash
       - name: run cmake
         run: cmake -DENABLE_HTTPS=TRUE -DENABLE_WEBSOCKET=TRUE -DBUILDDLL=TRUE .
         env:
-          BOOST_ROOT: C:/local/boost_1_67_0
+          BOOST_ROOT: ${{ steps.boost_root.outputs.boost_root }}
       - name: build release
         run: cmake --build . --config Release
       - name: build debug
