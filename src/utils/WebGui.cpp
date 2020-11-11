@@ -1094,6 +1094,25 @@ CPPJSLIB_EXPORT bool WebGUI::stop() {
 WebGUI::~WebGUI() {
     stop();
 
+#ifdef CPPJSLIB_ENABLE_WEBSOCKET
+#   ifdef CPPJSLIB_ENABLE_HTTPS
+    if (ssl) {
+        std::static_pointer_cast<wspp::server_tls>(ws_server).reset();
+        std::static_pointer_cast<wspp::con_list>(ws_connections).reset();
+        if(fallback_plain) {
+            std::static_pointer_cast<wspp::server>(ws_plain_server).reset();
+            std::static_pointer_cast<wspp::con_list>(ws_plain_connections).reset();
+        }
+    } else {
+        std::static_pointer_cast<wspp::server>(ws_server).reset();
+        std::static_pointer_cast<wspp::con_list>(ws_connections).reset();
+    }
+#   else
+    std::static_pointer_cast<wspp::server>(ws_server).reset();
+    std::static_pointer_cast<wspp::con_list>(ws_connections).reset();
+#   endif //CPPJSLIB_ENABLE_HTTPS
+#endif //CPPJSLIB_ENABLE_WEBSOCKET
+
     for (void *p : voidPtrVector) {
         free(p);
     }

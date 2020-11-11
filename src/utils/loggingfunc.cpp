@@ -52,7 +52,6 @@ void setErrorF(std::function<void(const std::string &)> f) {
     error_f = std::move(f);
 }
 
-
 CPPJSLIB_EXPORT void CppJsLib::util::logging::log(const std::string &message) {
     loggingF(message);
 }

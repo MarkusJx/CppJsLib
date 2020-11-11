@@ -126,7 +126,7 @@ int main() {
     wGui->start(8028, TEST_WS_PORT CppJsLib::localhost, block);
 
     std::cout << "Sleep" << std::endl;
-    std::this_thread::sleep_for(std::chrono::seconds(20));
+    //std::this_thread::sleep_for(std::chrono::seconds(20));
 
 #ifdef CPPJSLIB_ENABLE_WEBSOCKET
     func(5);
