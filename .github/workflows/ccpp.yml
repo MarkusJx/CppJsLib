@@ -166,7 +166,7 @@ jobs:
       #  run: choco install -y boost-msvc-14.1
       - name: Set boost root
         id: boost_root
-        run: echo "::set-output name=boost_root::$BOOST_ROOT_1_69_0"
+        run: echo "::set-output name=boost_root::$BOOST_ROOT_1_72_0"
         shell: bash
       - name: run cmake
         run: cmake -DENABLE_HTTPS=TRUE -DENABLE_WEBSOCKET=TRUE -DBUILDDLL=TRUE .
