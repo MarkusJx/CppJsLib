@@ -371,6 +371,7 @@ const cppJsLib = {
                             }
                         }
                     }
+                    this.connected = true;
                 }
             }, "", "GET");
         }
