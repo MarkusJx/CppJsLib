@@ -139,3 +139,7 @@ dkms.conf
 .idea/vcs.xml
 cmake-build-debug/Autobet.cbp
 include/
+.cache/
+.vscode/
+build/
+.DS_STORE
