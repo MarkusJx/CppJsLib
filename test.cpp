@@ -5,8 +5,7 @@ void abc() {
 }
 
 int main() {
-    markusjx::CppJsLib::WebGUI gui("abc");
-
-    gui.expose(abc);
+    //markusjx::CppJsLib::WebGUI gui("abc");
+    //gui.expose(abc);
     return 0;
 }
