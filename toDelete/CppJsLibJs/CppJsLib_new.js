@@ -29,89 +29,30 @@ const cppJsLib = {
     /**
      * @type [function]
      */
-    loadFunctions: [],
+    'loadFunctions': [],
+    'initialized': false,
+    'exposedFunctions': [],
+    'connected': false,
+    'webSocket_only': false,
+    'callbacks': [],
+    'websocket_only': false,
+    'tls': false,
+    'host': "",
+    'port': 0,
+    'disconnectTimeoutRunning': false,
     /**
-     * @type [function]
-     */
-    disconnectListeners: [],
-    /**
-     * @type [function]
-     */
-    connectListeners: [],
-    initialized: false,
-    exposedFunctions: [],
-    connected: false,
-    webSocket_only: false,
-    callbacks: [],
-    websocket_only: false,
-    tls: false,
-    host: "",
-    port: 0,
-    disconnectTimeoutRunning: false,
-    disconnectTimeoutSeconds: 10,
-    /**
-     * The websocket object
      * @type WebSocket
      */
-    webSocket: null,
-    /**
-     * Listen for an event. Current events are 'loaded' and 'disconnected'
-     *
-     * @param {string} event the event name
-     * @param {function(): void} fn the listener
-     */
-    listen: function (event, fn) {
+    'webSocket': null,
+    'onLoad': function (fn) {
         if (typeof fn !== 'function') {
-            throw new Error("Argument at position 1 is not a function");
+            console.error("Function added to onLoad is not a function");
+            return;
         }
-
-        switch (event) {
-            case "loaded":
-                if (!this.initialized) {
-                    this.loadFunctions.push(fn);
-                } else {
-                    fn();
-                }
-                break;
-            case "disconnected":
-                this.disconnectListeners.push(fn);
-                if (!this.connected) {
-                    fn();
-                }
-                break;
-            case "connected":
-                this.connectListeners.push(fn);
-                if (this.connected) {
-                    fn();
-                }
-                break;
-            default:
-                throw new Error(`The event with name ${event} does not exist`);
-        }
-    },
-    /**
-     * Unlisten from an event
-     *
-     * @param {string} event the event name
-     * @param {function(): void} fn the listener to remove
-     */
-    unlisten(event, fn) {
-        if (typeof fn !== 'function') {
-            throw new Error("Argument at position 1 is not a function");
-        }
-
-        switch (event) {
-            case "loaded":
-                this.loadFunctions.splice(this.loadFunctions.indexOf(fn), 1);
-                break;
-            case "disconnected":
-                this.disconnectListeners.splice(this.disconnectListeners.indexOf(fn), 1);
-                break;
-            case "connected":
-                this.connectListeners.splice(this.connectListeners.indexOf(fn), 1);
-                break;
-            default:
-                throw new Error(`The event with name ${event} does not exist`);
+        if (!this.initialized) {
+            this.loadFunctions.push(fn);
+        } else {
+            fn();
         }
     },
     /**
@@ -120,7 +61,7 @@ const cppJsLib = {
      *
      * @returns {Promise<Boolean>} if the server is reachable
      */
-    serverReachable: function () {
+    'serverReachable': function () {
         // IE vs. standard XHR creation
         let x = new (window.ActiveXObject || XMLHttpRequest)("Microsoft.XMLHTTP"),
             s;
@@ -154,21 +95,6 @@ const cppJsLib = {
             }
         });
     },
-    /**
-     * A callback for requests
-     * @callback requestCallback
-     * @param {string} val the request result
-     * @returns {void}
-     */
-
-    /**
-     * Send a http request
-     *
-     * @param {string} type the request type. May be "GET" or "POST"
-     * @param {string} name the path of the request
-     * @param {string | null} body the string to send or null
-     * @param {requestCallback | null} callback a callback function or null
-     */
     sendHttpRequest: function (type, name, body = null, callback = null) {
         this.serverReachable().then(res => {
             if (!res) {
@@ -183,7 +109,6 @@ const cppJsLib = {
                 if (callback != null) {
                     xhttp.onreadystatechange = function () {
                         if (this.readyState === 4 && this.status === 200) {
-                            console.log(xhttp.responseText);
                             callback(xhttp.responseText);
                         }
                     };
@@ -191,17 +116,10 @@ const cppJsLib = {
                 xhttp.send(body);
             } catch (error) {
                 console.debug("Disconnected");
-                this.onClose();
+                this.connected = false;
             }
         });
     },
-    /**
-     * Send a request either via http or websocket.
-     *
-     * @param {Object} data the data to send
-     * @param {requestCallback} callback the callback function
-     * @param {string} type the http request type. May be "GET" or "POST"
-     */
     sendRequest: function (data, callback = null, type = "POST") {
         if (this.webSocket_only) {
             this.callbacks[data.callback] = callback;
@@ -211,7 +129,7 @@ const cppJsLib = {
                 this.webSocket.send(JSON.stringify(data));
             } catch (error) {
                 console.debug("Disconnected");
-                this.onClose();
+                this.connected = false;
             }
         } else {
             this.sendHttpRequest(type, "cppjslib", JSON.stringify(data), callback);
@@ -227,28 +145,17 @@ const cppJsLib = {
     initWebsocketOnly: function (host, port, tls = false) {
         this.init(true, tls, host, port);
     },
-
     onClose: function () {
         if (!this.disconnectTimeoutRunning) {
-            if (this.connected) this.disconnectListeners.forEach(fn => fn());
             this.disconnectTimeoutRunning = true;
             this.connected = false;
-            console.debug(`Connection closed. Trying to reconnect in ${this.disconnectTimeoutSeconds} seconds`);
+            console.debug("Connection closed. Trying to reconnect in 5 seconds");
             setTimeout(() => {
                 cppJsLib.disconnectTimeoutRunning = false;
                 cppJsLib.init(this.websocket_only, this.tls, this.host, this.port);
-            }, this.disconnectTimeoutSeconds * 1000);
+            }, 5000);
         }
     },
-    /**
-     * Initialize CppJsLibJs. All the option are only to be set when websocket_only == true.
-     * If it is set to false, the configuration is automatically retrieved from the server.
-     *
-     * @param {boolean} websocket_only whether this is websocket only
-     * @param {boolean} tls whether to use tls (when websocket_only == true, otherwise this will be set automatically)
-     * @param {string} host the host address
-     * @param {number} port the host port
-     */
     init: function (websocket_only = false, tls = false, host = "", port = 0) {
         this.webSocket_only = websocket_only;
         this.tls = tls;
@@ -256,36 +163,24 @@ const cppJsLib = {
         this.port = port;
         this.webSocket_only = websocket_only;
 
-        // The init request to be called to get the exported functions
         const init_request = () => {
-            // The callback function, which sets the exported functions
-            const callback_fn = response => {
+            this.sendHttpRequest("GET", "init", null, response => {
                 console.debug("Initializing with sequence: " + response);
                 let obj = JSON.parse(response);
                 for (let fnName in obj) {
                     this.addFn(fnName, obj[fnName]);
                 }
 
-                this.loadFunctions.forEach(fn => fn());
-                this.initialized = true;
-            };
+                this.loadFunctions.forEach((fn) => {
+                    fn();
+                });
 
-            // When websocket_only is set, send the request via websocket,
-            // if not, send the data as a GET request via http
-            if (!websocket_only) {
-                this.sendHttpRequest("GET", "init", null, callback_fn);
-            } else {
-                const data = {
-                    header: "init",
-                    callback: this.generateCallbackId()
-                };
-                this.sendRequest(data, callback_fn);
-            }
+                this.initialized = true;
+            });
         };
 
-        // The main message parser
         const ws_onmessage = (event) => {
-            console.debug("Received websocket message: " + event.data);
+            console.debug("Received websocket message");
             const data = JSON.parse(event.data);
             if (data.header === "callback") {
                 if (this.callbacks.hasOwnProperty(data.callback)) {
@@ -299,35 +194,23 @@ const cppJsLib = {
 
                 if (!this.exposedFunctions.hasOwnProperty(function_name)) {
                     console.warn(`C++ tried to call js function ${function_name} which does not exist`);
-                    this.sendRequest({
-                        header: "callback",
-                        callback: data.callback,
-                        ok: false,
-                        data: `The function with name ${function_name} is not exported`
-                    });
                     return;
                 }
 
                 const toSend = {
                     header: "callback",
                     callback: data.callback,
-                    ok: true,
                     data: null
                 };
 
-                try {
-                    if (data.data.length === 1) {
-                        if (data.data[0] == null) {
-                            toSend.data = this.exposedFunctions[function_name]();
-                        } else {
-                            toSend.data = this.exposedFunctions[function_name](data.data);
-                        }
+                if (data.data.length === 1) {
+                    if (data.data[0] == null) {
+                        toSend.data = this.exposedFunctions[function_name]();
                     } else {
-                        toSend.data = this.exposedFunctions[function_name](...data.data);
+                        toSend.data = this.exposedFunctions[function_name](data.data);
                     }
-                } catch (e) {
-                    toSend.ok = false;
-                    toSend.data = e.message;
+                } else {
+                    toSend.data = this.exposedFunctions[function_name](...data.data);
                 }
 
                 if (toSend.data === undefined) toSend.data = null;
@@ -350,7 +233,9 @@ const cppJsLib = {
 
             this.connected = true;
             this.webSocket.onclose = this.onClose;
+
             this.webSocket.onmessage = ws_onmessage;
+
             this.webSocket.onopen = init_request;
         } else {
             init_request();
@@ -380,27 +265,38 @@ const cppJsLib = {
 
                     this.webSocket.onmessage = ws_onmessage;
                 } else {
-                    const evtSource = new EventSource("cppjslib_events");
-                    evtSource.onopen = () => {
-                        console.debug("Listening for Server Sent Event: cppjslib_events");
-                    }
+                    for (let key in this.exposedFunctions) {
+                        const evtSource = new EventSource("cppjslib_events" + key);
+                        evtSource.onopen = () => {
+                            console.debug("Listening for Server Sent Event: ev_" + key);
+                        }
 
-                    evtSource.onclose = () => {
-                        console.debug("SSE connection closed")
-                        this.onClose();
-                    }
+                        evtSource.onclose = () => {
+                            console.debug("SSE connection closed")
+                        }
 
-                    evtSource.onmessage = ws_onmessage;
+                        evtSource.onmessage = (event) => {
+                            console.debug("Received sse event message: " + event.data);
+                            let data = JSON.parse(event.data);
+                            let key = Object.keys(data)[0];
+                            if (this.exposedFunctions.hasOwnProperty(key)) {
+                                if (data[key].length === 1) {
+                                    if (data[key][0] === "") {
+                                        this.exposedFunctions[key]();
+                                    } else {
+                                        this.exposedFunctions[key](JSON.parse(data[key]));
+                                    }
+                                } else {
+                                    this.exposedFunctions[key](...JSON.parse(data[key]));
+                                }
+                            }
+                        }
+                    }
                     this.connected = true;
                 }
             });
         }
     },
-    /**
-     * Generate a callback id
-     *
-     * @returns {string} a random callback id
-     */
     generateCallbackId: function () {
         const getId = () => Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
         let rnd = getId();
@@ -410,36 +306,23 @@ const cppJsLib = {
 
         return rnd;
     },
-    /**
-     * Add a c++ exported function to this. Will be called by init.
-     *
-     * @param {string} name the function name to import
-     * @param {number} numArgs the number of arguments the function expects
-     */
     addFn: function (name, numArgs) {
         console.debug(`Initializing function ${name} with ${numArgs} argument(s)`);
-        this[name] = function (...args) {
+        this[name] = function () {
             if (numArgs !== arguments.length) {
-                throw new Error(`Argument count does not match. Expected: ${numArgs} vs. got: ${arguments.length}`);
+                throw new Error("Argument count does not match!");
             }
 
             return new Promise((resolve, reject) => {
-                console.debug(`Calling function with args: ${args}`);
                 const toSend = {
-                    header: "call",
-                    func: name,
-                    data: args,
+                    header: `callfunc_${name}`,
+                    data: arguments,
                     callback: this.generateCallbackId()
                 };
 
                 this.sendRequest(toSend, (res) => {
-                    res = JSON.parse(res);
                     if (res.ok) {
-                        if (res.data == null) {
-                            resolve(undefined);
-                        } else {
-                            resolve(res.data);
-                        }
+                        resolve(res.data);
                     } else {
                         reject(res.data);
                     }
