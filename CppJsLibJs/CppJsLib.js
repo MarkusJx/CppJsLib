@@ -51,9 +51,14 @@ const cppJsLib = {
     disconnectTimeoutSeconds: 10,
     /**
      * The websocket object
-     * @type WebSocket
+     * @type WebSocket | null
      */
     webSocket: null,
+    /**
+     * The sse event source
+     * @type EventSource | null
+     */
+    eventSource: null,
     /**
      * Listen for an event. Current events are 'loaded' and 'disconnected'
      *
@@ -285,6 +290,7 @@ const cppJsLib = {
 
         // The main message parser
         const ws_onmessage = (event) => {
+            console.log("Abcdef");
             console.debug("Received websocket message: " + event.data);
             const data = JSON.parse(event.data);
             if (data.header === "callback") {
@@ -320,7 +326,7 @@ const cppJsLib = {
                         if (data.data[0] == null) {
                             toSend.data = this.exposedFunctions[function_name]();
                         } else {
-                            toSend.data = this.exposedFunctions[function_name](data.data);
+                            toSend.data = this.exposedFunctions[function_name](data.data[0]);
                         }
                     } else {
                         toSend.data = this.exposedFunctions[function_name](...data.data);
@@ -358,7 +364,7 @@ const cppJsLib = {
             this.sendHttpRequest("GET", "init_ws", null, (response) => {
                 let obj = JSON.parse(response);
                 console.debug("Initializing webSocket with message: " + response);
-                if (obj.ws) {
+                if (obj["ws"] == "true") {
                     let wsProtocol;
                     if (obj.tls) {
                         wsProtocol = "wss://";
@@ -380,18 +386,24 @@ const cppJsLib = {
 
                     this.webSocket.onmessage = ws_onmessage;
                 } else {
-                    const evtSource = new EventSource("cppjslib_events");
-                    evtSource.onopen = () => {
+                    this.eventSource = new EventSource("cppjslib_events");
+                    this.eventSource.onopen = () => {
                         console.debug("Listening for Server Sent Event: cppjslib_events");
+                        this.connected = true;
                     }
 
-                    evtSource.onclose = () => {
+                    this.eventSource.onclose = () => {
                         console.debug("SSE connection closed")
                         this.onClose();
                     }
 
-                    evtSource.onmessage = ws_onmessage;
-                    this.connected = true;
+                    this.eventSource.onerror = () => {
+                        console.debug("SSE connection error, closing connection");
+                        this.onClose();
+                        this.eventSource.close();
+                    };
+
+                    this.eventSource.onmessage = ws_onmessage;
                 }
             });
         }
