@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Abc</title>
+    <script src="CppJsLib.js"></script>
+</head>
+<body>
+<script>
+    cppJsLib.expose(fn);
+    function fn(i, x) {
+        //throw new Error("abc");
+        console.log("Fn called: " + i + ", " + x);
+        return i;
+    }
+
+    cppJsLib.listen('loaded', () => {
+        //cppJsLib.abc(4).then(console.log, e => console.error(e));
+    });
+</script>
+</body>
+</html>

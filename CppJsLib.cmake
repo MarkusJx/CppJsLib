@@ -1,4 +1,9 @@
 function(initCppJsLib TARGET INCLUDE_DIR)
+    if (NOT EXISTS ${INCLUDE_DIR})
+        message(STATUS "${INCLUDE_DIR} does not exist, creating it")
+        file(MAKE_DIRECTORY ${INCLUDE_DIR})
+    endif ()
+
     function(gitCloneRepo REPOSITORY_URL OUT_DIRECTORY)
         # Check if git exists, if so, clone repo
         find_program(GIT_PATH git)
@@ -66,6 +71,38 @@ function(initCppJsLib TARGET INCLUDE_DIR)
         endif ()
     endfunction(deleteWebsocketGit)
 
+    function(downloadHttpLib)
+        # Check if httplib.h exists, otherwise download it
+        if (EXISTS ${INCLUDE_DIR}/httplib.h)
+            message(STATUS "httplib.h found in include folder")
+        else ()
+            message(STATUS "httplib.h not found in include folder, downloading it")
+            file(DOWNLOAD https://raw.githubusercontent.com/yhirose/cpp-httplib/master/httplib.h
+                    ${INCLUDE_DIR}/httplib.h SHOW_PROGRESS STATUS HTTPLIB_DOWNLOAD)
+            if (HTTPLIB_DOWNLOAD)
+                message(STATUS "httplib.h download finished successfully")
+            else ()
+                message(FATAL_ERROR "httplib.h download failed. Cannot continue without it")
+            endif ()
+        endif ()
+    endfunction()
+
+    function(downloadJsonHpp)
+        # Check if json.hpp exists, otherwise download it
+        if (EXISTS ${INCLUDE_DIR}/json.hpp)
+            message(STATUS "json.hpp found in include folder")
+        else ()
+            message(STATUS "json.hpp not found in include folder, downloading it")
+            file(DOWNLOAD https://raw.githubusercontent.com/nlohmann/json/develop/single_include/nlohmann/json.hpp
+                    ${INCLUDE_DIR}/json.hpp SHOW_PROGRESS STATUS JSON_DOWNLOAD)
+            if (JSON_DOWNLOAD)
+                message(STATUS "json.hpp download finished successfully")
+            else ()
+                message(FATAL_ERROR "json.hpp download failed. Cannot continue without it")
+            endif ()
+        endif ()
+    endfunction()
+
     # Use find_package to find OpenSSL
     find_package(OpenSSL)
     if (OPENSSL_FOUND)
@@ -96,8 +133,22 @@ function(initCppJsLib TARGET INCLUDE_DIR)
         include_directories(${Boost_INCLUDE_DIRS})
         target_link_directories(${TARGET} PUBLIC ${Boost_LIBRARY_DIRS})
 
-        downloadWebsocketpp()
-        copyWebsocketpp()
-        deleteWebsocketGit()
+        if (NOT EXISTS ${INCLUDE_DIR}/websocketpp)
+            message(STATUS "${INCLUDE_DIR}/websocketpp does not exist, downloading websocketpp")
+            downloadWebsocketpp()
+            copyWebsocketpp()
+            deleteWebsocketGit()
+        else ()
+            message(STATUS "${INCLUDE_DIR}/websocketpp already exists, not downloading websocketpp")
+        endif ()
     endif ()
+
+    downloadJsonHpp()
+    downloadHttpLib()
+
+    if (NOT WIN32)
+        target_link_libraries(${TARGET} PUBLIC pthread)
+    endif ()
+
+    include_directories(${INCLUDE_DIR})
 endfunction()
