@@ -30,7 +30,7 @@ jobs:
     # Set enable/disable tls support
     - name: enable/disable ssl support
       run: |
-        if [ "${{matrix.options}}" = 'all' || "${{matrix.options}}" = 'openssl' ]; then
+        if [ "${{matrix.options}}" = 'all' ] || [ "${{matrix.options}}" = 'openssl' ]; then
           echo "::set-output name=value::FALSE"
         else
           echo "::set-output name=value::TRUE"
