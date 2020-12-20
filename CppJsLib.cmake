@@ -104,6 +104,7 @@ function(initCppJsLib TARGET INCLUDE_DIR)
     endfunction()
 
     if (NOT NO_SSL)
+        message(STATUS "Searching for OpenSSL")
         # Use find_package to find OpenSSL
         find_package(OpenSSL)
         if (OPENSSL_FOUND)
@@ -116,6 +117,8 @@ function(initCppJsLib TARGET INCLUDE_DIR)
             add_compile_definitions(CPPJSLIB_ENABLE_HTTPS)
             target_link_libraries(${TARGET} PUBLIC ${OPENSSL_LIBRARIES})
         endif ()
+    else ()
+        message(STATUS "Not searching for OpenSSL, since ssl support was disabled")
     endif ()
 
     if (WIN32)
