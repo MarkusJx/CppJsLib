@@ -20,20 +20,22 @@ jobs:
 
     strategy:
       matrix:
-        os: [ ubuntu-latest, windows-latest, macOs-latest ]
-    
+        #os: [ ubuntu-latest, windows-latest, macOs-latest ]
+         os: [ ubuntu-latest, macOs-latest ]
+         options: [ openssl, boost, all, none ]
+
     steps:
     - uses: actions/checkout@v1
 
     # Install boost on every system
     - name: install boost ubuntu
       run: sudo apt-get install libboost-dev -y
-      if: matrix.os == 'ubuntu-latest'
+      if: matrix.os == 'ubuntu-latest' && (matrix.options == 'boost' || matrix.options == 'all')
     - name: install boost macOs
       run: brew install boost
-      if: matrix.os == 'macOs-latest'
+      if: matrix.os == 'macOs-latest' && (matrix.options == 'boost' || matrix.options == 'all')
     - name: install boost windows
-      if: matrix.os == 'windows-latest'
+      if: matrix.os == 'windows-latest' && (matrix.options == 'boost' || matrix.options == 'all')
       uses: MarkusJx/install-boost@v1.0
       id: install-boost
       with:
@@ -43,10 +45,10 @@ jobs:
     # Install openssl
     - name: install openssl macOs
       run: brew install openssl
-      if: matrix.os == 'macOs-latest'
+      if: matrix.os == 'macOs-latest' && (matrix.options == 'openssl' || matrix.options == 'all')
     - name: install openssl windows
       run: choco install openssl -y
-      if: matrix.os == 'windows-latest'
+      if: matrix.os == 'windows-latest' && (matrix.options == 'openssl' || matrix.options == 'all')
 
     # Run cmake configure
     - name: cmake windows
