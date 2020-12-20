@@ -28,14 +28,16 @@ jobs:
     - uses: actions/checkout@v1
 
     # Set enable/disable tls support
-    - name: enable ssl support
+    - name: enable/disable ssl support
       if: matrix.options == 'all' || matrix.options == 'openssl'
-      run: echo "::set-output name=value::FALSE"
+      run: |
+        if [ "${{matrix.options}}" == 'all' || "${{matrix.options}}" == 'openssl' ]; then
+          echo "::set-output name=value::FALSE"
+        else
+          echo "::set-output name=value::TRUE"
+        fi
       id: ssl_support
-    - name: disable ssl support
-      if: matrix.os != 'all' && matrix.options != 'openssl'
-      run: echo "::set-output name=value::TRUE"
-      id: ssl_support
+      shell: bash
 
     # Install boost on every system
     - name: install boost ubuntu
