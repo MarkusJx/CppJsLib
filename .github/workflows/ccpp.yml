@@ -27,6 +27,16 @@ jobs:
     steps:
     - uses: actions/checkout@v1
 
+    # Set enable/disable tls support
+    - name: enable ssl support
+      if: matrix.options == 'all' || matrix.options == 'openssl'
+      run: echo "::set-output name=value::FALSE"
+      id: ssl_support
+    - name: disable ssl support
+      if: matrix.os != 'all' && matrix.options != 'openssl'
+      run: echo "::set-output name=value::TRUE"
+      id: ssl_support
+
     # Install boost on every system
     - name: install boost ubuntu
       run: sudo apt-get install libboost-dev -y
@@ -57,7 +67,7 @@ jobs:
       env:
         BOOST_ROOT: ${{steps.install-boost.outputs.BOOST_ROOT}}
     - name: cmake not windows
-      run: cmake -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} . -B build
+      run: cmake -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DNO_SSL=${{steps.ssl_support.outputs.value}} . -B build
       if: matrix.os != 'windows-latest'
 
     # Build

@@ -103,17 +103,19 @@ function(initCppJsLib TARGET INCLUDE_DIR)
         endif ()
     endfunction()
 
-    # Use find_package to find OpenSSL
-    find_package(OpenSSL)
-    if (OPENSSL_FOUND)
-        # OpenSSL was found, enable HTTPS support
-        message(STATUS "OpenSSL found, building with SSL Support")
-        message(STATUS "OpenSSL libaries: ${OPENSSL_INCLUDE_DIR}/../lib")
-        set(OPENSSL_LIBRARY_DIR "${OPENSSL_INCLUDE_DIR}/../lib")
+    if (NOT NO_SSL)
+        # Use find_package to find OpenSSL
+        find_package(OpenSSL)
+        if (OPENSSL_FOUND)
+            # OpenSSL was found, enable HTTPS support
+            message(STATUS "OpenSSL found, building with SSL Support")
+            message(STATUS "OpenSSL libaries: ${OPENSSL_INCLUDE_DIR}/../lib")
+            set(OPENSSL_LIBRARY_DIR "${OPENSSL_INCLUDE_DIR}/../lib")
 
-        include_directories(${OPENSSL_INCLUDE_DIR})
-        add_compile_definitions(CPPJSLIB_ENABLE_HTTPS)
-        target_link_libraries(${TARGET} PUBLIC ${OPENSSL_LIBRARIES})
+            include_directories(${OPENSSL_INCLUDE_DIR})
+            add_compile_definitions(CPPJSLIB_ENABLE_HTTPS)
+            target_link_libraries(${TARGET} PUBLIC ${OPENSSL_LIBRARIES})
+        endif ()
     endif ()
 
     if (WIN32)
