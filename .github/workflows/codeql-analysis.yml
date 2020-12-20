@@ -8,7 +8,6 @@ on:
       - "LICENSE"
       - ".gitignore"
       - ".github/workflows/release.yml"
-      - ".github/workflows/javabinding.yml"
       - ".github/workflows/ccpp.yml"
   pull_request:
     # The branches below must be a subset of the branches above
@@ -18,10 +17,7 @@ on:
       - "LICENSE"
       - ".gitignore"
       - ".github/workflows/release.yml"
-      - ".github/workflows/javabinding.yml"
       - ".github/workflows/ccpp.yml"
-  schedule:
-    - cron: '0 0 * * 0'
 
 jobs:
   analyze:
@@ -31,7 +27,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        language: [ 'cpp', 'java', 'javascript' ]
+        language: [ 'cpp', 'javascript' ]
 
     steps:
     - name: Checkout repository
@@ -43,31 +39,13 @@ jobs:
       with:
         languages: ${{ matrix.language }}
 
-    # Set up JDK for building java
-    - name: Set up JDK
-      uses: actions/setup-java@v1
-      if: matrix.language == 'java'
-      with:
-        java-version: '11.0.3'
-
-    # Build java
-    # This will load all sources into a file called 'sources.txt' and compile them all into a jar
-    - name: Build java
-      if: matrix.language == 'java'
-      working-directory: CppJsLibJava/src
-      run: |
-        find -name "*.java" > sources.txt
-        javac @sources.txt
-        jar cvf CppJsLibJava.jar com/markusjx/cppjslib/*.class com/markusjx/cppjslib/nt/*.class com/markusjx/cppjslib/interfaces/*.class com/markusjx/cppjslib/functional/*.class\
-                com/markusjx/cppjslib/util/*.class com/markusjx/cppjslib/exception/*.class
-
     # Build C++
     # This will install boost und build using cmake
     - name: Build c++
       if: matrix.language == 'cpp'
       run: |
         sudo apt-get install libboost1.65-all-dev -y
-        cmake -DCMAKE_BUILD_TYPE=Release -DENABLE_HTTPS=TRUE -DENABLE_WEBSOCKET=TRUE -DBUILDDLL=TRUE . -B build
+        cmake -DCMAKE_BUILD_TYPE=Release . -B build
         cmake --build build
 
     - name: Perform CodeQL Analysis

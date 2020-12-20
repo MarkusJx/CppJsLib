@@ -364,7 +364,7 @@ const cppJsLib = {
             this.sendHttpRequest("GET", "init_ws", null, (response) => {
                 let obj = JSON.parse(response);
                 console.debug("Initializing webSocket with message: " + response);
-                if (obj["ws"] == "true") {
+                if (obj["ws"] === true) {
                     let wsProtocol;
                     if (obj.tls) {
                         wsProtocol = "wss://";
@@ -380,6 +380,10 @@ const cppJsLib = {
                         console.warn("Error in websocket. Closing connection.");
                         this.webSocket.close();
                     }
+
+                    this.webSocket.onopen = () => {
+                        console.debug("Connected to the websocket server");
+                    };
 
                     this.connected = true;
                     this.webSocket.onclose = this.onClose;

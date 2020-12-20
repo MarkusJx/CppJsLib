@@ -5,216 +5,62 @@ on:
     paths-ignore: 
       - "README.md"
       - "LICENSE"
-      - "CppJsLibJs/**"
+      - "CppJsLibJs.js"
       - ".gitignore"
       - ".github/workflows/release.yml"
-      - ".github/workflows/javabinding.yml"
       - ".github/workflows/codeql-analysis.yml"
-      - "CppJsLibJava/**"
+
+env:
+  BUILD_TYPE: Release
 
 jobs:
-  build-ubuntu:
+  build:
 
-    runs-on: ubuntu-latest
+    runs-on: ${{matrix.os}}
+
+    strategy:
+      matrix:
+        os: [ ubuntu-latest, windows-latest, macOs-latest ]
     
     steps:
     - uses: actions/checkout@v1
-    - name: create include
-      run: mkdir include
-    - name: get json
-      uses: wei/wget@v1.1.1
-      with:
-        args: -O include/json.hpp https://github.com/nlohmann/json/releases/download/v3.7.3/json.hpp
-    - name: get httplib
-      uses: wei/wget@v1.1.1
-      with:
-        args: -O include/httplib.h https://raw.githubusercontent.com/yhirose/cpp-httplib/master/httplib.h
-    - name: cmake
-      run: cmake -DCMAKE_BUILD_TYPE=Debug -DUSE_DLL=TRUE .
-    - name: build
-      run: cmake --build . 
-    - name: run test
-      shell: bash
-      working-directory: ./test
-      run: ./Test
-    - name: Upload object
-      uses: actions/upload-artifact@v1
-      with:
-        name: CppJsLibLinux
-        path: src/libCppJsLib.so
-    - name: Upload test
-      uses: actions/upload-artifact@v1
-      with:
-        name: CppJsLibLinuxTest
-        path: test
-        
-  build-windows:
 
-    runs-on: windows-latest
-    
-    steps:
-    - uses: actions/checkout@v1
-    - name: create include
-      run: mkdir include
-    - name: get json
-      shell: powershell
-      run: wget https://github.com/nlohmann/json/releases/download/v3.7.3/json.hpp -OutFile include/json.hpp
-    - name: get httplib
-      shell: powershell
-      run: wget https://raw.githubusercontent.com/yhirose/cpp-httplib/master/httplib.h -OutFile include/httplib.h
-    - name: cmake
-      run: cmake -DUSE_DLL=TRUE .
-    - name: build
-      run: cmake --build .
-    #- name: run test
-    #  shell: cmd
-    #  run: Test.exe
-    #  working-directory: ./test/Debug
-    - name: Upload library
-      uses: actions/upload-artifact@v1
-      with:
-        name: CppJsLibWin
-        path: src/Debug
-    - name: Upload test
-      uses: actions/upload-artifact@v1
-      with:
-        name: CppJsLibWinTest
-        path: test/Debug
-  
-  build-macos:
-
-    runs-on: macos-latest
-    
-    steps:
-    - uses: actions/checkout@v1
-    - name: create include
-      run: mkdir include
-    - name: get json
-      run: wget -O include/json.hpp https://github.com/nlohmann/json/releases/download/v3.7.3/json.hpp
-    - name: get httplib
-      run: wget -O include/httplib.h https://raw.githubusercontent.com/yhirose/cpp-httplib/master/httplib.h
-    - name: cmake
-      run: cmake -DCMAKE_BUILD_TYPE=Debug -DUSE_DLL=TRUE .
-    - name: build
-      run: cmake --build .
-    - name: run test
-      run: ./Test
-      shell: bash
-      working-directory: ./test
-    - name: Upload object
-      uses: actions/upload-artifact@v1
-      with:
-        name: CppJsLibMacOs
-        path: src/libCppJsLib.dylib
-    - name: Upload test
-      uses: actions/upload-artifact@v1
-      with:
-        name: CppJsLibMacOsTest
-        path: test
-  
-  build-ubuntu-all:
-
-    runs-on: ubuntu-latest
-    
-    steps:
-    - uses: actions/checkout@v1
-    - name: create include
-      run: mkdir include
-    - name: install boost
-      run: sudo apt-get install libboost1.65-all-dev -y
-    - name: cmake release
-      run: cmake -DCMAKE_BUILD_TYPE=Release -DENABLE_HTTPS=TRUE -DENABLE_WEBSOCKET=TRUE -DBUILDDLL=TRUE .
-    - name: build release
-      run: cmake --build . 
-    - name: Upload release object
-      uses: actions/upload-artifact@v1
-      with:
-        name: CppJsLibReleaseLinux
-        path: src/libCppJsLib.so
-    - name: cmake debug
-      run: cmake -DCMAKE_BUILD_TYPE=Debug -DENABLE_HTTPS=TRUE -DENABLE_WEBSOCKET=TRUE -DBUILDDLL=TRUE .
-    - name: build debug
-      run: cmake --build .
-    - name: Upload debug object
-      uses: actions/upload-artifact@v1
-      with:
-        name: CppJsLibDebugLinux
-        path: src/libCppJsLib.so
-
-  build-windows-all:
-
-    runs-on: windows-latest
-
-    steps:
-      - uses: actions/checkout@v1
-      - name: create include folder
-        run: mkdir include
-      - name: create lib folder
-        run: mkdir lib
-      - name: download openssl
-        shell: powershell
-        run: wget https://mirror.firedaemon.com/OpenSSL/openssl-1.1.1h-dev.zip -OutFile openssl.zip
-      - name: unzip openssl
-        run: 7z x openssl.zip -r -y
-      - name: copy openssl headers
-        run: cp -r openssl-1.1/x64/include/openssl include
-        shell: cmd
-      - name: copy openssl libs
-        run: cp -r openssl-1.1/x64/lib/. lib
-        shell: cmd
-      - name: Install boost
-        if: steps.cache-boost.outputs.cache-hit != 'true'
-        uses: MarkusJx/install-boost@v1.0
-        id: install-boost
-        with:
-          boost_version: 1.69.0
-          toolset: msvc14.1
-      - name: run cmake
-        run: cmake -DENABLE_HTTPS=TRUE -DENABLE_WEBSOCKET=TRUE -DBUILDDLL=TRUE .
-        env:
-          BOOST_ROOT: ${{steps.install-boost.outputs.BOOST_ROOT}}
-      - name: build release
-        run: cmake --build . --config Release
-      - name: build debug
-        run: cmake --build . --config Debug
-      - name: Upload release library
-        uses: actions/upload-artifact@v1
-        with:
-          name: CppJsLibReleaseWin
-          path: src/Release
-      - name: Upload debug library
-        uses: actions/upload-artifact@v1
-        with:
-          name: CppJsLibDebugWin
-          path: src/Debug
-
-  build-macos-all:
-
-    runs-on: macos-latest
-
-    steps:
-    - uses: actions/checkout@v1
-    - name: create include
-      run: mkdir include
-    - name: install openssl
-      run: brew install openssl
-    - name: install boost
+    # Install boost on every system
+    - name: install boost ubuntu
+      run: sudo apt-get install libboost-all-dev -y
+      if: matrix.os == 'ubuntu-latest'
+    - name: install boost macOs
       run: brew install boost
-    - name: cmake release
-      run: cmake -DCMAKE_BUILD_TYPE=Release -DENABLE_HTTPS=TRUE -DENABLE_WEBSOCKET=TRUE -DBUILDDLL=TRUE -DOPENSSL_ROOT_DIR="/usr/local/opt/openssl@1.1" .
-    - name: build release
-      run: cmake --build .
-    - name: Upload release object
-      uses: actions/upload-artifact@v1
+      if: matrix.os == 'macOs-latest'
+    - name: install boost windows
+      uses: MarkusJx/install-boost@v1.0
+      id: install-boost
       with:
-        name: CppJsLibReleaseMacOs
-        path: src/libCppJsLib.dylib
-    - name: cmake debug
-      run: cmake -DCMAKE_BUILD_TYPE=Debug -DENABLE_HTTPS=TRUE -DENABLE_WEBSOCKET=TRUE -DBUILDDLL=TRUE -DOPENSSL_ROOT_DIR="/usr/local/opt/openssl@1.1" .
-    - name: build debug
-      run: cmake --build .
-    - name: Upload debug object
-      uses: actions/upload-artifact@v1
-      with:
-        name: CppJsLibDebugMacOs
-        path: src/libCppJsLib.dylib
+        boost_version: 1.73.0
+        toolset: msvc14.2
+
+    # Install openssl
+    - name: install openssl macOs
+      run: brew install openss
+      if: matrix.os == 'macOs-latest'
+    - name: install openssl windows
+      run: choco install openssl -y
+      if: matrix.os == 'windows-latest'
+
+    # Run cmake configure
+    - name: cmake windows
+      run: cmake . -B build
+      if: matrix.os == 'windows-latest'
+      env:
+        BOOST_ROOT: ${{steps.install-boost.outputs.BOOST_ROOT}}
+    - name: cmake not windows
+      run: cmake -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} . -B build
+      if: matrix.os != 'windows-latest'
+
+    # Build
+    - name: build
+      run: cmake --build build --config ${{env.BUILD_TYPE}}
+    #- name: run test
+    #  shell: bash
+    #  working-directory: ./test
+    #  run: ./Test

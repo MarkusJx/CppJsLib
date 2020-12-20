@@ -113,6 +113,7 @@ function(initCppJsLib TARGET INCLUDE_DIR)
 
         include_directories(${OPENSSL_INCLUDE_DIR})
         add_compile_definitions(CPPJSLIB_ENABLE_HTTPS)
+        target_link_libraries(${TARGET} PUBLIC ${OPENSSL_LIBRARIES})
     endif ()
 
     if (WIN32)

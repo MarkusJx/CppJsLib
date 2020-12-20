@@ -11,3 +11,9 @@ target_precompile_headers(${PROJECT_NAME} PUBLIC CppJsLib.hpp)
 
 include(CppJsLib.cmake)
 initCppJsLib(${PROJECT_NAME} ${CMAKE_SOURCE_DIR}/include)
+
+if (MSVC)
+    target_compile_options(${PROJECT_NAME} PRIVATE /W4 /bigobj)
+else ()
+    target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -pedantic)
+endif ()

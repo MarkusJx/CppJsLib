@@ -1,20 +1,17 @@
 #include "CppJsLib.hpp"
 
-std::function<int(int, std::string)> fn;
+std::function<markusjx::cppJsLib::Response<int>(int)> fn;
 std::function<void(std::promise<void> &)> d;
 
 int abc(int i) {
     std::cout << "abc called: " << i << std::endl;
-    std::thread([i] {
-        int x = fn(i, "25");
-        std::cout << "a: " << x << std::endl;
-    }).detach();
     return i;
 }
 
 int main() {
+    //*
     try {
-        markusjx::CppJsLib::Server gui(".");
+        markusjx::cppJsLib::Server gui(".");
         gui.setLogger([](const std::string &s) {
             std::cout << s << std::endl;
         });
@@ -27,11 +24,26 @@ int main() {
         gui.import(fn);
         gui.import(d);
 
-        //gui.start(80, "localhost", 81, true);
-        gui.startNoWebSocket(1234);
+        std::thread([] {
+            try {
+                std::this_thread::sleep_for(std::chrono::seconds(30));
+                markusjx::cppJsLib::Response<int> res = fn(5);
+                res.wait();
+                std::cout << res.size() << std::endl;
+
+                for (int i : res) {
+                    std::cout << i << std::endl;
+                }
+            } catch (const std::exception &e) {
+                std::cerr << e.what() << std::endl;
+            }
+        }).detach();
+
+        gui.start(80, "localhost", 81, true);
+        //srv.startNoWebSocket(1234);
     } catch (std::exception &e) {
         std::cerr << e.what() << std::endl;
-    }
+    }//*/
 
     return 0;
 }
