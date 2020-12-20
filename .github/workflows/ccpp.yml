@@ -27,7 +27,7 @@ jobs:
 
     # Install boost on every system
     - name: install boost ubuntu
-      run: sudo apt-get install libboost-all-dev -y
+      run: sudo apt-get install libboost-dev -y
       if: matrix.os == 'ubuntu-latest'
     - name: install boost macOs
       run: brew install boost
