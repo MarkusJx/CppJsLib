@@ -42,7 +42,7 @@ jobs:
 
     # Install openssl
     - name: install openssl macOs
-      run: brew install openss
+      run: brew install openssl
       if: matrix.os == 'macOs-latest'
     - name: install openssl windows
       run: choco install openssl -y
