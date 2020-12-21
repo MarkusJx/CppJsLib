@@ -19,14 +19,13 @@ env:
   BUILD_TYPE: Release
 
 jobs:
-  analyze:
-    name: Analyze
+  analyze-cpp:
+    name: Analyze-cpp
     runs-on: ubuntu-20.04
 
     strategy:
       fail-fast: false
       matrix:
-        language: [ 'cpp', 'javascript' ]
         options: [ 'openssl', 'boost', 'all', 'none' ]
 
     steps:
@@ -37,11 +36,11 @@ jobs:
     - name: Initialize CodeQL
       uses: github/codeql-action/init@v1
       with:
-        languages: ${{ matrix.language }}
+        languages: 'cpp'
 
-    # Install boost if the language is 'cpp' and the options are 'boost' or 'all'
+    # Install boost if the options are 'boost' or 'all'
     - name: Install boost
-      if: matrix.language == 'cpp' && (matrix.options == 'boost' || matrix.options == 'all')
+      if: matrix.options == 'boost' || matrix.options == 'all'
       run: sudo apt-get install libboost-all-dev -y
 
     # Set enable/disable tls support
@@ -53,16 +52,34 @@ jobs:
           echo "::set-output name=value::TRUE"
         fi
       id: ssl_support
-      if: matrix.language == 'cpp'
       shell: bash
 
     # Build C++
     # This will install boost und build using cmake
     - name: Build c++
-      if: matrix.language == 'cpp'
       run: |
         cmake -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DNO_SSL=${{steps.ssl_support.outputs.value}} . -B build
         cmake --build build
+
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v1
+
+  analyze-js:
+    name: Analyze-js
+    runs-on: ubuntu-20.04
+
+    strategy:
+      fail-fast: false
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    # Initializes the CodeQL tools for scanning.
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v1
+      with:
+        languages: 'javascript'
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v1
