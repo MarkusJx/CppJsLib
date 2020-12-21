@@ -108,8 +108,8 @@ namespace markusjx::cppJsLib {
     namespace exceptions {
         class CppJsLibException : public std::exception {
         public:
-            inline explicit CppJsLibException(std::string msg) : message(std::move(msg)),
-                                                                 exceptionType("CppJsLibException"), std::exception() {}
+            inline explicit CppJsLibException(std::string msg) : std::exception(), exceptionType("CppJsLibException"),
+                                                                 message(std::move(msg)) {}
 
             CPPJSLIB_NODISCARD inline const char *getExceptionType() const noexcept { return exceptionType; }
 
@@ -117,7 +117,7 @@ namespace markusjx::cppJsLib {
 
         protected:
             CppJsLibException(const char *exceptionType, std::string msg)
-                    : message(std::move(msg)), exceptionType(exceptionType), std::exception() {}
+                    : std::exception(), exceptionType(exceptionType), message(std::move(msg)) {}
 
         private:
             const char *exceptionType;
@@ -283,10 +283,7 @@ namespace markusjx::cppJsLib {
             /**
              * Create a event dispatcher instance
              */
-            inline EventDispatcher() {
-                id_ = 0;
-                cid_ = -1;
-            }
+            inline EventDispatcher() : clients(0), id_(0), cid_(-1) {}
 
             /**
              * Wait for an event
@@ -379,7 +376,7 @@ namespace markusjx::cppJsLib {
             }
         }
 
-        static void on_http(wspp::server_tls *s, websocketpp::connection_hdl hdl) {
+        static void on_http(const std::shared_ptr<wspp::server_tls> &s, websocketpp::connection_hdl hdl) {
             wspp::server_tls::connection_ptr con = s->get_con_from_hdl(std::move(hdl));
 
             con->set_body("");
@@ -387,7 +384,7 @@ namespace markusjx::cppJsLib {
         }
 
         static wspp::context_ptr
-        on_tls_init(tls_mode mode, const websocketpp::connection_hdl &hdl, const std::string &cert_path,
+        on_tls_init(tls_mode mode, const websocketpp::connection_hdl &, const std::string &cert_path,
                     const std::string &private_key_path, const std::function<void(std::string)> &log,
                     const std::function<void(std::string)> &err) {
             namespace asio = websocketpp::lib::asio;
@@ -409,7 +406,7 @@ namespace markusjx::cppJsLib {
                                      asio::ssl::context::no_sslv2 | asio::ssl::context::no_sslv3 |
                                      asio::ssl::context::single_dh_use);
                 }
-                ctx->set_password_callback(bind(&get_password));
+                ctx->set_password_callback([](auto, auto) { return get_password(); });
                 ctx->use_certificate_chain_file(cert_path);
                 ctx->use_private_key_file(private_key_path, boost::asio::ssl::context::pem);
 
@@ -450,16 +447,17 @@ namespace markusjx::cppJsLib {
 
         static void initWebsocketTLS(const std::shared_ptr<wspp::server_tls> &s,
                                      const std::string &cert_path,
-                                     const std::string &private_key_path, const std::function<void(std::string)> &log, const std::function<void(std::string)> &err) {
+                                     const std::string &private_key_path, const std::function<void(std::string)> &log,
+                                     const std::function<void(std::string)> &err) {
             try {
-                std::function < wspp::context_ptr(tls_mode, websocketpp::connection_hdl) > on_tls =
-                        [cert_path, private_key_path, &log, &err](tls_mode mode,
-                                                      const websocketpp::connection_hdl &hdl) {
-                            return on_tls_init(mode, hdl, cert_path, private_key_path, log, err);
-                        };
+                s->set_http_handler([s](const websocketpp::connection_hdl &hdl) {
+                    return on_http(s, hdl);
+                });
 
-                s->set_http_handler(bind(&on_http, s.get(), std::placeholders::_1));
-                s->set_tls_init_handler(bind(on_tls, MOZILLA_INTERMEDIATE, std::placeholders::_1));
+                s->set_tls_init_handler(
+                        [cert_path, private_key_path, &log, &err](const websocketpp::connection_hdl &hdl) {
+                            return on_tls_init(MOZILLA_INTERMEDIATE, hdl, cert_path, private_key_path, log, err);
+                        });
             } catch (websocketpp::exception const &e) {
                 CPPJSLIB_ERR(e.what());
             } catch (...) {
@@ -476,12 +474,10 @@ namespace markusjx::cppJsLib {
          * @param s the server to initialize
          * @param list the connection list
          * @param err the error logger
-         * @param log the logging function
          */
         template<typename EndpointType>
         static void initWebsocketServer(std::shared_ptr<EndpointType> s, const std::shared_ptr<wspp::con_list> &list,
-                                        const std::function<void(const std::string &)> &err,
-                                        const std::function<void(const std::string &)> &log) {
+                                        const std::function<void(const std::string &)> &err) {
             try {
                 s->set_open_handler([list](const websocketpp::connection_hdl &hdl) {
                     list->insert(hdl);
@@ -626,7 +622,7 @@ namespace markusjx::cppJsLib {
          *
          * @param e_ptr the exception pointer
          */
-        inline explicit ResponseValue(const std::exception_ptr &e_ptr) : value(nullptr), exception(e_ptr) {}
+        inline explicit ResponseValue(std::exception_ptr e_ptr) : value(nullptr), exception(std::move(e_ptr)) {}
 
         /**
          * Get the stored value.
@@ -835,9 +831,9 @@ namespace markusjx::cppJsLib {
          *
          * @param base_dir the base directory
          */
-        explicit inline Server(std::string base_dir = ".") : base_dir(std::move(base_dir)), ssl(false),
-                                                             check_ports(true), fallback_plain_port(0), _running(false),
-                                                             stopped(true) {
+        explicit inline Server(std::string base_dir = ".") : check_ports(true), ssl(false), _running(false),
+                                                             stopped(true), base_dir(std::move(base_dir)),
+                                                             fallback_plain_port(0) {
             // Create the web server
             webServer = std::make_shared<httplib::Server>();
             webServer->set_mount_point("/", this->base_dir.c_str());
@@ -869,15 +865,16 @@ namespace markusjx::cppJsLib {
             websocketServer = std::make_shared<util::wspp::server>();
             websocketConnections = std::make_shared<util::wspp::con_list>();
 
-            util::initWebsocketServer(websocketServer, websocketConnections, err, log);
+            util::initWebsocketServer(websocketServer, websocketConnections, err);
 #endif //CPPJSLIB_ENABLE_WEBSOCKET
         }
 
 #ifdef CPPJSLIB_ENABLE_HTTPS
 
-        inline Server(const std::string &base_dir, const std::string &cert_path, const std::string &private_key_path,
-                      uint16_t fallback_plain_port = true) : fallback_plain_port(fallback_plain_port), ssl(true),
-                                                             check_ports(true), _running(false), stopped(true) {
+        inline Server(std::string base_dir, const std::string &cert_path, const std::string &private_key_path,
+                      uint16_t fallback_plain_port = true) : ssl(true), check_ports(true), _running(false),
+                                                             stopped(true), base_dir(std::move(base_dir)),
+                                                             fallback_plain_port(fallback_plain_port) {
             if (cert_path.empty() || private_key_path.empty()) {
                 throw exceptions::InvalidArgumentsException(
                         "The certificate or private key paths were empty");
@@ -903,13 +900,13 @@ namespace markusjx::cppJsLib {
             websocketConnections = std::make_shared<websocket_con_list>();
             websocketTLSServer = std::make_shared<websocket_ssl_type>();
             util::initWebsocketTLS(websocketTLSServer, cert_path, private_key_path, log, err);
-            util::initWebsocketServer(websocketTLSServer, websocketConnections, err, log);
+            util::initWebsocketServer(websocketTLSServer, websocketConnections, err);
 
             if (fallback_plain_port) {
                 CPPJSLIB_LOG("Initializing websocket plain fallback server");
                 websocketFallbackServer = std::make_shared<websocket_fallback_type>();
                 websocketFallbackConnections = std::make_shared<websocket_fallback_connections_type>();
-                util::initWebsocketServer(websocketFallbackServer, websocketFallbackConnections, err, log);
+                util::initWebsocketServer(websocketFallbackServer, websocketFallbackConnections, err);
             }
 #endif//CPPJSLIB_ENABLE_WEBSOCKET
         }
@@ -962,16 +959,16 @@ namespace markusjx::cppJsLib {
             if (ssl) {
                 CPPJSLIB_LOG("Starting websocket tls server");
                 _running = util::startNoWeb_f(websocketServer, host, port, block, err, log,
-                                             [this](const std::string &msg) {
-                                                 return this->handleMessages(msg);
-                                             });
+                                              [this](const std::string &msg) {
+                                                  return this->handleMessages(msg);
+                                              });
                 return _running;
             } else {
                 CPPJSLIB_LOG("Starting websocket server");
                 _running = util::startNoWeb_f(websocketServer, host, port, block, err, log,
-                                             [this](const std::string &msg) {
-                                                 return this->handleMessages(msg);
-                                             });
+                                              [this](const std::string &msg) {
+                                                  return this->handleMessages(msg);
+                                              });
                 return _running;
             }
 #   else
@@ -1810,11 +1807,11 @@ namespace markusjx::cppJsLib {
             initMap.clear();
 
             initString = initList.dump();
-            const auto initHandler = [this](const httplib::Request &req, httplib::Response &res) {
+            const auto initHandler = [this](const httplib::Request &, httplib::Response &res) {
                 res.set_content(initString, "text/plain");
             };
 
-            const auto init_ws_handler = [init_ws_string](const httplib::Request &req, httplib::Response &res) {
+            const auto init_ws_handler = [init_ws_string](const httplib::Request &, httplib::Response &res) {
                 res.set_content(init_ws_string, "text/plain");
             };
 
@@ -1954,13 +1951,13 @@ namespace markusjx::cppJsLib {
             websocketTargets.insert(std::pair<std::string, PostHandler>(name, fn));
         }
 
-        const bool ssl; // Whether to use ssl
+        CPPJSLIB_UNUSED const bool ssl; // Whether to use ssl
         bool websocket_only; // Whether this is websocket only
         bool no_websocket; // Whether websocket is disabled
         bool _running, stopped; // Whether the servers are running or stopped
         std::string base_dir; // The web base directory
-        uint16_t fallback_plain_port; // The websocket plain fallback server port
         std::string initString; // The init string. Contains all exported functions in a json array as a string.
+        CPPJSLIB_UNUSED uint16_t fallback_plain_port; // The websocket plain fallback server port
 
         // The function initializer map.
         // Contains the function name as a key
