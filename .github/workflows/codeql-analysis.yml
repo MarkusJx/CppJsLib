@@ -2,32 +2,32 @@ name: "CodeQL"
 
 on:
   push:
-    branches: [ master ]
     paths-ignore: 
       - "README.md"
       - "LICENSE"
       - ".gitignore"
-      - ".github/workflows/release.yml"
       - ".github/workflows/ccpp.yml"
   pull_request:
-    # The branches below must be a subset of the branches above
     branches: [ master ]
     paths-ignore: 
       - "README.md"
       - "LICENSE"
       - ".gitignore"
-      - ".github/workflows/release.yml"
       - ".github/workflows/ccpp.yml"
+
+env:
+  BUILD_TYPE: Release
 
 jobs:
   analyze:
     name: Analyze
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
 
     strategy:
       fail-fast: false
       matrix:
         language: [ 'cpp', 'javascript' ]
+        options: [ 'openssl', 'boost', 'all', 'none' ]
 
     steps:
     - name: Checkout repository
@@ -39,13 +39,29 @@ jobs:
       with:
         languages: ${{ matrix.language }}
 
+    # Install boost if the language is 'cpp' and the options are 'boost' or 'all'
+    - name: Install boost
+      if: matrix.language == 'cpp' && (matrix.options == 'boost' || matrix.options == 'all')
+      run: sudo apt-get install libboost-all-dev -y
+
+    # Set enable/disable tls support
+    - name: enable/disable ssl support
+      run: |
+        if [ "${{matrix.options}}" = 'all' ] || [ "${{matrix.options}}" = 'openssl' ]; then
+          echo "::set-output name=value::FALSE"
+        else
+          echo "::set-output name=value::TRUE"
+        fi
+      id: ssl_support
+      if: matrix.language == 'cpp'
+      shell: bash
+
     # Build C++
     # This will install boost und build using cmake
     - name: Build c++
       if: matrix.language == 'cpp'
       run: |
-        sudo apt-get install libboost1.65-all-dev -y
-        cmake -DCMAKE_BUILD_TYPE=Release . -B build
+        cmake -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DNO_SSL=${{steps.ssl_support.outputs.value}} . -B build
         cmake --build build
 
     - name: Perform CodeQL Analysis
