@@ -40,7 +40,7 @@ jobs:
 
     # Install boost on every system
     - name: install boost ubuntu
-      run: sudo apt-get install libboost-dev -y
+      run: sudo apt-get install libboost-all-dev -y
       if: matrix.os == 'ubuntu-20.04' && (matrix.options == 'boost' || matrix.options == 'all')
     - name: install boost macOs
       run: brew install boost
