@@ -10,6 +10,7 @@ add_executable(${PROJECT_NAME} test.cpp CppJsLib.hpp)
 target_precompile_headers(${PROJECT_NAME} PUBLIC CppJsLib.hpp)
 
 option(NO_SSL FALSE)
+option(NO_WEBSOCKET FALSE)
 
 include(CppJsLib.cmake)
 initCppJsLib(${PROJECT_NAME} ${CMAKE_SOURCE_DIR}/include)

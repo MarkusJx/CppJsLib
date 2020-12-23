@@ -290,12 +290,15 @@ const cppJsLib = {
 
         // The main message parser
         const ws_onmessage = (event) => {
-            console.log("Abcdef");
             console.debug("Received websocket message: " + event.data);
             const data = JSON.parse(event.data);
             if (data.header === "callback") {
                 if (this.callbacks.hasOwnProperty(data.callback)) {
-                    this.callbacks[data.callback](data.data);
+                    if (data.ok) {
+                        this.callbacks[data.callback](data.data);
+                    } else {
+                        this.callbacks[data.callback](new Error(data.data));
+                    }
                     this.callbacks.splice(this.callbacks.indexOf(data.callback), 1);
                 } else {
                     console.warn("Received data with callback, but this callback does not exist");

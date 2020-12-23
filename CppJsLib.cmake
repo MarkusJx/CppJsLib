@@ -121,11 +121,15 @@ function(initCppJsLib TARGET INCLUDE_DIR)
         message(STATUS "Not searching for OpenSSL, since ssl support was disabled")
     endif ()
 
-    if (WIN32)
-        find_package(Boost 1.65)
+    if (NOT NO_WEBSOCKET)
+        if (WIN32)
+            find_package(Boost 1.65)
+        else ()
+            # Search for component 'system' on non-windows machines
+            find_package(Boost 1.65 COMPONENTS system)
+        endif ()
     else ()
-        # Search for component 'system' on non-windows machines
-        find_package(Boost 1.65 COMPONENTS system)
+        message(STATUS "Not searching for boost, since websocket support was disabled")
     endif ()
 
     if (Boost_FOUND)
