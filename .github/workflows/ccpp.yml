@@ -78,3 +78,23 @@ jobs:
     #  shell: bash
     #  working-directory: ./test
     #  run: ./Test
+
+  # Download the dependencies using conan and build
+  build-conan:
+
+    runs-on: ${{matrix.os}}
+
+    strategy:
+      matrix:
+         os: [ ubuntu-latest, windows-latest, macOs-latest ]
+
+    steps:
+    - uses: actions/checkout@v1
+    - name: Get Conan
+      uses: turtlebrowser/get-conan@v1.0
+    - name: Run conan install
+      run: conan install .
+    - name: Run cmake
+      run: cmake . -B build -DCMAKE_BUILD_TYPE=Release -DUSE_CONAN=TRUE
+    - name: Build
+      run: cmake --build build --config Release
