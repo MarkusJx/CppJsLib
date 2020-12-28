@@ -55,7 +55,6 @@
 
 #include <functional>
 #include <httplib.h>
-#include <json.hpp>
 #include <map>
 #include <memory>
 #include <sstream>
@@ -65,7 +64,29 @@
 #include <utility>
 #include <memory>
 
+#ifdef __has_include
+#   if __has_include(<nlohmann/json.hpp>)
+
+#       include <nlohmann/json.hpp>
+
+#   elif __has_include(<json.hpp>)
+#       include <json.hpp>
+#   else
+#       error "json.hpp was not found"
+#   endif
+#else
+#   ifdef CPPJSLIB_INCLUDE_NLOHMANN_JSON
+#       include <nlohmann/json.hpp>
+#   else
+#       include <json.hpp>
+#   endif //CPPJSLIB_INCLUDE_NLOHMANN_JSON
+#endif //__has_include
+
 #ifdef CPPJSLIB_ENABLE_WEBSOCKET
+// Define _GNU_SOURCE when compiling with gcc for boost::stacktrace
+#   if defined(__GNUG__) && !defined(_GNU_SOURCE)
+#       define _GNU_SOURCE
+#   endif //__GNUG__
 
 #   include <set>
 #   include <websocketpp/server.hpp>
@@ -882,6 +903,7 @@ namespace markusjx::cppJsLib {
         }
 
 #ifdef CPPJSLIB_ENABLE_WEBSOCKET
+
         inline bool connectWebsocketOnly(const std::string &hostname, uint16_t port, bool block = true) {
             if (running()) {
                 throw exceptions::CppJsLibException("The client is already connected");
@@ -889,6 +911,7 @@ namespace markusjx::cppJsLib {
 
             return startWebsocket(hostname, port, block, false);
         }
+
 #endif //CPPJSLIB_ENABLE_WEBSOCKET
 
         virtual inline bool running() {
@@ -997,6 +1020,7 @@ namespace markusjx::cppJsLib {
         }
 
 #ifdef CPPJSLIB_ENABLE_WEBSOCKET
+
         virtual inline bool startWebsocket(const std::string &hostname, uint16_t port, bool block, bool tls) {
             if (tls) {
                 throw exceptions::CppJsLibException("Cannot connect to the websocket server in tls mode");
@@ -1056,6 +1080,7 @@ namespace markusjx::cppJsLib {
                 return false;
             }
         }
+
 #endif //CPPJSLIB_ENABLE_WEBSOCKET
 
         /**
@@ -1197,6 +1222,7 @@ namespace markusjx::cppJsLib {
 
     private:
 #ifdef CPPJSLIB_ENABLE_WEBSOCKET
+
         inline bool startWebsocket(const std::string &hostname, uint16_t port, bool block, bool tls) override {
             std::unique_lock<std::mutex> lock(connect_mtx);
             client_ssl = std::make_shared<websocket_ssl_type>();
@@ -1258,6 +1284,7 @@ namespace markusjx::cppJsLib {
                 return false;
             }
         }
+
 #endif //CPPJSLIB_ENABLE_WEBSOCKET
 
         /**
@@ -2221,7 +2248,7 @@ namespace markusjx::cppJsLib {
         template<typename Endpoint>
         inline bool startNoWeb_f(std::shared_ptr<Endpoint> ws_server, const std::string &host, int port, bool block) {
             ws_server->set_message_handler([ws_server, this](const websocketpp::connection_hdl &hdl,
-                                                              const util::wspp::server::message_ptr &msg) {
+                                                             const util::wspp::server::message_ptr &msg) {
                 return onMessage<Endpoint>(ws_server, hdl, msg);
             });
 

@@ -137,9 +137,13 @@ dkms.conf
 .idea/misc.xml
 .idea/modules.xml
 .idea/vcs.xml
-cmake-build-debug/Autobet.cbp
 include/
 .cache/
 .vscode/
 build/
 .DS_STORE
+conanbuildinfo.cmake
+conanbuildinfo.txt
+conaninfo.txt
+graph_info.json
+cmake-build-*/
