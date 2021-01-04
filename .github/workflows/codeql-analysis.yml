@@ -2,36 +2,31 @@ name: "CodeQL"
 
 on:
   push:
-    branches: [ master ]
     paths-ignore: 
       - "README.md"
       - "LICENSE"
       - ".gitignore"
-      - ".github/workflows/release.yml"
-      - ".github/workflows/javabinding.yml"
       - ".github/workflows/ccpp.yml"
   pull_request:
-    # The branches below must be a subset of the branches above
     branches: [ master ]
     paths-ignore: 
       - "README.md"
       - "LICENSE"
       - ".gitignore"
-      - ".github/workflows/release.yml"
-      - ".github/workflows/javabinding.yml"
       - ".github/workflows/ccpp.yml"
-  schedule:
-    - cron: '0 0 * * 0'
+
+env:
+  BUILD_TYPE: Release
 
 jobs:
-  analyze:
-    name: Analyze
-    runs-on: ubuntu-latest
+  analyze-cpp:
+    name: Analyze-cpp
+    runs-on: ubuntu-20.04
 
     strategy:
       fail-fast: false
       matrix:
-        language: [ 'cpp', 'java', 'javascript' ]
+        options: [ 'openssl', 'boost', 'all', 'none' ]
 
     steps:
     - name: Checkout repository
@@ -41,34 +36,50 @@ jobs:
     - name: Initialize CodeQL
       uses: github/codeql-action/init@v1
       with:
-        languages: ${{ matrix.language }}
+        languages: 'cpp'
 
-    # Set up JDK for building java
-    - name: Set up JDK
-      uses: actions/setup-java@v1
-      if: matrix.language == 'java'
-      with:
-        java-version: '11.0.3'
+    # Install boost if the options are 'boost' or 'all'
+    - name: Install boost
+      if: matrix.options == 'boost' || matrix.options == 'all'
+      run: sudo apt-get install libboost-all-dev -y
 
-    # Build java
-    # This will load all sources into a file called 'sources.txt' and compile them all into a jar
-    - name: Build java
-      if: matrix.language == 'java'
-      working-directory: CppJsLibJava/src
+    # Set enable/disable tls support
+    - name: enable/disable ssl support
       run: |
-        find -name "*.java" > sources.txt
-        javac @sources.txt
-        jar cvf CppJsLibJava.jar com/markusjx/cppjslib/*.class com/markusjx/cppjslib/nt/*.class com/markusjx/cppjslib/interfaces/*.class com/markusjx/cppjslib/functional/*.class\
-                com/markusjx/cppjslib/util/*.class com/markusjx/cppjslib/exception/*.class
+        if [ "${{matrix.options}}" = 'all' ] || [ "${{matrix.options}}" = 'openssl' ]; then
+          echo "::set-output name=value::FALSE"
+        else
+          echo "::set-output name=value::TRUE"
+        fi
+      id: ssl_support
+      shell: bash
 
     # Build C++
     # This will install boost und build using cmake
     - name: Build c++
-      if: matrix.language == 'cpp'
       run: |
-        sudo apt-get install libboost1.65-all-dev -y
-        cmake -DCMAKE_BUILD_TYPE=Release -DENABLE_HTTPS=TRUE -DENABLE_WEBSOCKET=TRUE -DBUILDDLL=TRUE . -B build
+        cmake -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DNO_SSL=${{steps.ssl_support.outputs.value}} . -B build
         cmake --build build
+
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v1
+
+  analyze-js:
+    name: Analyze-js
+    runs-on: ubuntu-20.04
+
+    strategy:
+      fail-fast: false
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    # Initializes the CodeQL tools for scanning.
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v1
+      with:
+        languages: 'javascript'
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v1

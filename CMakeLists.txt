@@ -1,34 +1,39 @@
 cmake_minimum_required(VERSION 3.12)
-project(CppJsLibAll)
+project(CppJsLib)
 
 set(CMAKE_CXX_STANDARD 17)
 
-option(BUILDDLL FALSE)
-option(USE_DLL FALSE)
-option(BUILD_JNI_DLL FALSE)
-option(LINK_STATIC FALSE)
+option(USE_CONAN FALSE)
 
-if (LINK_STATIC)
-    message(STATUS "Creating static library")
-    set(BUILDDLL TRUE)
+if (USE_CONAN)
+    include(${CMAKE_SOURCE_DIR}/conanbuildinfo.cmake)
+    conan_basic_setup()
 endif ()
 
-if (BUILD_JNI_DLL)
-    set(BUILDDLL TRUE)
-endif ()
+include_directories(${CMAKE_SOURCE_DIR})
+add_executable(${PROJECT_NAME} test/test.cpp CppJsLib.hpp)
 
-if (DEFINED ENV{GITHUB_ACTIONS})
-    message(STATUS "Building on GitHub")
-endif ()
+if (USE_CONAN)
+    target_precompile_headers(${PROJECT_NAME} PUBLIC CppJsLib.hpp)
 
-if (BUILDDLL)
-    message(STATUS "Building dll")
-    add_subdirectory("src")
+    target_link_libraries(${PROJECT_NAME} ${CONAN_LIBS})
+
+    add_compile_definitions(CPPJSLIB_ENABLE_WEBSOCKET)
+    add_compile_definitions(CPPJSLIB_ENABLE_HTTPS)
 else ()
-    if (USE_DLL)
-        message(STATUS "Building dll")
-        add_subdirectory("src")
-    endif()
-    message(STATUS "Building tests")
-    add_subdirectory("test")
+    include_directories(include)
+
+    target_precompile_headers(${PROJECT_NAME} PUBLIC CppJsLib.hpp)
+
+    option(NO_SSL FALSE)
+    option(NO_WEBSOCKET FALSE)
+
+    include(CppJsLib.cmake)
+    initCppJsLib(${PROJECT_NAME} ${CMAKE_SOURCE_DIR}/include)
+endif ()
+
+if (MSVC)
+    target_compile_options(${PROJECT_NAME} PRIVATE /W3 /bigobj)
+else ()
+    target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -pedantic)
 endif ()
