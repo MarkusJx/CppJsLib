@@ -10,7 +10,8 @@ if (USE_CONAN)
     conan_basic_setup()
 endif ()
 
-add_executable(${PROJECT_NAME} test.cpp CppJsLib.hpp)
+include_directories(${CMAKE_SOURCE_DIR})
+add_executable(${PROJECT_NAME} test/test.cpp CppJsLib.hpp)
 
 if (USE_CONAN)
     target_precompile_headers(${PROJECT_NAME} PUBLIC CppJsLib.hpp)
