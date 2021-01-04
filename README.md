@@ -10,7 +10,6 @@ Table of contents
    * [Examples](#examples)
      * [Basic example](#basic-example)
      * [JS function with return value](#import-js-function-with-return-value)
-       * [Import with timeout](#import-js-function-with-a-timeout)
      * [SSL/TLS support](#use-with-ssl-enabled)
      * [Start without the http server](#start-without-web-server)
      * [Logging](#logging)
@@ -36,7 +35,7 @@ void funcToExpose(int i, std::string s) {
 }
 
 int main() {
-    using namespace markusjx::CppJsLib;
+    using namespace markusjx::cppJsLib;
 
     Server gui("web");
 
@@ -100,13 +99,6 @@ std::vector<int> values = func();
 for (const auto &i : values) {
     // Code here...
 }
-```
-
-### Import js function with a timeout
-Javascript functions can also be imported with a timout (in seconds) so the function returns after the given amount of time, even if not all clients responded. But the function will return earlier if all clients responded to the function call
-```c++
-// Import with a timeout of 5 seconds
-gui->import(func, 5);
 ```
 
 ## Use with SSL enabled
