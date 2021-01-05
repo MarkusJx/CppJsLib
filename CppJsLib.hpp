@@ -2295,7 +2295,7 @@ namespace markusjx::cppJsLib {
             std::string callback = util::gen_random(40);
             {
                 std::unique_lock<std::mutex> lock(callbacksMutex);
-                while (javascriptCallbacks.count(callback) != 0) {
+                while (javascriptCallbacks.find(callback) != javascriptCallbacks.end()) {
                     callback = util::gen_random(40);
                 }
             }

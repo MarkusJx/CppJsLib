@@ -234,15 +234,15 @@ const cppJsLib = {
     },
 
     onClose: function () {
-        if (!this.disconnectTimeoutRunning) {
-            if (this.connected) this.disconnectListeners.forEach(fn => fn());
-            this.disconnectTimeoutRunning = true;
-            this.connected = false;
-            console.debug(`Connection closed. Trying to reconnect in ${this.disconnectTimeoutSeconds} seconds`);
+        if (!cppJsLib.disconnectTimeoutRunning) {
+            if (cppJsLib.connected) cppJsLib.disconnectListeners.forEach(fn => fn());
+            cppJsLib.disconnectTimeoutRunning = true;
+            cppJsLib.connected = false;
+            console.debug(`Connection closed. Trying to reconnect in ${cppJsLib.disconnectTimeoutSeconds} seconds`);
             setTimeout(() => {
                 cppJsLib.disconnectTimeoutRunning = false;
-                cppJsLib.init(this.websocket_only, this.tls, this.host, this.port);
-            }, this.disconnectTimeoutSeconds * 1000);
+                cppJsLib.init(cppJsLib.websocket_only, cppJsLib.tls, cppJsLib.host, cppJsLib.port);
+            }, cppJsLib.disconnectTimeoutSeconds * 1000);
         }
     },
     /**
@@ -325,12 +325,10 @@ const cppJsLib = {
                 };
 
                 try {
-                    if (data.data.length === 1) {
-                        if (data.data[0] == null) {
-                            toSend.data = this.exposedFunctions[function_name]();
-                        } else {
-                            toSend.data = this.exposedFunctions[function_name](data.data[0]);
-                        }
+                    if (data.data === null) {
+                        toSend.data = this.exposedFunctions[function_name]();
+                    } else if (data.data.length === 1) {
+                        toSend.data = this.exposedFunctions[function_name](data.data[0]);
                     } else {
                         toSend.data = this.exposedFunctions[function_name](...data.data);
                     }
