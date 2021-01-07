@@ -2,13 +2,14 @@
  "graph_lock": {
   "nodes": {
    "0": {
+    "ref": "CppJsLib/0.8",
     "options": "cpp-httplib:with_brotli=False\ncpp-httplib:with_openssl=False\ncpp-httplib:with_zlib=False\nnlohmann_json:implicit_conversions=True\nnlohmann_json:multiple_headers=False\nwebsocketpp:asio=boost",
     "requires": [
      "1",
      "2",
      "3"
     ],
-    "path": "conanfile.txt",
+    "path": "conanfile.py",
     "context": "host"
    },
    "1": {
