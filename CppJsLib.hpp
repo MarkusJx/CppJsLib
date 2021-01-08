@@ -1836,6 +1836,20 @@ namespace markusjx::cppJsLib {
                     throw exceptions::CppJsLibException("No server is running");
                 }
 
+                // Check if any client is connected
+                if (check_all_callbacks_received(0)) {
+                    if constexpr (std::is_same_v<R, void>) {
+                        if (expect_result) {
+                            throw exceptions::CppJsLibException("No client is listening");
+                        } else {
+                            CPPJSLIB_LOG("Not sending a request as no client is connected");
+                            return;
+                        }
+                    } else {
+                        throw exceptions::CppJsLibException("No client is listening");
+                    }
+                }
+
                 // Convert the arguments to json
                 nlohmann::json json = argsToJson(args...);
 
@@ -1919,6 +1933,10 @@ namespace markusjx::cppJsLib {
             func = [this, name](Args...args) {
                 if (!this->running()) {
                     throw exceptions::CppJsLibException("No server is running");
+                }
+
+                if (check_all_callbacks_received(0)) {
+                    throw exceptions::CppJsLibException("No client is listening");
                 }
 
                 // Convert the arguments to json
@@ -2400,7 +2418,8 @@ namespace markusjx::cppJsLib {
         // The event dispatcher as an alternative to websockets
         std::shared_ptr<util::EventDispatcher> eventDispatcher;
 
-        std::shared_ptr<websocket_con_list> websocketConnections; // The websocket connection list
+        // The websocket connection list
+        std::shared_ptr<websocket_con_list> websocketConnections;
         std::mutex websocketConnectionsMutex;
     private:
         /**

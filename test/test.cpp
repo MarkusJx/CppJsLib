@@ -1,13 +1,10 @@
 #include "CppJsLib.hpp"
 #include <chrono>
 #include <thread>
-#include <cmath>
 #include <future>
 #include <fstream>
 #include <algorithm>
 #include <memory>
-#include <Windows.h>
-#include <shellapi.h>
 
 std::function<void(bool)> webSetGtaRunning = nullptr;
 std::function<void(int)> webSetWinnings = nullptr;
@@ -114,7 +111,7 @@ int main() {
         gui->expose(callEverything);
 
         // Import some functions
-        gui->import(webSetGtaRunning);
+        gui->import(webSetGtaRunning, false);
         gui->import(webSetWinnings);
         gui->import(webSetWinningsAll);
         gui->import(webSetRacesWon);
@@ -130,6 +127,12 @@ int main() {
         /*} catch (const std::exception &e) {
             std::cerr << "Exception thrown: " << e.what() << std::endl;
         }//*/
+
+        try {
+            webSetGtaRunning(false);
+        } catch (const std::exception &e) {
+            std::cerr << e.what() << std::endl;
+        }
     }).detach();
 
     std::this_thread::sleep_for(std::chrono::hours(10));
