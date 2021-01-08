@@ -125,7 +125,7 @@
 #endif //CPPJSLIB_WINDOWS
 
 #define expose(func) exportFunction(func, #func)
-#define import(func, ...) importFunction(func, #func, __VA_ARGS__)
+#define import(func, ...) importFunction(func, #func, ##__VA_ARGS__)
 
 namespace markusjx::cppJsLib {
     const char localhost[10] = "localhost";
