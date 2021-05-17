@@ -133,24 +133,24 @@ namespace markusjx::cppJsLib {
     namespace exceptions {
         class CppJsLibException : public std::exception {
         public:
-            inline explicit CppJsLibException(std::string msg) : std::exception(), exceptionType("CppJsLibException"),
-                                                                 message(std::move(msg)) {
+            explicit CppJsLibException(std::string msg) : std::exception(), exceptionType("CppJsLibException"),
+                                                          message(std::move(msg)) {
 #ifdef CPPJSLIB_ENABLE_WEBSOCKET
                 stacktrace = boost::stacktrace::stacktrace();
 #endif //CPPJSLIB_ENABLE_WEBSOCKET
             }
 
-            CPPJSLIB_NODISCARD inline const char *getExceptionType() const noexcept {
+            CPPJSLIB_NODISCARD const char *getExceptionType() const noexcept {
                 return exceptionType;
             }
 
-            CPPJSLIB_NODISCARD inline const char *what() const noexcept override {
+            CPPJSLIB_NODISCARD const char *what() const noexcept override {
                 return message.c_str();
             }
 
 #ifdef CPPJSLIB_ENABLE_WEBSOCKET
 
-            CPPJSLIB_NODISCARD inline boost::stacktrace::stacktrace getStacktrace() const {
+            CPPJSLIB_NODISCARD boost::stacktrace::stacktrace getStacktrace() const {
                 return stacktrace;
             }
 
@@ -197,7 +197,7 @@ namespace markusjx::cppJsLib {
          * @param err the error code reference
          * @return true, if the port is already in use
          */
-        static bool port_is_in_use(const char *addr, unsigned short port, int &err) {
+        inline bool port_is_in_use(const char *addr, unsigned short port, int &err) {
 #ifdef CPPJSLIB_WINDOWS
             WSADATA wsaData;
             auto ConnectSocket = INVALID_SOCKET;
@@ -299,7 +299,7 @@ namespace markusjx::cppJsLib {
          * @param len the length of the string to generate
          * @return the random string
          */
-        static std::string gen_random(const int len) {
+        inline std::string gen_random(const int len) {
             std::string tmp;
             tmp.resize(len);
             static const char alphanum[] =
@@ -331,14 +331,14 @@ namespace markusjx::cppJsLib {
             /**
              * Create a event dispatcher instance
              */
-            inline EventDispatcher() : clients(0), id_(0), cid_(-1) {}
+            EventDispatcher() : clients(0), id_(0), cid_(-1) {}
 
             /**
              * Wait for an event
              *
              * @param sink the data sink we are listening on
              */
-            inline void wait_event(httplib::DataSink *sink) {
+            void wait_event(httplib::DataSink *sink) {
                 std::unique_lock<std::mutex> lk(m_);
                 int id = id_;
                 cv_.wait(lk, [&] { return cid_ == id; });
@@ -354,7 +354,7 @@ namespace markusjx::cppJsLib {
              *
              * @param message the message to send
              */
-            inline void send_event(const std::string &message) {
+            void send_event(const std::string &message) {
                 std::lock_guard<std::mutex> lk(m_);
                 cid_ = id_++;
                 std::stringstream ss;
@@ -412,14 +412,14 @@ namespace markusjx::cppJsLib {
          *
          * @param val the value
          */
-        inline explicit ResponseValue(const T &val) : value(std::make_shared<T>(val)), exception(nullptr) {}
+        explicit ResponseValue(const T &val) : value(std::make_shared<T>(val)), exception(nullptr) {}
 
         /**
          * Create a response value with an exception
          *
          * @param e_ptr the exception pointer
          */
-        inline explicit ResponseValue(std::exception_ptr e_ptr) : value(nullptr), exception(std::move(e_ptr)) {}
+        explicit ResponseValue(std::exception_ptr e_ptr) : value(nullptr), exception(std::move(e_ptr)) {}
 
         /**
          * Get the stored value.
@@ -467,17 +467,17 @@ namespace markusjx::cppJsLib {
         /**
          * Create a response
          */
-        explicit inline Response() : _data(std::make_shared<responseVector<T>>()), mtx(std::make_shared<std::mutex>()),
-                                     cv_mtx(std::make_shared<std::mutex>()),
-                                     cv(std::make_shared<std::condition_variable>()),
-                                     finished(std::make_shared<std::atomic_bool>(false)) {}
+        explicit Response() : _data(std::make_shared<responseVector<T>>()), mtx(std::make_shared<std::mutex>()),
+                              cv_mtx(std::make_shared<std::mutex>()),
+                              cv(std::make_shared<std::condition_variable>()),
+                              finished(std::make_shared<std::atomic_bool>(false)) {}
 
         /**
          * Push a value to the response values
          *
          * @param val the value to push
          */
-        inline void push_back(const T &val) const {
+        void push_back(const T &val) const {
             std::unique_lock<std::mutex> lock(*mtx);
             _data->push_back(ResponseValue<T>(val));
         }
@@ -487,7 +487,7 @@ namespace markusjx::cppJsLib {
          *
          * @param e_ptr the exception pointer to push
          */
-        inline void push_back(const std::exception_ptr &e_ptr) const {
+        void push_back(const std::exception_ptr &e_ptr) const {
             std::unique_lock<std::mutex> lock(*mtx);
             _data->push_back(ResponseValue<T>(e_ptr));
         }
@@ -498,7 +498,7 @@ namespace markusjx::cppJsLib {
          * @param i the index
          * @return the value at i
          */
-        CPPJSLIB_NODISCARD inline ResponseValue<T> at(const size_t i) const {
+        CPPJSLIB_NODISCARD ResponseValue<T> at(const size_t i) const {
             std::unique_lock<std::mutex> lock(*mtx);
             return _data->at(i);
         }
@@ -509,15 +509,15 @@ namespace markusjx::cppJsLib {
          * @param i the index
          * @return the value at i
          */
-        CPPJSLIB_NODISCARD inline ResponseValue<T> operator[](const size_t i) const {
+        CPPJSLIB_NODISCARD ResponseValue<T> operator[](const size_t i) const {
             return this->at(i);
         }
 
-        CPPJSLIB_NODISCARD inline typename responseVector<T>::const_iterator begin() const {
+        CPPJSLIB_NODISCARD typename responseVector<T>::const_iterator begin() const {
             return _data->begin();
         }
 
-        CPPJSLIB_NODISCARD inline typename responseVector<T>::const_iterator end() const {
+        CPPJSLIB_NODISCARD typename responseVector<T>::const_iterator end() const {
             return _data->end();
         }
 
@@ -526,7 +526,7 @@ namespace markusjx::cppJsLib {
          *
          * @return a current copy of the data
          */
-        CPPJSLIB_NODISCARD inline responseVector<T> data() const {
+        CPPJSLIB_NODISCARD responseVector<T> data() const {
             std::unique_lock<std::mutex> lock(*mtx);
             return responseVector<T>(*_data);
         }
@@ -536,7 +536,7 @@ namespace markusjx::cppJsLib {
          *
          * @return the number of values stored
          */
-        CPPJSLIB_NODISCARD inline size_t size() const {
+        CPPJSLIB_NODISCARD size_t size() const {
             std::unique_lock<std::mutex> lock(*mtx);
             return _data->size();
         }
@@ -546,7 +546,7 @@ namespace markusjx::cppJsLib {
          *
          * @return true, if the value vector is not empty
          */
-        CPPJSLIB_NODISCARD CPPJSLIB_UNUSED inline bool has_data() const {
+        CPPJSLIB_NODISCARD CPPJSLIB_UNUSED bool has_data() const {
             std::unique_lock<std::mutex> lock(*mtx);
             return !_data->empty();
         }
@@ -571,8 +571,7 @@ namespace markusjx::cppJsLib {
          * @return the status
          */
         template<class R, class Period>
-        CPPJSLIB_UNUSED CPPJSLIB_NODISCARD inline std::cv_status
-        wait_for(const std::chrono::duration<R, Period> &time) const {
+        CPPJSLIB_UNUSED CPPJSLIB_NODISCARD std::cv_status wait_for(const std::chrono::duration<R, Period> &time) const {
             std::unique_lock<std::mutex> lock(*cv_mtx);
             return cv->wait_for(lock, time, [this] {
                 return finished->operator bool();
@@ -582,7 +581,7 @@ namespace markusjx::cppJsLib {
         /**
          * Mark all responses received
          */
-        inline void resolve() const {
+        void resolve() const {
             if (!finished->operator bool()) {
                 finished->exchange(true);
                 cv->notify_all();
@@ -679,12 +678,12 @@ namespace markusjx::cppJsLib {
              * @param err_callback the callback for exceptions
              * @param res the function to check whether this should be resolved
              */
-            inline callback_function(std::function<void(nlohmann::json)> callback,
-                                     std::function<void(std::exception_ptr)> err_callback,
-                                     std::function<bool()> res = nullptr) : expectsMultiple(res),
-                                                                            callback(std::move(callback)),
-                                                                            error_callback(std::move(err_callback)),
-                                                                            resolve(std::move(res)) {}
+            callback_function(std::function<void(nlohmann::json)> callback,
+                              std::function<void(std::exception_ptr)> err_callback,
+                              std::function<bool()> res = nullptr) : expectsMultiple(res),
+                                                                     callback(std::move(callback)),
+                                                                     error_callback(std::move(err_callback)),
+                                                                     resolve(std::move(res)) {}
 
             const bool expectsMultiple;
             const std::function<void(nlohmann::json)> callback;
@@ -702,7 +701,7 @@ namespace markusjx::cppJsLib {
         using websocket_type = void;
 #endif//CPPJSLIB_ENABLE_WEBSOCKET
 
-        inline Client() {
+        Client() {
             log = [](const std::string &) {};
             err = log;
         }
@@ -712,7 +711,7 @@ namespace markusjx::cppJsLib {
          *
          * @param fn the logging function
          */
-        inline void setLogger(std::function<void(std::string)> fn) {
+        void setLogger(std::function<void(std::string)> fn) {
             log = std::move(fn);
         }
 
@@ -721,7 +720,7 @@ namespace markusjx::cppJsLib {
          *
          * @param fn the logging function
          */
-        inline void setError(std::function<void(std::string)> fn) {
+        void setError(std::function<void(std::string)> fn) {
             err = std::move(fn);
         }
 
@@ -735,7 +734,7 @@ namespace markusjx::cppJsLib {
          * @param name the function name
          */
         template<class R, class... Args>
-        inline void exportFunction(const std::function<R(Args...)> &func, const std::string &name) {
+        void exportFunction(const std::function<R(Args...)> &func, const std::string &name) {
             exposedFunctions.insert(
                     std::pair<std::string, PostHandler>(name, [&func, this](const nlohmann::json &json) {
                         if (json.size() != sizeof...(Args)) {
@@ -760,7 +759,7 @@ namespace markusjx::cppJsLib {
          * @param name the function name
          */
         template<class R, class... Args>
-        inline void exportFunction(R (&func)(Args...), const std::string &name) {
+        void exportFunction(R (&func)(Args...), const std::string &name) {
             exposedFunctions.insert(
                     std::pair<std::string, PostHandler>(name, [&func, this](const nlohmann::json &json) {
                         if (json.size() != sizeof...(Args)) {
@@ -785,7 +784,7 @@ namespace markusjx::cppJsLib {
          * @param name the function name
          */
         template<class R, class...Args>
-        inline void importFunction(std::function<R(Args...)> &func, const std::string &name) {
+        void importFunction(std::function<R(Args...)> &func, const std::string &name) {
             func = [this, name](Args...args) {
                 if (!this->running()) {
                     throw exceptions::CppJsLibException("No server is running");
@@ -828,7 +827,7 @@ namespace markusjx::cppJsLib {
          * @param name the function name
          */
         template<class R, class...Args>
-        inline void importFunction(std::function<void(std::promise<R> &, Args...)> &func, const std::string &name) {
+        void importFunction(std::function<void(std::promise<R> &, Args...)> &func, const std::string &name) {
             std::function < R(Args...) > imported;
             this->importFunction(imported, name);
 
@@ -853,7 +852,7 @@ namespace markusjx::cppJsLib {
             };
         };
 
-        inline void connect(const std::string &scheme_host_port, bool block = true) {
+        void connect(const std::string &scheme_host_port, bool block = true) {
             if (running()) {
                 throw exceptions::CppJsLibException("The client is already connected");
             }
@@ -893,8 +892,53 @@ namespace markusjx::cppJsLib {
             } else if (!res) {
                 http_client->stop();
                 http_client.reset();
-                throw exceptions::CppJsLibException(
-                        "The connection finished with error code: " + std::to_string(res.error()));
+
+                std::string error;
+                switch (res.error()) {
+                    case httplib::Error::Success:
+                        error = "success";
+                        break;
+                    case httplib::Error::Unknown:
+                        error = "unknown";
+                        break;
+                    case httplib::Error::Connection:
+                        error = "connection";
+                        break;
+                    case httplib::Error::BindIPAddress:
+                        error = "bindIpAddress";
+                        break;
+                    case httplib::Error::Read:
+                        error = "read";
+                        break;
+                    case httplib::Error::Write:
+                        error = "write";
+                        break;
+                    case httplib::Error::ExceedRedirectCount:
+                        error = "exceedRedirectCount";
+                        break;
+                    case httplib::Error::Canceled:
+                        error = "Canceled";
+                        break;
+                    case httplib::Error::SSLConnection:
+                        error = "sslConnection";
+                        break;
+                    case httplib::Error::SSLLoadingCerts:
+                        error = "sslLoadingCerts";
+                        break;
+                    case httplib::Error::SSLServerVerification:
+                        error = "sslServerVerification";
+                        break;
+                    case httplib::Error::UnsupportedMultipartBoundaryChars:
+                        error = "unsupportedMultipartBoundaryChars";
+                        break;
+                    case httplib::Error::Compression:
+                        error = "compression";
+                        break;
+                    default:
+                        error = "unknown";
+                }
+
+                throw exceptions::CppJsLibException("The connection finished with error code: " + error);
             } else {
                 http_client->stop();
                 http_client.reset();
@@ -904,7 +948,7 @@ namespace markusjx::cppJsLib {
 
 #ifdef CPPJSLIB_ENABLE_WEBSOCKET
 
-        inline bool connectWebsocketOnly(const std::string &hostname, uint16_t port, bool block = true) {
+        bool connectWebsocketOnly(const std::string &hostname, uint16_t port, bool block = true) {
             if (running()) {
                 throw exceptions::CppJsLibException("The client is already connected");
             }
@@ -914,7 +958,7 @@ namespace markusjx::cppJsLib {
 
 #endif //CPPJSLIB_ENABLE_WEBSOCKET
 
-        virtual inline bool running() {
+        virtual bool running() {
             std::unique_lock<std::mutex> lock(connect_mtx);
 #ifdef CPPJSLIB_ENABLE_WEBSOCKET
             return client && !client->stopped() || http_client && http_client->is_valid();
@@ -923,7 +967,7 @@ namespace markusjx::cppJsLib {
 #endif //CPPJSLIB_ENABLE_WEBSOCKET
         }
 
-        virtual inline void stop() {
+        virtual void stop() {
             if (running()) {
                 std::unique_lock<std::mutex> lock(connect_mtx);
 #ifdef CPPJSLIB_ENABLE_WEBSOCKET
@@ -939,7 +983,7 @@ namespace markusjx::cppJsLib {
             }
         }
 
-        inline ~Client() {
+        ~Client() {
             std::unique_lock<std::mutex> lock(connect_mtx);
 #ifdef CPPJSLIB_ENABLE_WEBSOCKET
             if (client && !client->stopped()) {
@@ -958,7 +1002,7 @@ namespace markusjx::cppJsLib {
     protected:
         class wsInitializer {
         public:
-            inline explicit wsInitializer(const std::string &msg) {
+            explicit wsInitializer(const std::string &msg) {
                 nlohmann::json json = nlohmann::json::parse(msg);
                 ws = json["ws"];
                 if (ws) {
@@ -977,7 +1021,7 @@ namespace markusjx::cppJsLib {
             bool tls;
         };
 
-        inline std::string handleMessage(const std::string &msg) {
+        std::string handleMessage(const std::string &msg) {
             CPPJSLIB_LOG("Parsing message: " + msg);
             try {
                 nlohmann::json json = nlohmann::json::parse(msg);
@@ -1023,7 +1067,7 @@ namespace markusjx::cppJsLib {
 
 #ifdef CPPJSLIB_ENABLE_WEBSOCKET
 
-        virtual inline bool startWebsocket(const std::string &hostname, uint16_t port, bool block, bool tls) {
+        virtual bool startWebsocket(const std::string &hostname, uint16_t port, bool block, bool tls) {
             if (tls) {
                 throw exceptions::CppJsLibException("Cannot connect to the websocket server in tls mode");
             }
@@ -1096,8 +1140,8 @@ namespace markusjx::cppJsLib {
          * @param funcName the function name
          * @param promise the promise to be resolved when the call finished
          */
-        virtual inline void callFunction(const nlohmann::json &args, const std::string &funcName,
-                                         const callback_function &callback_func) {
+        virtual void callFunction(const nlohmann::json &args, const std::string &funcName,
+                                  const callback_function &callback_func) {
             // Dump the list of arguments into a json string
             nlohmann::json j;
             j["header"] = "call";
@@ -1184,10 +1228,10 @@ namespace markusjx::cppJsLib {
         using websocket_ssl_type = void;
 #   endif//CPPJSLIB_ENABLE_WEBSOCKET
 
-        inline explicit SSLClient(std::string cert_verify_file)
+        explicit SSLClient(std::string cert_verify_file)
                 : Client(), cert_verify_file(std::move(cert_verify_file)) {}
 
-        inline bool running() override {
+        bool running() override {
             std::unique_lock<std::mutex> lock(connect_mtx);
 #ifdef CPPJSLIB_ENABLE_WEBSOCKET
             return client_ssl && !client_ssl->stopped() || http_client && http_client->is_valid();
@@ -1196,7 +1240,7 @@ namespace markusjx::cppJsLib {
 #endif //CPPJSLIB_ENABLE_WEBSOCKET
         }
 
-        inline void stop() override {
+        void stop() override {
             if (running()) {
                 std::unique_lock<std::mutex> lock(connect_mtx);
 #ifdef CPPJSLIB_ENABLE_WEBSOCKET
@@ -1211,7 +1255,7 @@ namespace markusjx::cppJsLib {
             }
         }
 
-        inline ~SSLClient() {
+        ~SSLClient() {
             std::unique_lock<std::mutex> lock(connect_mtx);
 #ifdef CPPJSLIB_ENABLE_WEBSOCKET
             if (client_ssl && !client_ssl->stopped()) {
@@ -1229,7 +1273,7 @@ namespace markusjx::cppJsLib {
     private:
 #ifdef CPPJSLIB_ENABLE_WEBSOCKET
 
-        inline bool startWebsocket(const std::string &hostname, uint16_t port, bool block, bool tls) override {
+        bool startWebsocket(const std::string &hostname, uint16_t port, bool block, bool tls) override {
             std::unique_lock<std::mutex> lock(connect_mtx);
             client_ssl = std::make_shared<websocket_ssl_type>();
             std::string uri = (tls ? "wss://" : "ws://") + hostname + ":" + std::to_string(port);
@@ -1300,8 +1344,8 @@ namespace markusjx::cppJsLib {
          * @param funcName the function name
          * @param promise the promise to be resolved when the call finished
          */
-        inline void callFunction(const nlohmann::json &args, const std::string &funcName,
-                                 const callback_function &callback_func) override {
+        void callFunction(const nlohmann::json &args, const std::string &funcName,
+                          const callback_function &callback_func) override {
             // Dump the list of arguments into a json string
             nlohmann::json j;
             j["header"] = "call";
@@ -1463,7 +1507,7 @@ namespace markusjx::cppJsLib {
             return preverified;
         }
 
-        inline util::wspp::context_ptr on_tls_init(const char *hostname) {
+        util::wspp::context_ptr on_tls_init(const char *hostname) {
             util::wspp::context_ptr ctx = websocketpp::lib::make_shared<boost::asio::ssl::context>(
                     boost::asio::ssl::context::sslv23);
 
@@ -1515,10 +1559,10 @@ namespace markusjx::cppJsLib {
          *
          * @param base_dir the base directory
          */
-        explicit inline Server(std::string base_dir = ".") : check_ports(true), _running(false),
-                                                             base_dir(std::move(base_dir)), javascriptCallbacks(),
-                                                             callbacksMutex(), websocketConnectionsMutex(),
-                                                             websocketTargets(), initString(), initMap() {
+        explicit Server(std::string base_dir = ".") : check_ports(true), _running(false),
+                                                      base_dir(std::move(base_dir)), javascriptCallbacks(),
+                                                      callbacksMutex(), websocketConnectionsMutex(),
+                                                      websocketTargets(), initString(), initMap() {
             // Create the web server
             webServer = std::make_shared<httplib::Server>();
             webServer->set_mount_point("/", this->base_dir.c_str());
@@ -1578,7 +1622,7 @@ namespace markusjx::cppJsLib {
          * @param block whether to block after starting the server
          * @return true, if the server could be started
          */
-        inline bool startNoWeb(uint16_t port, const std::string &host = "localhost", bool block = true) {
+        bool startNoWeb(uint16_t port, const std::string &host = "localhost", bool block = true) {
             if (check_ports) {
                 int error = 0;
                 if (util::port_is_in_use(host.c_str(), port, error)) {
@@ -1605,7 +1649,7 @@ namespace markusjx::cppJsLib {
          * @param block whether to block
          * @return whether the servers could be started
          */
-        inline bool startNoWebSocket(uint16_t port, const std::string &host = localhost, bool block = true) {
+        bool startNoWebSocket(uint16_t port, const std::string &host = localhost, bool block = true) {
             CPPJSLIB_LOG("Starting without websocket server");
 
             if (port == 0) {
@@ -1668,8 +1712,7 @@ namespace markusjx::cppJsLib {
          * @param block whether to block
          * @return true, if the servers could be started
          */
-        inline bool
-        start(uint16_t port, const std::string &host = localhost, uint16_t websocketPort = 0, bool block = true) {
+        bool start(uint16_t port, const std::string &host = localhost, uint16_t websocketPort = 0, bool block = true) {
             if (websocket_only) {
                 throw exceptions::CppJsLibException("The Server is already started in websocket-only mode");
             }
@@ -1681,7 +1724,7 @@ namespace markusjx::cppJsLib {
 #ifdef CPPJSLIB_ENABLE_WEBSOCKET
             // If the port is zero, don't start the web server
             if (port == 0) {
-                return startNoWeb(websocketPort, host, true);
+                return startNoWeb(websocketPort, host, block);
             }
 
             // If the port is zero, don't start the websocket server
@@ -1754,8 +1797,8 @@ namespace markusjx::cppJsLib {
          * @param block whether to block. If set to true, the promise will
          *              only be resolved when the servers are stopped or an error occurs
          */
-        inline void start(std::promise<bool> &promise, uint16_t port, const std::string &host = localhost,
-                          uint16_t websocketPort = 0, bool block = true) {
+        void start(std::promise<bool> &promise, uint16_t port, const std::string &host = localhost,
+                   uint16_t websocketPort = 0, bool block = true) {
             std::thread([this, &promise, port, host, websocketPort, block] {
                 try {
                     bool res = this->start(port, host, websocketPort, block);
@@ -1778,7 +1821,7 @@ namespace markusjx::cppJsLib {
          * @param name the function name
          */
         template<class R, class... Args>
-        inline void exportFunction(const std::function<R(Args...)> &func, const std::string &name) {
+        void exportFunction(const std::function<R(Args...)> &func, const std::string &name) {
             initMap.insert(std::pair<std::string, size_t>(name, sizeof...(Args)));
             callFuncFromJs(name, [&func, this](const nlohmann::json &json) {
                 if (json.size() != sizeof...(Args)) {
@@ -1803,7 +1846,7 @@ namespace markusjx::cppJsLib {
          * @param name the function name
          */
         template<class R, class... Args>
-        inline void exportFunction(R (&func)(Args...), const std::string &name) {
+        void exportFunction(R (&func)(Args...), const std::string &name) {
             initMap.insert(std::pair<std::string, size_t>(name, sizeof...(Args)));
             callFuncFromJs(name, [&func, this](const nlohmann::json &json) {
                 if (json.size() != sizeof...(Args)) {
@@ -1829,8 +1872,7 @@ namespace markusjx::cppJsLib {
          * @param expect_result whether to expect a result. Only works if R = void. Defaults to true
          */
         template<class R, class...Args>
-        inline void
-        importFunction(std::function<R(Args...)> &func, const std::string &name, bool expect_result = true) {
+        void importFunction(std::function<R(Args...)> &func, const std::string &name, bool expect_result = true) {
             func = [this, name, expect_result](Args...args) {
                 if (!this->running()) {
                     throw exceptions::CppJsLibException("No server is running");
@@ -1894,7 +1936,7 @@ namespace markusjx::cppJsLib {
          * @param name the function name
          */
         template<class R, class...Args>
-        inline void importFunction(std::function<void(std::promise<R> &, Args...)> &func, const std::string &name) {
+        void importFunction(std::function<void(std::promise<R> &, Args...)> &func, const std::string &name) {
             std::function < R(Args...) > imported;
             this->importFunction(imported, name);
 
@@ -1929,7 +1971,7 @@ namespace markusjx::cppJsLib {
          * @param name the function name
          */
         template<class R, class...Args>
-        inline void importFunction(std::function<Response<R>(Args...)> &func, const std::string &name) {
+        void importFunction(std::function<Response<R>(Args...)> &func, const std::string &name) {
             func = [this, name](Args...args) {
                 if (!this->running()) {
                     throw exceptions::CppJsLibException("No server is running");
@@ -1965,7 +2007,7 @@ namespace markusjx::cppJsLib {
          *
          * @return true, if they are running
          */
-        CPPJSLIB_NODISCARD virtual inline bool running() const {
+        CPPJSLIB_NODISCARD virtual bool running() const {
 #ifdef CPPJSLIB_ENABLE_WEBSOCKET
             if (websocket_only) {
                 return websocketServer->is_listening();
@@ -1984,7 +2026,7 @@ namespace markusjx::cppJsLib {
         /**
          * Stop the servers
          */
-        inline virtual void stop() {
+        virtual void stop() {
             if (running()) {
 #ifdef CPPJSLIB_ENABLE_WEBSOCKET
                 if (!websocket_only) {
@@ -2010,7 +2052,7 @@ namespace markusjx::cppJsLib {
          *
          * @param promise the promise to be resolved when all servers are stopped
          */
-        inline void stop(std::promise<void> &promise) {
+        void stop(std::promise<void> &promise) {
             std::thread([&promise, this] {
                 stop();
 
@@ -2027,7 +2069,7 @@ namespace markusjx::cppJsLib {
          *
          * @param fn the logging function
          */
-        inline void setLogger(std::function<void(std::string)> fn) {
+        void setLogger(std::function<void(std::string)> fn) {
             log = std::move(fn);
         }
 
@@ -2036,7 +2078,7 @@ namespace markusjx::cppJsLib {
          *
          * @param fn the logging function
          */
-        inline void setError(std::function<void(std::string)> fn) {
+        void setError(std::function<void(std::string)> fn) {
             err = std::move(fn);
         }
 
@@ -2045,7 +2087,7 @@ namespace markusjx::cppJsLib {
          *
          * @return the http server
          */
-        CPPJSLIB_UNUSED CPPJSLIB_NODISCARD inline std::shared_ptr<httplib::Server> getHttpServer() const {
+        CPPJSLIB_UNUSED CPPJSLIB_NODISCARD std::shared_ptr<httplib::Server> getHttpServer() const {
             return webServer;
         }
 
@@ -2054,14 +2096,14 @@ namespace markusjx::cppJsLib {
          *
          * @return the websocket server
          */
-        CPPJSLIB_UNUSED CPPJSLIB_NODISCARD inline std::shared_ptr<websocket_type> getWebsocketServer() const {
+        CPPJSLIB_UNUSED CPPJSLIB_NODISCARD std::shared_ptr<websocket_type> getWebsocketServer() const {
             return websocketServer;
         }
 
         /**
          * Delete the server instance
          */
-        inline ~Server() {
+        ~Server() {
             std::promise<void> promise;
             stop(promise);
 
@@ -2075,15 +2117,15 @@ namespace markusjx::cppJsLib {
          */
         bool check_ports;
     protected:
-        inline Server(std::string base_dir, bool websocket_only, bool no_websocket) : base_dir(std::move(base_dir)),
-                                                                                      _running(false),
-                                                                                      check_ports(true),
-                                                                                      websocket_only(websocket_only),
-                                                                                      no_websocket(no_websocket) {}
+        Server(std::string base_dir, bool websocket_only, bool no_websocket) : base_dir(std::move(base_dir)),
+                                                                               _running(false),
+                                                                               check_ports(true),
+                                                                               websocket_only(websocket_only),
+                                                                               no_websocket(no_websocket) {}
 
 #ifdef CPPJSLIB_ENABLE_WEBSOCKET
 
-        inline virtual bool startWebsocketServers(const std::string &host, uint16_t websocketPort, bool block) {
+        virtual bool startWebsocketServers(const std::string &host, uint16_t websocketPort, bool block) {
             CPPJSLIB_LOG("Starting websocket server");
             return startNoWeb_f(websocketServer, host, websocketPort, block);
         }
@@ -2103,8 +2145,8 @@ namespace markusjx::cppJsLib {
 #endif //CPPJSLIB_ENABLE_WEBSOCKET
         }
 
-        inline virtual void generate_init_array(nlohmann::json &init_ws_json, CPPJSLIB_UNUSED const std::string &host,
-                                                CPPJSLIB_UNUSED uint16_t websocketPort) {
+        virtual void generate_init_array(nlohmann::json &init_ws_json, CPPJSLIB_UNUSED const std::string &host,
+                                         CPPJSLIB_UNUSED uint16_t websocketPort) {
 #ifdef CPPJSLIB_ENABLE_WEBSOCKET
             init_ws_json["ws"] = true;
             init_ws_json["host"] = host;
@@ -2121,7 +2163,7 @@ namespace markusjx::cppJsLib {
          * @param msg the message to parse
          * @return the result
          */
-        inline std::string handleMessages(const std::string &msg) {
+        std::string handleMessages(const std::string &msg) {
             // Parse a message of the format:
             // [HEADER] <[DATA]> <[CALLBACK]> <[OK]> <[FUNCTION_NAME]>
             // The header field may equal the following strings:
@@ -2257,9 +2299,8 @@ namespace markusjx::cppJsLib {
          * @param list the connection list
          */
         template<typename EndpointType>
-        inline void
-        initWebsocketServer(std::shared_ptr<EndpointType> s, const std::shared_ptr<util::wspp::con_list> &list,
-                            std::mutex &mtx) {
+        void initWebsocketServer(std::shared_ptr<EndpointType> s, const std::shared_ptr<util::wspp::con_list> &list,
+                                 std::mutex &mtx) {
             try {
                 s->set_open_handler([list, this, &mtx](const websocketpp::connection_hdl &hdl) {
                     try {
@@ -2301,7 +2342,7 @@ namespace markusjx::cppJsLib {
          * @return whether the server could be started
          */
         template<typename Endpoint>
-        inline bool startNoWeb_f(std::shared_ptr<Endpoint> ws_server, const std::string &host, int port, bool block) {
+        bool startNoWeb_f(std::shared_ptr<Endpoint> ws_server, const std::string &host, int port, bool block) {
             ws_server->set_message_handler([ws_server, this](const websocketpp::connection_hdl &hdl,
                                                              const util::wspp::server::message_ptr &msg) {
                 onMessage<Endpoint>(ws_server, hdl, msg);
@@ -2338,8 +2379,8 @@ namespace markusjx::cppJsLib {
          * @param funcName the function name
          * @param promise the promise to be resolved when the call finished
          */
-        virtual inline void callJavascriptFunction(const nlohmann::json &args, const std::string &funcName,
-                                                   const callback_function &callback_func) {
+        virtual void callJavascriptFunction(const nlohmann::json &args, const std::string &funcName,
+                                            const callback_function &callback_func) {
             // Dump the list of arguments into a json string
             nlohmann::json j;
             j["header"] = "call";
@@ -2425,7 +2466,7 @@ namespace markusjx::cppJsLib {
         /**
          * Initialize the server sent event listener
          */
-        inline void addSseListener() {
+        void addSseListener() {
             CPPJSLIB_LOG("Start listening for server sent events");
             webServer->Get("/cppjslib_events", [this](const httplib::Request &, httplib::Response &res) {
                 CPPJSLIB_LOG("Client connected to server sent event");
@@ -2442,7 +2483,7 @@ namespace markusjx::cppJsLib {
          *
          * @param init_ws_string the websocket initializer string
          */
-        inline void addInitHandlers(const std::string &init_ws_string) {
+        void addInitHandlers(const std::string &init_ws_string) {
             nlohmann::json initList;
             for (const auto &p: initMap) {
                 initList[p.first] = p.second;
@@ -2469,7 +2510,7 @@ namespace markusjx::cppJsLib {
          * @param host the host address
          * @param block whether to block
          */
-        inline void startWebServer(uint16_t port, const std::string &host, bool block) {
+        void startWebServer(uint16_t port, const std::string &host, bool block) {
             if (!block) {
                 CPPJSLIB_LOG("Starting web server in non-blocking mode");
                 std::thread([&host, port, this] {
@@ -2501,7 +2542,7 @@ namespace markusjx::cppJsLib {
          * @param name the function name
          * @param fn the function
          */
-        inline void callFuncFromJs(const std::string &name, const PostHandler &fn) {
+        void callFuncFromJs(const std::string &name, const PostHandler &fn) {
             websocketTargets.insert(std::pair<std::string, PostHandler>(name, fn));
         }
 
@@ -2518,7 +2559,7 @@ namespace markusjx::cppJsLib {
          * @param log the logging function
          */
         template<typename EndpointType>
-        inline void startWebsocketServer(std::shared_ptr<EndpointType> s, const std::string &host, int port) {
+        void startWebsocketServer(std::shared_ptr<EndpointType> s, const std::string &host, int port) {
             try {
                 CPPJSLIB_LOG("Starting websocket to listen on host " + host + " and port " + std::to_string(port));
                 s->listen(host, std::to_string(port));
@@ -2544,8 +2585,8 @@ namespace markusjx::cppJsLib {
          * @param msg the received message
          */
         template<typename Endpoint>
-        inline void onMessage(std::shared_ptr<Endpoint> s, const websocketpp::connection_hdl &hdl,
-                              const util::wspp::server::message_ptr &msg) {
+        void onMessage(std::shared_ptr<Endpoint> s, const websocketpp::connection_hdl &hdl,
+                       const util::wspp::server::message_ptr &msg) {
             try {
                 CPPJSLIB_LOG("Received data: " + msg->get_payload());
                 std::string toSend = handleMessages(msg->get_payload());
@@ -2588,9 +2629,9 @@ namespace markusjx::cppJsLib {
         using websocket_ssl_type = void;
 #   endif//CPPJSLIB_ENABLE_WEBSOCKET
 
-        inline SSLServer(const std::string &base_dir, const std::string &cert_path, const std::string &private_key_path,
-                         uint16_t fallback_plain_port = 0) : Server(base_dir, false, false),
-                                                             fallback_plain_port(fallback_plain_port) {
+        SSLServer(const std::string &base_dir, const std::string &cert_path, const std::string &private_key_path,
+                  uint16_t fallback_plain_port = 0) : Server(base_dir, false, false),
+                                                      fallback_plain_port(fallback_plain_port) {
             if (cert_path.empty() || private_key_path.empty()) {
                 throw exceptions::InvalidArgumentsException(
                         "The certificate or private key paths were empty");
@@ -2629,7 +2670,7 @@ namespace markusjx::cppJsLib {
          *
          * @return true, if they are running
          */
-        CPPJSLIB_NODISCARD inline bool running() const override {
+        CPPJSLIB_NODISCARD bool running() const override {
 #ifdef CPPJSLIB_ENABLE_WEBSOCKET
             if (websocket_only) {
                 return websocketTLSServer->is_listening();
@@ -2648,7 +2689,7 @@ namespace markusjx::cppJsLib {
         /**
          * Stop the servers
          */
-        inline void stop() override {
+        void stop() override {
             if (running()) {
 #   ifdef CPPJSLIB_ENABLE_WEBSOCKET
                 if (!websocket_only) {
@@ -2680,7 +2721,7 @@ namespace markusjx::cppJsLib {
          *
          * @return the websocket tls server
          */
-        CPPJSLIB_UNUSED CPPJSLIB_NODISCARD inline std::shared_ptr<websocket_ssl_type> getWebsocketTLSServer() const {
+        CPPJSLIB_UNUSED CPPJSLIB_NODISCARD std::shared_ptr<websocket_ssl_type> getWebsocketTLSServer() const {
             return websocketTLSServer;
         }
 
@@ -2689,15 +2730,14 @@ namespace markusjx::cppJsLib {
          *
          * @return the websocket fallback server
          */
-        CPPJSLIB_UNUSED CPPJSLIB_NODISCARD inline std::shared_ptr<websocket_fallback_type>
-        getWebsocketFallbackServer() const {
+        CPPJSLIB_UNUSED CPPJSLIB_NODISCARD std::shared_ptr<websocket_fallback_type> getWebsocketFallbackServer() const {
             return websocketFallbackServer;
         }
 
     private:
 #   ifdef CPPJSLIB_ENABLE_WEBSOCKET
 
-        inline bool startWebsocketServers(const std::string &host, uint16_t websocketPort, bool block) override {
+        bool startWebsocketServers(const std::string &host, uint16_t websocketPort, bool block) override {
             if (fallback_plain_port) {
                 CPPJSLIB_LOG("Starting tls websocket server");
                 bool wsRunning = startNoWeb_f(websocketTLSServer, host, websocketPort, false);
@@ -2712,7 +2752,7 @@ namespace markusjx::cppJsLib {
 
 #   endif //CPPJSLIB_ENABLE_WEBSOCKET
 
-        inline bool check_all_callbacks_received(size_t response_size) override {
+        bool check_all_callbacks_received(size_t response_size) override {
 #   ifdef CPPJSLIB_ENABLE_WEBSOCKET
             if (!no_websocket) {
                 return response_size == (websocketConnections->size() + websocketFallbackConnections->size());
@@ -2724,8 +2764,8 @@ namespace markusjx::cppJsLib {
 #   endif //CPPJSLIB_ENABLE_WEBSOCKET
         }
 
-        inline void generate_init_array(nlohmann::json &init_ws_json, CPPJSLIB_UNUSED const std::string &host,
-                                        CPPJSLIB_UNUSED uint16_t websocketPort) override {
+        void generate_init_array(nlohmann::json &init_ws_json, CPPJSLIB_UNUSED const std::string &host,
+                                 CPPJSLIB_UNUSED uint16_t websocketPort) override {
 #   ifdef CPPJSLIB_ENABLE_WEBSOCKET
             init_ws_json["ws"] = true;
             init_ws_json["host"] = host;
@@ -2749,8 +2789,8 @@ namespace markusjx::cppJsLib {
          * @param funcName the function name
          * @param promise the promise to be resolved when the call finished
          */
-        inline void callJavascriptFunction(const nlohmann::json &args, const std::string &funcName,
-                                           const callback_function &callback_func) override {
+        void callJavascriptFunction(const nlohmann::json &args, const std::string &funcName,
+                                    const callback_function &callback_func) override {
             // Dump the list of arguments into a json string
             nlohmann::json j;
             j["header"] = "call";
@@ -2829,7 +2869,7 @@ namespace markusjx::cppJsLib {
 
         std::string password;
 
-        inline void setPassword() {
+        void setPassword() {
             if (password.empty()) {
                 std::random_device rd;
                 static std::mt19937 eng(rd());
@@ -2915,8 +2955,8 @@ namespace markusjx::cppJsLib {
             return ctx;
         }
 
-        inline void initWebsocketTLS(const std::shared_ptr<util::wspp::server_tls> &s, const std::string &cert_path,
-                                     const std::string &private_key_path) {
+        void initWebsocketTLS(const std::shared_ptr<util::wspp::server_tls> &s, const std::string &cert_path,
+                              const std::string &private_key_path) {
             try {
                 s->set_http_handler([s](const websocketpp::connection_hdl &hdl) {
                     return on_http(s, hdl);

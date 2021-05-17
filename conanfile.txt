@@ -1,7 +1,8 @@
 [requires]
 nlohmann_json/3.9.1
-cpp-httplib/0.7.15
+cpp-httplib/0.8.8
 websocketpp/0.8.2
+gtest/1.10.0
 
 [generators]
 cmake

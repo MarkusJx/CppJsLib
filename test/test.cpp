@@ -3,139 +3,193 @@
 #include <thread>
 #include <future>
 #include <fstream>
-#include <algorithm>
 #include <memory>
+#include <gtest/gtest.h>
 
-std::function<void(bool)> webSetGtaRunning = nullptr;
-std::function<void(int)> webSetWinnings = nullptr;
-std::function<void(int)> webSetWinningsAll = nullptr;
-std::function<void(int)> webSetRacesWon = nullptr;
-std::function<void(int)> webSetRacesLost = nullptr;
-std::function<void()> webSetStarted = nullptr;
-std::function<void()> webSetStopped = nullptr;
-std::function<void()> webSetStopping = nullptr;
-std::function<void()> webSetStarting = nullptr;
-std::function<void(int)> webSetAutostopMoney = nullptr;
-std::function<int(int)> webSetAutostopTime = nullptr;
+#define PRINTF(...)  do { testing::internal::ColoredPrintf(testing::internal::COLOR_GREEN, \
+            "[          ] "); testing::internal::ColoredPrintf(testing::internal::COLOR_YELLOW, __VA_ARGS__); } while(0)
 
-void js_start_script() {}
+#define ERR_PRINTF(...) do { testing::internal::ColoredPrintf(testing::internal::COLOR_RED, \
+            "[          ] "); testing::internal::ColoredPrintf(testing::internal::COLOR_YELLOW, __VA_ARGS__); } while(0)
 
-void js_stop_script() {}
+// C++ stream interface
+class TestCout : public std::stringstream {
+public:
+    ~TestCout() override {
+        PRINTF("%s", str().c_str());
+    }
+};
 
-int get_races_won() {
-    return 0;
-}
+class TestCerr : public std::stringstream {
+public:
+    ~TestCerr() override {
+        ERR_PRINTF("%s", str().c_str());
+    }
+};
 
-int get_races_lost() {
-    return 0;
-}
+#define TEST_COUT TestCout()
+#define TEST_CERR TestCerr()
 
-int get_all_winnings() {
-    return 0;
-}
-
-int get_current_winnings() {
-    return 0;
-}
-
-int get_time() {
-    return 0;
-}
-
-bool get_gta_running() {
-    return false;
-}
-
-int get_running() {
-    return -1;
-}
-
-void set_autostop_money(int) {}
-
-int get_autostop_money() {
-    return -1;
-}
-
-void set_autostop_time(int) {}
-
-int get_autostop_time() {
-    return -1;
-}
-
-void callEverything() {
-    //try {
-        webSetGtaRunning(false);
-        webSetWinnings(0);
-        webSetWinningsAll(0);
-        webSetRacesWon(0);
-        webSetRacesLost(0);
-        webSetStarted();
-        webSetStopped();
-        webSetStopping();
-        webSetStarting();
-        webSetAutostopMoney(-1);
-        webSetAutostopTime(-1);
-    //} catch (markusjx::cppJsLib::exceptions::CppJsLibException &e) {
-    //    std::cout << e.what() << std::endl << e.getStacktrace();
-    //}
-}
-
-std::unique_ptr<markusjx::cppJsLib::Server> gui = nullptr;
-
-int main() {
-    std::thread([] {
-        //try {
-        gui = std::make_unique<markusjx::cppJsLib::Server>("web");
-        gui->setLogger([](const std::string &s) {
-            std::cout << s << std::endl;
+class ServerStartStopTest : public ::testing::Test {
+protected:
+    ServerStartStopTest() : server() {
+        server.setLogger([](const std::string &msg) {
+            TEST_COUT << msg << std::endl;
         });
 
-        gui->setError([](const std::string &s) {
-            std::cerr << s << std::endl;
+        server.setError([](const std::string &msg) {
+            TEST_CERR << msg << std::endl;
+        });
+    }
+
+    markusjx::cppJsLib::Server server;
+};
+
+#ifdef CPPJSLIB_ENABLE_WEBSOCKET
+#define SERVER_SET_WEBSOCKET_NO_LOG() server.getWebsocketServer()->set_access_channels(websocketpp::log::alevel::none); \
+                                    server.getWebsocketServer()->set_access_channels(websocketpp::log::elevel::none); \
+                                    server.getWebsocketServer()->clear_access_channels(websocketpp::log::elevel::all); \
+                                    server.getWebsocketServer()->clear_access_channels(websocketpp::log::alevel::all)
+#else
+#   define SERVER_SET_WEBSOCKET_NO_LOG()
+#endif //CPPJSLIB_ENABLE_WEBSOCKET
+
+TEST_F(ServerStartStopTest, allTest) {
+    server.start(1235, markusjx::cppJsLib::localhost, 1234, false);
+    SERVER_SET_WEBSOCKET_NO_LOG();
+    std::promise<void> promise;
+    std::future<void> future = promise.get_future();
+    server.stop(promise);
+    EXPECT_EQ(std::future_status::ready, future.wait_for(std::chrono::seconds(5)));
+}
+
+TEST_F(ServerStartStopTest, noWebTest) {
+    server.start(0, markusjx::cppJsLib::localhost, 1234, false);
+    SERVER_SET_WEBSOCKET_NO_LOG();
+    std::promise<void> promise;
+    std::future<void> future = promise.get_future();
+    server.stop(promise);
+    EXPECT_EQ(std::future_status::ready, future.wait_for(std::chrono::seconds(5)));
+}
+
+TEST_F(ServerStartStopTest, noWebsocketTest) {
+    server.start(1235, markusjx::cppJsLib::localhost, 0, false);
+    SERVER_SET_WEBSOCKET_NO_LOG();
+    std::promise<void> promise;
+    std::future<void> future = promise.get_future();
+    server.stop(promise);
+    EXPECT_EQ(std::future_status::ready, future.wait_for(std::chrono::seconds(5)));
+}
+
+class ServerTest : public ::testing::Test {
+protected:
+    ServerTest() : client() {
+        client.connect("http://localhost:12345", false);
+    }
+
+    ~ServerTest() override {
+        client.stop();
+    }
+
+    markusjx::cppJsLib::Client client;
+
+    static void SetUpTestSuite() {
+        server = std::make_shared<markusjx::cppJsLib::Server>();
+        server->setLogger([](const std::string &msg) {
+            TEST_COUT << msg << std::endl;
         });
 
-        // Expose a lot of functions
-        gui->expose(js_start_script);
-        gui->expose(js_stop_script);
-        gui->expose(get_races_won);
-        gui->expose(get_races_lost);
-        gui->expose(get_all_winnings);
-        gui->expose(get_current_winnings);
-        gui->expose(get_time);
-        gui->expose(get_gta_running);
-        gui->expose(get_running);
-        gui->expose(get_autostop_money);
-        gui->expose(get_autostop_time);
-        gui->expose(set_autostop_time);
-        gui->expose(set_autostop_money);
-        gui->expose(callEverything);
+        server->setError([](const std::string &msg) {
+            TEST_CERR << msg << std::endl;
+        });
 
-        // Import some functions
-        gui->import(webSetGtaRunning, false);
-        gui->import(webSetWinnings);
-        gui->import(webSetWinningsAll);
-        gui->import(webSetRacesWon);
-        gui->import(webSetRacesLost);
-        gui->import(webSetStarted);
-        gui->import(webSetStopped);
-        gui->import(webSetStopping);
-        gui->import(webSetStarting);
-        gui->import(webSetAutostopMoney);
-        gui->import(webSetAutostopTime, false);
+        server->import(void_void_fn);
+        server->import(void_args_fn);
+        server->import(int_void_fn);
+        server->import(int_args_fn);
 
-        gui->start(8027, "localhost", 8028, false);
-        /*} catch (const std::exception &e) {
-            std::cerr << "Exception thrown: " << e.what() << std::endl;
-        }//*/
+        server->expose(call_void_void_fn);
+        server->expose(call_void_args_fn);
+        server->expose(call_int_void_fn);
+        server->expose(call_int_args_fn);
 
-        try {
-            webSetGtaRunning(false);
-        } catch (const std::exception &e) {
-            std::cerr << e.what() << std::endl;
-        }
-    }).detach();
+        server->start(12345, markusjx::cppJsLib::localhost, 12344, false);
+#ifdef CPPJSLIB_ENABLE_WEBSOCKET
+        server->getWebsocketServer()->set_access_channels(websocketpp::log::alevel::all);
+        /*server->getWebsocketServer()->set_access_channels(websocketpp::log::elevel::none);
+        server->getWebsocketServer()->clear_access_channels(websocketpp::log::elevel::all);
+        server->getWebsocketServer()->clear_access_channels(websocketpp::log::alevel::all);*/
+#endif //CPPJSLIB_ENABLE_WEBSOCKET
+    }
 
-    std::this_thread::sleep_for(std::chrono::hours(10));
+    static void TearDownTestSuite() {
+        std::promise<void> promise;
+        std::future<void> future = promise.get_future();
+        server->stop(promise);
+        future.wait_for(std::chrono::seconds(5));
+        server.reset();
+    }
 
-    return 0;
+    static void call_void_void_fn() {
+        void_void_fn();
+    }
+
+    static void call_void_args_fn(const std::string &s, int i, const std::vector<int> &v) {
+        void_args_fn(s, i, v);
+    }
+
+    static int call_int_void_fn() {
+        return int_void_fn();
+    }
+
+    static int call_int_args_fn(const std::string &s, int i, const std::vector<int> &v) {
+        return int_args_fn(s, i, v);
+    }
+
+    static std::shared_ptr<markusjx::cppJsLib::Server> server;
+    static std::function<void()> void_void_fn;
+    static std::function<void(std::string, int, std::vector<int>)> void_args_fn;
+    static std::function<int()> int_void_fn;
+    static std::function<int(std::string, int, std::vector<int>)> int_args_fn;
+};
+
+std::shared_ptr<markusjx::cppJsLib::Server> ServerTest::server = nullptr;
+std::function<void()> ServerTest::void_void_fn = nullptr;
+std::function<void(std::string, int, std::vector<int>)> ServerTest::void_args_fn = nullptr;
+std::function<int()> ServerTest::int_void_fn = nullptr;
+std::function<int(std::string, int, std::vector<int>)> ServerTest::int_args_fn = nullptr;
+
+TEST_F(ServerTest, functionCallTest) {
+    markusjx::cppJsLib::Client client;
+    client.setLogger([](const std::string &msg) {
+        TEST_COUT << msg << std::endl;
+    });
+
+    client.setError([](const std::string &msg) {
+        TEST_CERR << msg << std::endl;
+    });
+
+    std::function<void(std::promise<void> &)> call_void_void_fn;
+    std::function<void()> void_void_fn = [] {
+        TEST_COUT << "void(void) function called" << std::endl;
+    };
+
+    client.import(call_void_void_fn);
+    client.expose(void_void_fn);
+
+    client.connect("http://localhost:12345", false);
+    //std::this_thread::sleep_for(std::chrono::seconds(10));
+
+    std::promise<void> promise;
+    std::future<void> future = promise.get_future();
+    call_void_void_fn(promise);
+
+    TEST_COUT << "Waiting for result..." << std::endl;
+
+    EXPECT_EQ(std::future_status::ready, future.wait_for(std::chrono::seconds(10)));
+}
+
+int main(int argc, char **argv) {
+    ::testing::InitGoogleTest(&argc, argv);
+    return RUN_ALL_TESTS();
 }

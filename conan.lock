@@ -2,14 +2,14 @@
  "graph_lock": {
   "nodes": {
    "0": {
-    "ref": "CppJsLib/0.8",
-    "options": "cpp-httplib:with_brotli=False\ncpp-httplib:with_openssl=False\ncpp-httplib:with_zlib=False\nnlohmann_json:implicit_conversions=True\nnlohmann_json:multiple_headers=False\nwebsocketpp:asio=boost",
+    "options": "cpp-httplib:with_brotli=False\ncpp-httplib:with_openssl=False\ncpp-httplib:with_zlib=False\ngtest:build_gmock=True\ngtest:hide_symbols=False\ngtest:no_main=False\ngtest:shared=False\nnlohmann_json:implicit_conversions=True\nnlohmann_json:multiple_headers=False\nwebsocketpp:asio=boost",
     "requires": [
      "1",
      "2",
-     "3"
+     "3",
+     "9"
     ],
-    "path": "conanfile.py",
+    "path": "conanfile.txt",
     "context": "host"
    },
    "1": {
@@ -20,7 +20,7 @@
     "context": "host"
    },
    "2": {
-    "ref": "cpp-httplib/0.7.15",
+    "ref": "cpp-httplib/0.8.8",
     "options": "with_brotli=False\nwith_openssl=False\nwith_zlib=False",
     "package_id": "5ab84d6acfe1f23c4fae0ab88f26e3a396351ac9",
     "prev": "0",
@@ -75,6 +75,13 @@
     "ref": "libiconv/1.16",
     "options": "shared=False",
     "package_id": "3fb49604f9c2f729b85ba3115852006824e72cab",
+    "prev": "0",
+    "context": "host"
+   },
+   "9": {
+    "ref": "gtest/1.10.0",
+    "options": "build_gmock=True\nhide_symbols=False\nno_main=False\nshared=False",
+    "package_id": "5ad274d83035c78ba2b205e6cf4f1b317aee8e05",
     "prev": "0",
     "context": "host"
    }
