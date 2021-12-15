@@ -188,7 +188,7 @@ const cppJsLib = {
                 if (callback != null) {
                     xhttp.onreadystatechange = function () {
                         if (this.readyState === 4 && this.status === 200) {
-                            console.log(xhttp.responseText);
+                            console.debug("Received request response:", xhttp.responseText);
                             callback(xhttp.responseText);
                         }
                     };
