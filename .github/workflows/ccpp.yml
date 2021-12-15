@@ -86,7 +86,9 @@ jobs:
 
     strategy:
       matrix:
-         os: [ ubuntu-latest, windows-latest ]
+         # Exclude ubuntu as it is currently broken
+         #os: [ ubuntu-latest, windows-latest ]
+         os: [ windows-latest ]
 
     steps:
     - uses: actions/checkout@v1
