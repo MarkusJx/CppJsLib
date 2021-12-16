@@ -50,6 +50,10 @@ const cppJsLib = {
     disconnectTimeoutRunning: false,
     disconnectTimeoutSeconds: 10,
     /**
+     * Whether to enable logging
+     */
+    enableLogging: false,
+    /**
      * The websocket object
      * @type WebSocket | null
      */
@@ -177,7 +181,8 @@ const cppJsLib = {
     sendHttpRequest: function (type, name, body = null, callback = null) {
         this.serverReachable().then(res => {
             if (!res) {
-                console.debug("Disconnected");
+                if (cppJsLib.enableLogging)
+                    console.debug("Disconnected");
                 this.onClose();
                 return;
             }
@@ -188,14 +193,16 @@ const cppJsLib = {
                 if (callback != null) {
                     xhttp.onreadystatechange = function () {
                         if (this.readyState === 4 && this.status === 200) {
-                            console.debug("Received request response:", xhttp.responseText);
+                            if (cppJsLib.enableLogging)
+                                console.debug("Received request response:", xhttp.responseText);
                             callback(xhttp.responseText);
                         }
                     };
                 }
                 xhttp.send(body);
             } catch (error) {
-                console.debug("Disconnected");
+                if (cppJsLib.enableLogging)
+                    console.debug("Disconnected");
                 this.onClose();
             }
         });
@@ -211,11 +218,13 @@ const cppJsLib = {
         if (this.webSocket_only) {
             this.callbacks[data.callback] = callback;
 
-            console.debug("Sending request: " + JSON.stringify(data));
+            if (cppJsLib.enableLogging)
+                console.debug("Sending request: " + JSON.stringify(data));
             try {
                 this.webSocket.send(JSON.stringify(data));
             } catch (error) {
-                console.debug("Disconnected");
+                if (cppJsLib.enableLogging)
+                    console.debug("Disconnected");
                 this.onClose();
             }
         } else {
@@ -238,7 +247,8 @@ const cppJsLib = {
             if (cppJsLib.connected) cppJsLib.disconnectListeners.forEach(fn => fn());
             cppJsLib.disconnectTimeoutRunning = true;
             cppJsLib.connected = false;
-            console.debug(`Connection closed. Trying to reconnect in ${cppJsLib.disconnectTimeoutSeconds} seconds`);
+            if (cppJsLib.enableLogging)
+                console.debug(`Connection closed. Trying to reconnect in ${cppJsLib.disconnectTimeoutSeconds} seconds`);
             setTimeout(() => {
                 cppJsLib.disconnectTimeoutRunning = false;
                 cppJsLib.init(cppJsLib.websocket_only, cppJsLib.tls, cppJsLib.host, cppJsLib.port);
@@ -265,7 +275,8 @@ const cppJsLib = {
         const init_request = () => {
             // The callback function, which sets the exported functions
             const callback_fn = response => {
-                console.debug("Initializing with sequence: " + response);
+                if (cppJsLib.enableLogging)
+                    console.debug("Initializing with sequence: " + response);
                 let obj = JSON.parse(response);
                 for (let fnName in obj) {
                     this.addFn(fnName, obj[fnName]);
@@ -290,7 +301,8 @@ const cppJsLib = {
 
         // The main message parser
         const ws_onmessage = (event) => {
-            console.debug("Received websocket message: " + event.data);
+            if (cppJsLib.enableLogging)
+                console.debug("Received websocket message: " + event.data);
             const data = JSON.parse(event.data);
             if (data.header === "callback") {
                 if (this.callbacks.hasOwnProperty(data.callback)) {
@@ -347,7 +359,8 @@ const cppJsLib = {
         if (websocket_only) {
             let wsProtocol = tls ? "wss://" : "ws://";
 
-            console.debug(`Connecting to websocket on: ${wsProtocol}${host}:${port}`);
+            if (cppJsLib.enableLogging)
+                console.debug(`Connecting to websocket on: ${wsProtocol}${host}:${port}`);
             this.webSocket = new WebSocket(`${wsProtocol}${host}:${port}`);
 
             this.webSocket.onerror = () => {
@@ -364,7 +377,8 @@ const cppJsLib = {
 
             this.sendHttpRequest("GET", "init_ws", null, (response) => {
                 let obj = JSON.parse(response);
-                console.debug("Initializing webSocket with message: " + response);
+                if (cppJsLib.enableLogging)
+                    console.debug("Initializing webSocket with message: " + response);
                 if (obj["ws"] === true) {
                     let wsProtocol;
                     if (obj.tls) {
@@ -373,7 +387,8 @@ const cppJsLib = {
                         wsProtocol = "ws://";
                     }
 
-                    console.debug("Connecting to websocket on: " + wsProtocol + obj.host + ":" + obj.port);
+                    if (cppJsLib.enableLogging)
+                        console.debug("Connecting to websocket on: " + wsProtocol + obj.host + ":" + obj.port);
                     this.webSocket = new WebSocket(wsProtocol + obj.host + ":" + obj.port);
 
                     this.connected = true;
@@ -383,7 +398,8 @@ const cppJsLib = {
                     }
 
                     this.webSocket.onopen = () => {
-                        console.debug("Connected to the websocket server");
+                        if (cppJsLib.enableLogging)
+                            console.debug("Connected to the websocket server");
                     };
 
                     this.connected = true;
@@ -393,17 +409,20 @@ const cppJsLib = {
                 } else {
                     this.eventSource = new EventSource("cppjslib_events");
                     this.eventSource.onopen = () => {
-                        console.debug("Listening for Server Sent Event: cppjslib_events");
+                        if (cppJsLib.enableLogging)
+                            console.debug("Listening for Server Sent Event: cppjslib_events");
                         this.connected = true;
                     }
 
                     this.eventSource.onclose = () => {
-                        console.debug("SSE connection closed")
+                        if (cppJsLib.enableLogging)
+                            console.debug("SSE connection closed")
                         this.onClose();
                     }
 
                     this.eventSource.onerror = () => {
-                        console.debug("SSE connection error, closing connection");
+                        if (cppJsLib.enableLogging)
+                            console.debug("SSE connection error, closing connection");
                         this.onClose();
                         this.eventSource.close();
                     };
@@ -434,14 +453,16 @@ const cppJsLib = {
      * @param {number} numArgs the number of arguments the function expects
      */
     addFn: function (name, numArgs) {
-        console.debug(`Initializing function ${name} with ${numArgs} argument(s)`);
+        if (cppJsLib.enableLogging)
+            console.debug(`Initializing function ${name} with ${numArgs} argument(s)`);
         this[name] = function (...args) {
             if (numArgs !== arguments.length) {
                 throw new Error(`Argument count does not match. Expected: ${numArgs} vs. got: ${arguments.length}`);
             }
 
             return new Promise((resolve, reject) => {
-                console.debug(`Calling function with args: ${args}`);
+                if (cppJsLib.enableLogging)
+                    console.debug(`Calling function with args: ${args}`);
                 const toSend = {
                     header: "call",
                     func: name,
