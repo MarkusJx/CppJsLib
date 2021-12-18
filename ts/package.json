@@ -1,0 +1,22 @@
+{
+    "name": "cppjslib",
+    "version": "1.0.0",
+    "description": "",
+    "main": "CppJsLib.js",
+    "scripts": {
+        "build": "tsc --p tsconfig.json"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/MarkusJx/CppJsLib.git"
+    },
+    "author": "MarkusJx",
+    "license": "MIT",
+    "bugs": {
+        "url": "https://github.com/MarkusJx/CppJsLib/issues"
+    },
+    "homepage": "https://github.com/MarkusJx/CppJsLib#readme",
+    "devDependencies": {
+        "typescript": "^4.5.4"
+    }
+}

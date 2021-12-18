@@ -25,7 +25,7 @@
  *
  * The full license including third-party licenses is available at https://github.com/MarkusJx/CppJsLib/blob/master/LICENSE
  */
-export default class CppJsLib {
+export class CppJsLib {
     private readonly websocketOnly: boolean;
     private readonly loadFunctions: VoidMethod[] = [];
     private readonly disconnectListeners: VoidMethod[] = [];
@@ -56,9 +56,9 @@ export default class CppJsLib {
      */
     public constructor(websocketOnly: boolean = false, tls?: boolean, host?: string, port?: number) {
         this.websocketOnly = websocketOnly;
-        this.tls = tls == undefined ? (location.protocol === "https:" ? true : false) : tls;
-        this.host = host == undefined ? location.hostname : host;
-        this.port = port == undefined ? Number(location.port) : port;
+        this.tls = tls == undefined ? (typeof window !== "undefined" ? window.location.protocol === "https:" : false) : tls;
+        this.host = host == undefined ? (typeof window !== "undefined" ? window.location.hostname : "") : host;
+        this.port = port == undefined ? (typeof window !== "undefined" ? Number(window.location.port) : 0) : port;
     }
 
     /**
@@ -302,7 +302,7 @@ export default class CppJsLib {
         if (!this.disconnectTimeoutRunning) {
             this.disconnectTimeoutRunning = true;
             this.connected = false;
-            this.debug(`Connection closed. Trying to reconnect in ${cppJsLib.disconnectTimeoutSeconds} seconds`);
+            this.debug(`Connection closed. Trying to reconnect in ${this.disconnectTimeoutSeconds} seconds`);
 
             setTimeout(() => {
                 this.disconnectTimeoutRunning = false;
@@ -332,10 +332,10 @@ export default class CppJsLib {
      */
     private async initRequest(): Promise<void> {
         // The callback function, which sets the exported functions
-        const callback = (response: object): void => {
+        const callback = (response: Record<string, number>): void => {
             this.debug("Initializing with sequence:", response);
             for (let fnName in response) {
-                this.addFunction(fnName, response[fnName]);
+                this.addFunction(fnName, response[fnName]!);
             }
 
             this.loadFunctions.forEach(fn => fn());
@@ -366,9 +366,9 @@ export default class CppJsLib {
         if (data.header === "callback") {
             if (this.callbacks.hasOwnProperty(data.callback)) {
                 if (data.ok) {
-                    this.callbacks[data.callback](data.data);
+                    this.callbacks[data.callback]!(data.data);
                 } else {
-                    this.callbacks[data.callback](new Error(data.data));
+                    this.callbacks[data.callback]!(new Error(data.data));
                 }
 
                 // Delete the callback from the list
@@ -398,13 +398,13 @@ export default class CppJsLib {
 
             try {
                 if (data.data === null) {
-                    toSend.data = this.exposedFunctions[data.func]();
+                    toSend.data = this.exposedFunctions[data.func]!();
                 } else if (data.data.length === 1) {
-                    toSend.data = this.exposedFunctions[data.func](data.data[0]);
+                    toSend.data = this.exposedFunctions[data.func]!(data.data[0]);
                 } else {
-                    toSend.data = this.exposedFunctions[data.func](...data.data);
+                    toSend.data = this.exposedFunctions[data.func]!(...data.data);
                 }
-            } catch (e) {
+            } catch (e: any) {
                 this.error(`Could not call method ${data.func}:`, e);
                 toSend.ok = false;
                 toSend.data = e.message;
@@ -424,7 +424,7 @@ export default class CppJsLib {
      */
     private wsOnError(): void {
         console.warn("Error in websocket. Closing connection.");
-        this.webSocket.close();
+        this.webSocket?.close();
     }
 
     /**

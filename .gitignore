@@ -147,3 +147,4 @@ conanbuildinfo.txt
 conaninfo.txt
 graph_info.json
 cmake-build-*/
+ts/node_modules/
