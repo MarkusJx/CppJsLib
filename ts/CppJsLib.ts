@@ -253,9 +253,15 @@ export class CppJsLib {
                 body: body ? JSON.stringify(body) : undefined
             });
 
-            const parsed: T = await res.json();
+            let parsed: T | string;
+            if (res.headers.get('Content-Type') === "application/json") {
+                parsed = await res.json();
+            } else {
+                parsed = await res.text();
+            }
+
             this.debug("Received request response:", parsed);
-            return parsed;
+            return parsed as T;
         } catch (e) {
             if (!await this.serverReachable()) {
                 this.debug("Disconnected");
@@ -539,7 +545,7 @@ interface CallRequestData {
     callback: string;
 }
 
-type RequestData = InitRequestData | CallbackRequestData | CallRequestData;
+export type RequestData = InitRequestData | CallbackRequestData | CallRequestData;
 
 interface CallResponse {
     ok: boolean;
@@ -554,4 +560,4 @@ interface WebsocketInitResponse {
 }
 
 type WebsocketProtocol = "wss://" | "ws://";
-type ExposedMethod = (...args: any[]) => Promise<any>;
+export type ExposedMethod = (...args: any[]) => Promise<any>;

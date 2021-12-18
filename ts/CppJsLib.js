@@ -249,7 +249,13 @@ class CppJsLib {
                     method: method,
                     body: body ? JSON.stringify(body) : undefined
                 });
-                const parsed = yield res.json();
+                let parsed;
+                if (res.headers.get('Content-Type') === "application/json") {
+                    parsed = yield res.json();
+                }
+                else {
+                    parsed = yield res.text();
+                }
                 this.debug("Received request response:", parsed);
                 return parsed;
             }
