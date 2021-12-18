@@ -334,6 +334,9 @@ class CppJsLib {
         return __awaiter(this, void 0, void 0, function* () {
             // The callback function, which sets the exported functions
             const callback = (response) => {
+                if (typeof response !== "object") {
+                    throw new Error(`The type of the init response should be 'object' but was '${typeof response}'`);
+                }
                 this.debug("Initializing with sequence:", response);
                 for (let fnName in response) {
                     this.addFunction(fnName, response[fnName]);

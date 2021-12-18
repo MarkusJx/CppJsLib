@@ -339,6 +339,10 @@ export class CppJsLib {
     private async initRequest(): Promise<void> {
         // The callback function, which sets the exported functions
         const callback = (response: Record<string, number>): void => {
+            if (typeof response !== "object") {
+                throw new Error(`The type of the init response should be 'object' but was '${typeof response}'`);
+            }
+
             this.debug("Initializing with sequence:", response);
             for (let fnName in response) {
                 this.addFunction(fnName, response[fnName]!);
