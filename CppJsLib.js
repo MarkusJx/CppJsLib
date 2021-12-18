@@ -69,7 +69,7 @@ const cppJsLib = {
      * @param {string} event the event name
      * @param {function(): void} fn the listener
      */
-    listen: function (event, fn) {
+    listen: function(event, fn) {
         if (typeof fn !== 'function') {
             throw new Error("Argument at position 1 is not a function");
         }
@@ -129,9 +129,9 @@ const cppJsLib = {
      *
      * @returns {Promise<Boolean>} if the server is reachable
      */
-    serverReachable: function () {
+    serverReachable: function() {
         // IE vs. standard XHR creation
-        let x = new (window.ActiveXObject || XMLHttpRequest)("Microsoft.XMLHTTP"),
+        let x = new(window.ActiveXObject || XMLHttpRequest)("Microsoft.XMLHTTP"),
             s;
         let port = "";
         if (location.port.length > 0) {
@@ -153,10 +153,10 @@ const cppJsLib = {
                 try {
                     x.send();
                     x.onreadystatechange = () => {
-                        s = x.status;
-                        resolve(s >= 200 && s < 300 || s === 304);
-                    }
-                    // catch network & other problems
+                            s = x.status;
+                            resolve(s >= 200 && s < 300 || s === 304);
+                        }
+                        // catch network & other problems
                 } catch (e) {
                     resolve(false);
                 }
@@ -178,7 +178,7 @@ const cppJsLib = {
      * @param {string | null} body the string to send or null
      * @param {requestCallback | null} callback a callback function or null
      */
-    sendHttpRequest: function (type, name, body = null, callback = null) {
+    sendHttpRequest: function(type, name, body = null, callback = null) {
         this.serverReachable().then(res => {
             if (!res) {
                 if (cppJsLib.enableLogging)
@@ -187,11 +187,11 @@ const cppJsLib = {
                 return;
             }
 
-            let xhttp = new (window.ActiveXObject || XMLHttpRequest)("Microsoft.XMLHTTP");
+            let xhttp = new(window.ActiveXObject || XMLHttpRequest)("Microsoft.XMLHTTP");
             try {
                 xhttp.open(type, name, true);
                 if (callback != null) {
-                    xhttp.onreadystatechange = function () {
+                    xhttp.onreadystatechange = function() {
                         if (this.readyState === 4 && this.status === 200) {
                             if (cppJsLib.enableLogging)
                                 console.debug("Received request response:", xhttp.responseText);
@@ -214,7 +214,7 @@ const cppJsLib = {
      * @param {requestCallback} callback the callback function
      * @param {string} type the http request type. May be "GET" or "POST"
      */
-    sendRequest: function (data, callback = null, type = "POST") {
+    sendRequest: function(data, callback = null, type = "POST") {
         if (this.webSocket_only) {
             this.callbacks[data.callback] = callback;
 
@@ -238,11 +238,11 @@ const cppJsLib = {
      * @param {Number} port the websocket port
      * @param {Boolean} tls if to use TLS
      */
-    initWebsocketOnly: function (host, port, tls = false) {
+    initWebsocketOnly: function(host, port, tls = false) {
         this.init(true, tls, host, port);
     },
 
-    onClose: function () {
+    onClose: function() {
         if (!cppJsLib.disconnectTimeoutRunning) {
             if (cppJsLib.connected) cppJsLib.disconnectListeners.forEach(fn => fn());
             cppJsLib.disconnectTimeoutRunning = true;
@@ -264,12 +264,11 @@ const cppJsLib = {
      * @param {string} host the host address
      * @param {number} port the host port
      */
-    init: function (websocket_only = false, tls = false, host = "", port = 0) {
+    init: function(websocket_only = false, tls = false, host = "", port = 0) {
         this.webSocket_only = websocket_only;
         this.tls = tls;
         this.host = host;
         this.port = port;
-        this.webSocket_only = websocket_only;
 
         // The init request to be called to get the exported functions
         const init_request = () => {
@@ -437,7 +436,7 @@ const cppJsLib = {
      *
      * @returns {string} a random callback id
      */
-    generateCallbackId: function () {
+    generateCallbackId: function() {
         const getId = () => Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
         let rnd = getId();
         while (this.callbacks.hasOwnProperty(rnd)) {
@@ -452,10 +451,10 @@ const cppJsLib = {
      * @param {string} name the function name to import
      * @param {number} numArgs the number of arguments the function expects
      */
-    addFn: function (name, numArgs) {
+    addFn: function(name, numArgs) {
         if (cppJsLib.enableLogging)
             console.debug(`Initializing function ${name} with ${numArgs} argument(s)`);
-        this[name] = function (...args) {
+        this[name] = function(...args) {
             if (numArgs !== arguments.length) {
                 throw new Error(`Argument count does not match. Expected: ${numArgs} vs. got: ${arguments.length}`);
             }
@@ -485,7 +484,7 @@ const cppJsLib = {
             });
         }
     },
-    expose: function (toExpose) {
+    expose: function(toExpose) {
         this.exposedFunctions[toExpose.name] = toExpose;
     }
 };
