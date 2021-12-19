@@ -878,7 +878,7 @@ namespace markusjx::cppJsLib {
                     http_client->Get("/cppjslib_events", [this](const char *data, size_t size) {
                         std::string toSend = handleMessage(std::string(data, size));
                         if (!toSend.empty()) {
-                            http_client->Post("/cppjslib", toSend, "text/plain");
+                            http_client->Post("/cppjslib", toSend, "application/json");
                         }
                         return true;
                     });
@@ -1166,7 +1166,7 @@ namespace markusjx::cppJsLib {
                 CPPJSLIB_LOG("Calling js function via server sent events: " + str);
 
                 try {
-                    http_client->Post("/cppjslib", str, "text/plain");
+                    http_client->Post("/cppjslib", str, "application/json");
                 } catch (...) {
                     CPPJSLIB_ERR("Could not call the function via server sent events");
                     return;
@@ -1187,7 +1187,7 @@ namespace markusjx::cppJsLib {
             CPPJSLIB_LOG("Calling js function via server sent events: " + str);
 
             try {
-                http_client->Post("/cppjslib", str, "text/plain");
+                http_client->Post("/cppjslib", str, "application/json");
             } catch (std::exception &) {
                 CPPJSLIB_ERR("Could not call the function via server sent events");
                 return;
@@ -1370,7 +1370,7 @@ namespace markusjx::cppJsLib {
                 CPPJSLIB_LOG("Calling js function via server sent events: " + str);
 
                 try {
-                    http_client->Post("/cppjslib", str, "text/plain");
+                    http_client->Post("/cppjslib", str, "application/json");
                 } catch (...) {
                     CPPJSLIB_ERR("Could not call the function via server sent events");
                     return;
@@ -1391,7 +1391,7 @@ namespace markusjx::cppJsLib {
             CPPJSLIB_LOG("Calling js function via server sent events: " + str);
 
             try {
-                http_client->Post("/cppjslib", str, "text/plain");
+                http_client->Post("/cppjslib", str, "application/json");
             } catch (std::exception &) {
                 CPPJSLIB_ERR("Could not call the function via server sent events");
                 return;
@@ -1572,7 +1572,7 @@ namespace markusjx::cppJsLib {
                 try {
                     std::string toSend = this->handleMessages(req.body);
                     if (!toSend.empty()) {
-                        res.set_content(toSend, "text/plain");
+                        res.set_content(toSend, "application/json");
                     }
                     res.status = 200;
                 } catch (const std::exception &e) {
@@ -2196,7 +2196,7 @@ namespace markusjx::cppJsLib {
             } else if (header == "init") {
                 if (json.find("callback") == json.end()) {
                     CPPJSLIB_ERR("json structure had no callback");
-                    return std::string();
+                    return {};
                 }
 
                 nlohmann::json callback;
@@ -2208,12 +2208,12 @@ namespace markusjx::cppJsLib {
             } else if (header == "callback") { // This is an answer to a previous function call
                 if (json.find("data") == json.end()) {
                     CPPJSLIB_ERR("json structure did not contain data");
-                    return std::string();
+                    return {};
                 }
 
                 if (json.find("callback") == json.end()) {
                     CPPJSLIB_ERR("json structure had no callback");
-                    return std::string();
+                    return {};
                 }
 
                 std::unique_lock<std::mutex> lock(callbacksMutex);
@@ -2249,7 +2249,7 @@ namespace markusjx::cppJsLib {
             } else if (header == "call") {
                 if (json.find("callback") == json.end()) {
                     CPPJSLIB_ERR("json structure had no callback");
-                    return std::string();
+                    return {};
                 }
 
                 nlohmann::json callback;
@@ -2286,7 +2286,7 @@ namespace markusjx::cppJsLib {
                 }
             }
 
-            return std::string();
+            return {};
         }
 
 #ifdef CPPJSLIB_ENABLE_WEBSOCKET
@@ -2492,11 +2492,11 @@ namespace markusjx::cppJsLib {
 
             initString = initList.dump();
             const auto initHandler = [this](const httplib::Request &, httplib::Response &res) {
-                res.set_content(initString, "text/plain");
+                res.set_content(initString, "application/json");
             };
 
             const auto init_ws_handler = [init_ws_string](const httplib::Request &, httplib::Response &res) {
-                res.set_content(init_ws_string, "text/plain");
+                res.set_content(init_ws_string, "application/json");
             };
 
             webServer->Get("/init", initHandler);
@@ -2642,7 +2642,7 @@ namespace markusjx::cppJsLib {
 
             // Set the message handler
             webServer->Post("/cppjslib", [this](const httplib::Request &req, httplib::Response &res) {
-                res.set_content(this->handleMessages(req.body), "text/plain");
+                res.set_content(this->handleMessages(req.body), "application/json");
             });
 
             eventDispatcher = std::make_shared<util::EventDispatcher>();

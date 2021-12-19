@@ -254,7 +254,10 @@ export class CppJsLib {
             });
 
             let parsed: T | string;
-            if (res.headers.get('Content-Type') === "application/json") {
+            if (
+                res.headers.get('Content-Type') === "application/json" &&
+                Number(res.headers.get("content-length")) > 0
+            ) {
                 parsed = await res.json();
             } else {
                 parsed = await res.text();

@@ -250,7 +250,8 @@ class CppJsLib {
                     body: body ? JSON.stringify(body) : undefined
                 });
                 let parsed;
-                if (res.headers.get('Content-Type') === "application/json") {
+                if (res.headers.get('Content-Type') === "application/json" &&
+                    Number(res.headers.get("content-length")) > 0) {
                     parsed = yield res.json();
                 }
                 else {
