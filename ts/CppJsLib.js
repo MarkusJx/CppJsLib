@@ -211,8 +211,17 @@ class CppJsLib {
      *
      * @param func the method to expose
      */
-    expose(func) {
-        this.exposedFunctions[func.name] = func;
+    expose(func, methodName) {
+        if (!methodName) {
+            methodName = func.name;
+        }
+        if (typeof func !== "function") {
+            throw new TypeError("Parameter 'func' should be typeof 'function'");
+        }
+        else if (typeof methodName !== "string") {
+            throw new TypeError("Parameter 'methodName' should be typeof 'string'");
+        }
+        this.exposedFunctions[methodName] = func;
     }
     /**
      * Check if the server is reachable

@@ -214,8 +214,18 @@ export class CppJsLib {
      * 
      * @param func the method to expose
      */
-    public expose(func: ExposedMethod): void {
-        this.exposedFunctions[func.name] = func;
+    public expose(func: ExposedMethod, methodName?: string): void {
+        if (!methodName) {
+            methodName = func.name;
+        }
+
+        if (typeof func !== "function") {
+            throw new TypeError("Parameter 'func' should be typeof 'function'");
+        } else if (typeof methodName !== "string") {
+            throw new TypeError("Parameter 'methodName' should be typeof 'string'");
+        }
+
+        this.exposedFunctions[methodName] = func;
     }
 
     /**
