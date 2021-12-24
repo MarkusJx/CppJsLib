@@ -38,6 +38,7 @@ export class CppJsLib {
     private disconnectTimeoutRunning: boolean = false;
     private disconnectTimeoutSeconds: number = 10;
     private enableLogging: boolean = false;
+    private preferWindowLocation: boolean = false;
 
     private webSocket: WebSocket | null = null;
     private eventSource: EventSource | null = null;
@@ -48,7 +49,7 @@ export class CppJsLib {
 
     /**
      * Create a new CppJsLib instance
-     * 
+     *
      * @param websocketOnly whether to only use websockets for communication
      * @param tls whether to use tls
      * @param host the hostname to connect to
@@ -63,7 +64,7 @@ export class CppJsLib {
 
     /**
      * Set whether to enable logging
-     * 
+     *
      * @param val set to true to enable logging
      */
     public set logging(val: boolean) {
@@ -129,10 +130,10 @@ export class CppJsLib {
     }
 
     /**
-     * Unlisten from an event
+     * Un-listen from an event
      *
      * @param event the event name
-     * @param fn the listener to remove
+     * @param listener the listener to remove
      */
     public unlisten(event: string, listener: VoidMethod): void {
         if (typeof listener !== 'function') {
@@ -158,19 +159,17 @@ export class CppJsLib {
      * Initialize CppJsLib.
      * Call this before doing anything else.
      * Will call any load listeners once done.
+     *
+     * @param preferWindowLocation whether to prefer try connecting the websocket client to window.location
      */
-    public async init(): Promise<void> {
+    public async init(preferWindowLocation: boolean = false): Promise<void> {
+        this.preferWindowLocation = preferWindowLocation;
         if (this.websocketOnly) {
             const wsProtocol: WebsocketProtocol = this.tls ? "wss://" : "ws://";
-            return new Promise((resolve, reject) => {
-                this.createWebsocket(wsProtocol, this, () => {
-                    this.debug("Connected to the websocket server");
-                    this.initRequest().then(() => {
-                        this.connected = true;
-                        resolve();
-                    }, reject);
-                });
-            });
+            await this.createWebsocket(wsProtocol, this);
+            this.debug("Connected to the websocket server");
+            await this.initRequest();
+            this.connected = true;
         } else {
             await this.initRequest();
             const response: WebsocketInitResponse = await this.sendHttpRequest("GET", "init_ws", null);
@@ -178,14 +177,9 @@ export class CppJsLib {
 
             if (response.ws === true) {
                 const wsProtocol: WebsocketProtocol = response.tls ? "wss://" : "ws://";
-
-                return new Promise(resolve => {
-                    this.createWebsocket(wsProtocol, response, (): void => {
-                        this.debug("Connected to the websocket server");
-                        this.connected = true;
-                        resolve();
-                    });
-                });
+                await this.createWebsocket(wsProtocol, response);
+                this.debug("Connected to the websocket server");
+                this.connected = true;
             } else {
                 this.eventSource = new EventSource("cppjslib_events");
                 this.eventSource!.onopen = (): void => {
@@ -211,7 +205,7 @@ export class CppJsLib {
 
     /**
      * Expose a method to c++
-     * 
+     *
      * @param func the method to expose
      */
     public expose(func: ExposedMethod, methodName?: string): void {
@@ -230,7 +224,7 @@ export class CppJsLib {
 
     /**
      * Check if the server is reachable
-     * 
+     *
      * @returns true if the server can be reached
      */
     private async serverReachable(): Promise<boolean> {
@@ -250,7 +244,7 @@ export class CppJsLib {
 
     /**
      * Send a http request
-     * 
+     *
      * @param method the request method
      * @param path the request path
      * @param body the request body
@@ -287,7 +281,7 @@ export class CppJsLib {
 
     /**
      * Send a request
-     * 
+     *
      * @param data the request data
      * @param type the request type. Only required if websocketOnly is false.
      * @returns the request result
@@ -325,25 +319,73 @@ export class CppJsLib {
 
             setTimeout(() => {
                 this.disconnectTimeoutRunning = false;
-                this.init();
+                this.init().then(() => this.debug("Successfully initialized"));
             }, this.disconnectTimeoutSeconds * 1000);
         }
     }
 
     /**
      * Create a new websocket and connect to the server
-     * 
+     *
      * @param protocol the websocket protocol
      * @param data the data which contains the host and port
-     * @param onOpen the open listener
      */
-    private createWebsocket<T extends WebsocketInitResponse>(protocol: WebsocketProtocol, data: T, onOpen: () => void): void {
-        this.debug(`Connecting to websocket on: ${protocol}${data.host}:${data.port}`);
-        this.webSocket = new WebSocket(`${protocol}${data.host}:${data.port}`);
-        this.webSocket!.onerror = this.wsOnError.bind(this);
-        this.webSocket!.onclose = this.onClose.bind(this);
-        this.webSocket!.onmessage = this.wsOnMessage.bind(this);
-        this.webSocket.onopen = onOpen;
+    private async createWebsocket<T extends WebsocketInitResponse>(protocol: WebsocketProtocol, data: T): Promise<void> {
+        const create = (): Promise<WebSocket> => {
+            this.debug(`Connecting to websocket on: ${protocol}${data.host}:${data.port}`);
+            return CppJsLib.tryCreateWebsocket(protocol, data.host, data.port);
+        };
+
+        if (this.preferWindowLocation) {
+            try {
+                this.debug(`Trying to connect to websocket on: ${protocol}${window?.location?.hostname}:${data.port}`);
+                this.webSocket = await CppJsLib.tryCreateWebsocket(protocol, window?.location?.hostname, data.port);
+            } catch (_) {
+                this.warn("Could not connect to the websocket server, trying with the supplied values");
+                this.webSocket = await create();
+            }
+        } else {
+            this.webSocket = await create();
+        }
+
+        this.webSocket.addEventListener('error', this.wsOnError.bind(this));
+        this.webSocket.addEventListener('close', this.onClose.bind(this));
+        this.webSocket.addEventListener('message', this.wsOnMessage.bind(this));
+    }
+
+    /**
+     * Try creating a new websocket.
+     * Throws an error if the connection failed.
+     *
+     * @param protocol the protocol
+     * @param host the hostname
+     * @param port the port of the websocket
+     * @private
+     */
+    private static tryCreateWebsocket(protocol: WebsocketProtocol, host: string, port: number): Promise<WebSocket> {
+        return new Promise<WebSocket>((resolve, reject) => {
+            const websocket = new WebSocket(`${protocol}${host}:${port}`);
+
+            const openListener = (): void => {
+                removeListeners();
+                resolve(websocket);
+            };
+
+            const closeListener = (e: Event): void => {
+                if ((e?.target as any | undefined)?.readyState === 3) {
+                    removeListeners();
+                    reject("Could not connect to the websocket server");
+                }
+            };
+
+            const removeListeners = (): void => {
+                websocket.removeEventListener('open', openListener);
+                websocket.removeEventListener('close', closeListener);
+            };
+
+            websocket.addEventListener('open', openListener);
+            websocket.addEventListener('close', closeListener);
+        });
     }
 
     /**
@@ -379,7 +421,7 @@ export class CppJsLib {
 
     /**
      * The websocket on message listener
-     * 
+     *
      * @param event the message event
      */
     private async wsOnMessage(event: MessageEvent<string>): Promise<void> {
@@ -452,7 +494,7 @@ export class CppJsLib {
 
     /**
      * Add a method to the list of imported methods
-     * 
+     *
      * @param name the name of the method to import
      * @param numArgs the number of arguments of the method
      */
@@ -504,7 +546,7 @@ export class CppJsLib {
 
     /**
      * Log a debug message
-     * 
+     *
      * @param args the arguments to log
      */
     private debug(...args: any[]): void {
@@ -515,7 +557,7 @@ export class CppJsLib {
 
     /**
      * Log a warning message
-     * 
+     *
      * @param args the arguments to log
      */
     private warn(...args: any[]): void {
@@ -526,7 +568,7 @@ export class CppJsLib {
 
     /**
      * Log an error message
-     * 
+     *
      * @param args the arguments to log
      */
     private error(...args: any[]): void {

@@ -57,6 +57,7 @@ class CppJsLib {
         this.disconnectTimeoutRunning = false;
         this.disconnectTimeoutSeconds = 10;
         this.enableLogging = false;
+        this.preferWindowLocation = false;
         this.webSocket = null;
         this.eventSource = null;
         this.websocketOnly = websocketOnly;
@@ -128,10 +129,10 @@ class CppJsLib {
         }
     }
     /**
-     * Unlisten from an event
+     * Un-listen from an event
      *
      * @param event the event name
-     * @param fn the listener to remove
+     * @param listener the listener to remove
      */
     unlisten(event, listener) {
         if (typeof listener !== 'function') {
@@ -155,20 +156,18 @@ class CppJsLib {
      * Initialize CppJsLib.
      * Call this before doing anything else.
      * Will call any load listeners once done.
+     *
+     * @param preferWindowLocation whether to prefer try connecting the websocket client to window.location
      */
-    init() {
+    init(preferWindowLocation = false) {
         return __awaiter(this, void 0, void 0, function* () {
+            this.preferWindowLocation = preferWindowLocation;
             if (this.websocketOnly) {
                 const wsProtocol = this.tls ? "wss://" : "ws://";
-                return new Promise((resolve, reject) => {
-                    this.createWebsocket(wsProtocol, this, () => {
-                        this.debug("Connected to the websocket server");
-                        this.initRequest().then(() => {
-                            this.connected = true;
-                            resolve();
-                        }, reject);
-                    });
-                });
+                yield this.createWebsocket(wsProtocol, this);
+                this.debug("Connected to the websocket server");
+                yield this.initRequest();
+                this.connected = true;
             }
             else {
                 yield this.initRequest();
@@ -176,13 +175,9 @@ class CppJsLib {
                 this.debug("Initializing webSocket with message:", response);
                 if (response.ws === true) {
                     const wsProtocol = response.tls ? "wss://" : "ws://";
-                    return new Promise(resolve => {
-                        this.createWebsocket(wsProtocol, response, () => {
-                            this.debug("Connected to the websocket server");
-                            this.connected = true;
-                            resolve();
-                        });
-                    });
+                    yield this.createWebsocket(wsProtocol, response);
+                    this.debug("Connected to the websocket server");
+                    this.connected = true;
                 }
                 else {
                     this.eventSource = new EventSource("cppjslib_events");
@@ -318,7 +313,7 @@ class CppJsLib {
             this.debug(`Connection closed. Trying to reconnect in ${this.disconnectTimeoutSeconds} seconds`);
             setTimeout(() => {
                 this.disconnectTimeoutRunning = false;
-                this.init();
+                this.init().then(() => this.debug("Successfully initialized"));
             }, this.disconnectTimeoutSeconds * 1000);
         }
     }
@@ -327,15 +322,62 @@ class CppJsLib {
      *
      * @param protocol the websocket protocol
      * @param data the data which contains the host and port
-     * @param onOpen the open listener
      */
-    createWebsocket(protocol, data, onOpen) {
-        this.debug(`Connecting to websocket on: ${protocol}${data.host}:${data.port}`);
-        this.webSocket = new WebSocket(`${protocol}${data.host}:${data.port}`);
-        this.webSocket.onerror = this.wsOnError.bind(this);
-        this.webSocket.onclose = this.onClose.bind(this);
-        this.webSocket.onmessage = this.wsOnMessage.bind(this);
-        this.webSocket.onopen = onOpen;
+    createWebsocket(protocol, data) {
+        var _a, _b;
+        return __awaiter(this, void 0, void 0, function* () {
+            const create = () => {
+                this.debug(`Connecting to websocket on: ${protocol}${data.host}:${data.port}`);
+                return CppJsLib.tryCreateWebsocket(protocol, data.host, data.port);
+            };
+            if (this.preferWindowLocation) {
+                try {
+                    this.debug(`Trying to connect to websocket on: ${protocol}${(_a = window === null || window === void 0 ? void 0 : window.location) === null || _a === void 0 ? void 0 : _a.hostname}:${data.port}`);
+                    this.webSocket = yield CppJsLib.tryCreateWebsocket(protocol, (_b = window === null || window === void 0 ? void 0 : window.location) === null || _b === void 0 ? void 0 : _b.hostname, data.port);
+                }
+                catch (_) {
+                    this.warn("Could not connect to the websocket server, trying with the supplied values");
+                    this.webSocket = yield create();
+                }
+            }
+            else {
+                this.webSocket = yield create();
+            }
+            this.webSocket.addEventListener('error', this.wsOnError.bind(this));
+            this.webSocket.addEventListener('close', this.onClose.bind(this));
+            this.webSocket.addEventListener('message', this.wsOnMessage.bind(this));
+        });
+    }
+    /**
+     * Try creating a new websocket.
+     * Throws an error if the connection failed.
+     *
+     * @param protocol the protocol
+     * @param host the hostname
+     * @param port the port of the websocket
+     * @private
+     */
+    static tryCreateWebsocket(protocol, host, port) {
+        return new Promise((resolve, reject) => {
+            const websocket = new WebSocket(`${protocol}${host}:${port}`);
+            const openListener = () => {
+                removeListeners();
+                resolve(websocket);
+            };
+            const closeListener = (e) => {
+                var _a;
+                if (((_a = e === null || e === void 0 ? void 0 : e.target) === null || _a === void 0 ? void 0 : _a.readyState) === 3) {
+                    removeListeners();
+                    reject("Could not connect to the websocket server");
+                }
+            };
+            const removeListeners = () => {
+                websocket.removeEventListener('open', openListener);
+                websocket.removeEventListener('close', closeListener);
+            };
+            websocket.addEventListener('open', openListener);
+            websocket.addEventListener('close', closeListener);
+        });
     }
     /**
      * The init request to be called to get the exported functions
