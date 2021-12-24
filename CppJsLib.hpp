@@ -2035,6 +2035,7 @@ namespace markusjx::cppJsLib {
                 }
 
                 CPPJSLIB_LOG("Closing all websocket connections");
+                std::unique_lock lock(websocketConnectionsMutex);
                 for (const auto &con : *websocketConnections) {
                     std::error_code ec;
                     websocketServer->close(con, websocketpp::close::status::going_away,
@@ -2629,6 +2630,7 @@ namespace markusjx::cppJsLib {
      * A ssl server
      */
     class CPPJSLIB_UNUSED SSLServer : public Server {
+    public:
         // Set the websocket types
 #   ifdef CPPJSLIB_ENABLE_WEBSOCKET
         using websocket_fallback_type = util::wspp::server;
@@ -2704,22 +2706,45 @@ namespace markusjx::cppJsLib {
             if (running()) {
 #   ifdef CPPJSLIB_ENABLE_WEBSOCKET
                 if (!websocket_only) {
-                    CPPJSLIB_LOG("Stopping web server");
+                    CPPJSLIB_LOG("Stopping the web server");
                     webServer->stop();
                 }
 
-                CPPJSLIB_LOG("Stopping websocket server");
+                CPPJSLIB_LOG("Disconnecting all websocket tls clients");
+                std::unique_lock lock(websocketConnectionsMutex);
+                for (const auto &con : *websocketConnections) {
+                    std::error_code ec;
+                    websocketTLSServer->close(con, websocketpp::close::status::going_away,
+                                              "The server is shutting down", ec);
+                    if (ec) {
+                        CPPJSLIB_ERR("Could not close a websocket connection: " + ec.message());
+                    }
+                }
+                websocketConnections->clear();
+
+                CPPJSLIB_LOG("Stopping the websocket server");
                 try {
                     websocketTLSServer->stop_listening();
                     websocketTLSServer->stop();
 
                     if (fallback_plain_port) {
-                        CPPJSLIB_LOG("Stopping websocket plain fallback server");
+                        CPPJSLIB_LOG("Disconnecting all websocket clients");
+                        for (const auto &con : *websocketFallbackConnections) {
+                            std::error_code ec;
+                            websocketFallbackServer->close(con, websocketpp::close::status::going_away,
+                                                           "The server is shutting down", ec);
+                            if (ec) {
+                                CPPJSLIB_ERR("Could not close a websocket connection: " + ec.message());
+                            }
+                        }
+                        websocketFallbackConnections->clear();
+
+                        CPPJSLIB_LOG("Stopping the websocket plain fallback server");
                         websocketFallbackServer->stop_listening();
                         websocketFallbackServer->stop();
                     }
                 } catch (...) {
-                    CPPJSLIB_ERR("Could not close websocket server(s)");
+                    CPPJSLIB_ERR("Could not close the websocket server(s)");
                 }
 #   else
                 webServer->stop();
