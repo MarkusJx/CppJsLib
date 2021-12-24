@@ -2153,7 +2153,7 @@ namespace markusjx::cppJsLib {
                 return response_size == eventDispatcher->clients;
             }
 #else
-            return response_size == eventDispatcher->clients;
+            return response_size == (size_t) eventDispatcher->clients;
 #endif //CPPJSLIB_ENABLE_WEBSOCKET
         }
 
@@ -2663,18 +2663,19 @@ namespace markusjx::cppJsLib {
 #   ifdef CPPJSLIB_ENABLE_WEBSOCKET
             setPassword();
 
-            CPPJSLIB_LOG("Initializing tls websocket server");
+            //CPPJSLIB_LOG("Initializing tls websocket server");
             websocketConnections = std::make_shared<websocket_con_list>();
             websocketTLSServer = std::make_shared<websocket_ssl_type>();
             initWebsocketTLS(websocketTLSServer, cert_path, private_key_path);
             initWebsocketServer(websocketTLSServer, websocketConnections, websocketConnectionsMutex);
 
             if (fallback_plain_port) {
-                CPPJSLIB_LOG("Initializing websocket plain fallback server");
+                //CPPJSLIB_LOG("Initializing websocket plain fallback server");
                 websocketFallbackServer = std::make_shared<websocket_fallback_type>();
-                websocketFallbackConnections = std::make_shared<websocket_fallback_connections_type>();
                 initWebsocketServer(websocketFallbackServer, websocketFallbackConnections, websocketConnectionsMutex);
             }
+            // This must not be null
+            websocketFallbackConnections = std::make_shared<websocket_fallback_connections_type>();
 #   endif//CPPJSLIB_ENABLE_WEBSOCKET
         }
 
