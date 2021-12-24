@@ -2030,16 +2030,27 @@ namespace markusjx::cppJsLib {
             if (running()) {
 #ifdef CPPJSLIB_ENABLE_WEBSOCKET
                 if (!websocket_only) {
-                    CPPJSLIB_LOG("Stopping web server");
+                    CPPJSLIB_LOG("Stopping the web server");
                     webServer->stop();
                 }
 
-                CPPJSLIB_LOG("Stopping websocket server");
+                CPPJSLIB_LOG("Closing all websocket connections");
+                for (const auto &con : *websocketConnections) {
+                    std::error_code ec;
+                    websocketServer->close(con, websocketpp::close::status::going_away,
+                                           "The server is shutting down", ec);
+                    if (ec) {
+                        CPPJSLIB_ERR("Could not close a websocket connection: " + ec.message());
+                    }
+                }
+                websocketConnections->clear();
+
+                CPPJSLIB_LOG("Stopping the websocket server");
                 try {
                     websocketServer->stop_listening();
                     websocketServer->stop();
                 } catch (...) {
-                    CPPJSLIB_ERR("Could not close websocket server(s)");
+                    CPPJSLIB_ERR("Could not close the websocket server(s)");
                 }
 #else
                 webServer->stop();
