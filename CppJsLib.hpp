@@ -2669,13 +2669,15 @@ namespace markusjx::cppJsLib {
             initWebsocketTLS(websocketTLSServer, cert_path, private_key_path);
             initWebsocketServer(websocketTLSServer, websocketConnections, websocketConnectionsMutex);
 
+            // This must not be null
+            websocketFallbackConnections = std::make_shared<websocket_fallback_connections_type>();
+
+            // Initialize the fallback server (if requested)
             if (fallback_plain_port) {
                 //CPPJSLIB_LOG("Initializing websocket plain fallback server");
                 websocketFallbackServer = std::make_shared<websocket_fallback_type>();
                 initWebsocketServer(websocketFallbackServer, websocketFallbackConnections, websocketConnectionsMutex);
             }
-            // This must not be null
-            websocketFallbackConnections = std::make_shared<websocket_fallback_connections_type>();
 #   endif//CPPJSLIB_ENABLE_WEBSOCKET
         }
 
